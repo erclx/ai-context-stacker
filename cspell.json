@@ -1,0 +1,27 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "vscode",
+    "vsix",
+    "codicons",
+    "webview",
+    "sidebar",
+    "treedata",
+    "quickpick",
+    "disposables",
+    "l10n",
+    "eslintrc",
+    "prettierrc",
+    "cloudern"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "out",
+    "dist",
+    "package-lock.json",
+    ".vscode-test",
+    "**/*.vsix",
+    "**/*.svg"
+  ]
+}
