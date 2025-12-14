@@ -12,10 +12,27 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aiContextStacker",
+          "title": "AI Context Stacker",
+          "icon": "$(list-tree)"
+        }
+      ]
+    },
+    "views": {
+      "aiContextStacker": [
+        {
+          "id": "aiContextStackerView",
+          "name": "Staged Files"
+        }
+      ]
+    },
     "commands": [
       {
-        "command": "vscode-extension-template.helloWorld",
-        "title": "Hello World"
+        "command": "aiContextStacker.addTest",
+        "title": "AI Context Stacker: Add Current File"
       }
     ]
   },
