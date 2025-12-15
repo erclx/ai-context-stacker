@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 
+import { StagedFile } from '@/models'
 import { ContextStackProvider, IgnorePatternProvider } from '@/providers'
 
 import { registerAddFileCommand } from './add-file'
@@ -13,12 +14,13 @@ interface Providers {
   context: vscode.ExtensionContext
   contextStackProvider: ContextStackProvider
   ignorePatternProvider: IgnorePatternProvider
+  treeView: vscode.TreeView<StagedFile>
 }
 
-export function registerAllCommands({ context, contextStackProvider, ignorePatternProvider }: Providers) {
+export function registerAllCommands({ context, contextStackProvider, ignorePatternProvider, treeView }: Providers) {
   registerAddFileCommand(context, contextStackProvider)
   registerAddFilePickerCommand(context, contextStackProvider, ignorePatternProvider)
-  registerRemoveFileCommand(context, contextStackProvider)
+  registerRemoveFileCommand(context, contextStackProvider, treeView)
   registerCopyAllCommand(context, contextStackProvider)
   registerCopyFileCommand(context)
   registerClearAllCommand(context, contextStackProvider)

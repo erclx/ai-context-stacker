@@ -105,7 +105,15 @@
           "group": "2_modification"
         }
       ]
-    }
+    },
+    "keybindings": [
+      {
+        "command": "aiContextStacker.removeFile",
+        "key": "delete",
+        "mac": "cmd+backspace",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

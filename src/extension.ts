@@ -25,7 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(contextStackProvider)
   context.subscriptions.push(ignorePatternProvider)
 
-  registerAllCommands({ context, contextStackProvider, ignorePatternProvider })
+  registerAllCommands({ context, contextStackProvider, ignorePatternProvider, treeView })
 
   Logger.info('Extension is activated')
 }

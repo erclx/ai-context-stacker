@@ -4,8 +4,9 @@ import { type StagedFile } from '@/models'
 import { ContentFormatter, Logger } from '@/utils'
 
 export function registerCopyFileCommand(context: vscode.ExtensionContext): void {
-  const command = vscode.commands.registerCommand('aiContextStacker.copyFile', async (file: StagedFile) => {
+  const command = vscode.commands.registerCommand('aiContextStacker.copyFile', async (file?: StagedFile) => {
     if (!file) {
+      Logger.warn('Copy File command triggered without a file context.')
       return
     }
 
