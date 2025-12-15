@@ -56,7 +56,7 @@
       },
       {
         "command": "aiContextStacker.copyFile",
-        "title": "Copy File Content",
+        "title": "AI Context Stacker: Copy File Content",
         "icon": "$(copy)"
       }
     ],
@@ -85,9 +85,19 @@
           "group": "inline@1"
         },
         {
+          "command": "aiContextStacker.copyFile",
+          "when": "view == aiContextStackerView && viewItem == stagedFile",
+          "group": "`1_modification"
+        },
+        {
           "command": "aiContextStacker.removeFile",
           "when": "view == aiContextStackerView && viewItem == stagedFile",
-          "group": "inline@2"
+          "group": "inline"
+        },
+        {
+          "command": "aiContextStacker.removeFile",
+          "when": "view == aiContextStackerView && viewItem == stagedFile",
+          "group": "2_modification"
         }
       ]
     }
