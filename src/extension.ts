@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { registerAllCommands } from './commands'
-import { ContextStackProvider, IgnorePatternProvider } from './providers'
+import { ContextStackProvider, HelpProvider, IgnorePatternProvider } from './providers'
 import { Logger } from './utils'
 
 export function activate(context: vscode.ExtensionContext) {
@@ -10,11 +10,18 @@ export function activate(context: vscode.ExtensionContext) {
 
   const contextStackProvider = new ContextStackProvider()
   const ignorePatternProvider = new IgnorePatternProvider()
+  const helpProvider = new HelpProvider()
 
   const treeView = vscode.window.createTreeView('aiContextStackerView', {
     treeDataProvider: contextStackProvider,
   })
+
+  const helpTreeView = vscode.window.createTreeView('aiContextStackerHelpView', {
+    treeDataProvider: helpProvider,
+  })
+
   context.subscriptions.push(treeView)
+  context.subscriptions.push(helpTreeView)
   context.subscriptions.push(contextStackProvider)
   context.subscriptions.push(ignorePatternProvider)
 
