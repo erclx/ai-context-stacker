@@ -1,12 +1,10 @@
 import * as vscode from 'vscode'
 
-import { type StagedFile } from '@/models/staged-file'
-import { Logger } from '@/utils/logger'
+import { type StagedFile } from '@/models'
+
+import { Logger } from './logger'
 
 export class ContentFormatter {
-  /**
-   * Reads all staged files and returns a single formatted string.
-   */
   public static async format(files: StagedFile[]): Promise<string> {
     const parts: string[] = []
 
@@ -41,9 +39,6 @@ export class ContentFormatter {
     return parts.join('\n')
   }
 
-  /**
-   * Reads a file and returns string content, or null if it appears to be binary.
-   */
   private static async readFileContent(uri: vscode.Uri): Promise<string | null> {
     try {
       const uint8Array = await vscode.workspace.fs.readFile(uri)

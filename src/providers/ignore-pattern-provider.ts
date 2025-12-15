@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { Logger } from '@/utils/logger'
+import { Logger } from '@/utils'
 
 const FALLBACK_EXCLUDE_PATTERNS = [
   '**/.git/**',
