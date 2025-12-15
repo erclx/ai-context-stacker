@@ -37,40 +37,48 @@
     "commands": [
       {
         "command": "aiContextStacker.addCurrentFile",
-        "title": "AI Context Stacker: Add Current File"
+        "title": "Add Current File",
+        "category": "AI Context Stacker"
       },
       {
         "command": "aiContextStacker.addFileToStack",
-        "title": "AI Context Stacker: Add to AI Context Stack"
+        "title": "Add to AI Context Stack",
+        "category": "AI Context Stacker"
       },
       {
         "command": "aiContextStacker.addFilePicker",
-        "title": "AI Context Stacker: Add Files...",
+        "title": "Add Files...",
+        "category": "AI Context Stacker",
         "icon": "$(add)"
       },
       {
         "command": "aiContextStacker.addOpenFiles",
         "title": "Add All Open Files",
+        "category": "AI Context Stacker",
         "icon": "$(editor-layout)"
       },
       {
         "command": "aiContextStacker.removeFile",
-        "title": "AI Context Stacker: Remove from Stack",
+        "title": "Remove from Stack",
+        "category": "AI Context Stacker",
         "icon": "$(close)"
       },
       {
         "command": "aiContextStacker.clearAll",
-        "title": "AI Context Stacker: Clear All",
+        "title": "Clear All",
+        "category": "AI Context Stacker",
         "icon": "$(clear-all)"
       },
       {
         "command": "aiContextStacker.copyAll",
-        "title": "AI Context Stacker: Copy to Clipboard",
+        "title": "Copy to Clipboard",
+        "category": "AI Context Stacker",
         "icon": "$(copy)"
       },
       {
         "command": "aiContextStacker.copyFile",
-        "title": "AI Context Stacker: Copy File Content",
+        "title": "Copy File Content",
+        "category": "AI Context Stacker",
         "icon": "$(copy)"
       }
     ],
