@@ -1,22 +1,42 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '@/providers/context-stack-provider'
+import {
+  registerAddFileCommand,
+  registerAddFilePickerCommand,
+  registerClearAllCommand,
+  registerRemoveFileCommand,
+} from './commands'
+import { ContextStackProvider, IgnorePatternProvider } from './providers'
 
-import { registerAddFileCommand } from './commands/add-file'
+interface Providers {
+  contextStackProvider: ContextStackProvider
+  ignorePatternProvider: IgnorePatternProvider
+}
+
+function registerAllCommands(
+  context: vscode.ExtensionContext,
+  { contextStackProvider, ignorePatternProvider }: Providers,
+) {
+  registerAddFileCommand(context, contextStackProvider)
+  registerAddFilePickerCommand(context, contextStackProvider, ignorePatternProvider)
+  registerRemoveFileCommand(context, contextStackProvider)
+  registerClearAllCommand(context, contextStackProvider)
+}
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('AI Context Stacker is activating...')
 
-  const provider = new ContextStackProvider()
+  const contextStackProvider = new ContextStackProvider()
+  const ignorePatternProvider = new IgnorePatternProvider()
+  const providers = { contextStackProvider, ignorePatternProvider }
 
-  // Register the TreeView
   const treeView = vscode.window.createTreeView('aiContextStackerView', {
-    treeDataProvider: provider,
+    treeDataProvider: contextStackProvider,
   })
   context.subscriptions.push(treeView)
+  context.subscriptions.push(ignorePatternProvider)
 
-  // Register commands
-  registerAddFileCommand(context, provider)
+  registerAllCommands(context, providers)
 
   console.log('AI Context Stacker activated!')
 }

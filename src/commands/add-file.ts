@@ -3,12 +3,12 @@ import * as vscode from 'vscode'
 import { ContextStackProvider } from '@/providers/context-stack-provider'
 
 export function registerAddFileCommand(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
-  const command = vscode.commands.registerCommand('aiContextStacker.addTest', () => {
+  const command = vscode.commands.registerCommand('aiContextStacker.addCurrentFile', () => {
     const editor = vscode.window.activeTextEditor
 
     if (editor) {
       provider.addFile(editor.document.uri)
-      vscode.window.showInformationMessage('Added file to stack')
+      vscode.window.showInformationMessage('Added current file to stack')
     } else {
       vscode.window.showWarningMessage('No file open')
     }

@@ -29,6 +29,17 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StagedFile>
     this._onDidChangeTreeData.fire()
   }
 
+  addFiles(uris: vscode.Uri[]): void {
+    uris.forEach((uri) => {
+      const label = uri.path.split('/').pop() || 'unknown'
+      const exists = this.files.some((f) => f.uri.toString() === uri.toString())
+      if (!exists) {
+        this.files.push({ uri, label })
+      }
+    })
+    this._onDidChangeTreeData.fire()
+  }
+
   removeFile(file: StagedFile): void {
     this.files = this.files.filter((f) => f.uri.fsPath !== file.uri.fsPath)
     this._onDidChangeTreeData.fire()

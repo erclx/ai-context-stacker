@@ -31,10 +31,46 @@
     },
     "commands": [
       {
-        "command": "aiContextStacker.addTest",
+        "command": "aiContextStacker.addCurrentFile",
         "title": "AI Context Stacker: Add Current File"
+      },
+      {
+        "command": "aiContextStacker.addFilePicker",
+        "title": "AI Context Stacker: Add Files...",
+        "icon": "$(add)"
+      },
+      {
+        "command": "aiContextStacker.removeFile",
+        "title": "AI Context Stacker: Remove from Stack",
+        "icon": "$(close)"
+      },
+      {
+        "command": "aiContextStacker.clearAll",
+        "title": "AI Context Stacker: Clear All",
+        "icon": "$(clear-all)"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "aiContextStacker.addFilePicker",
+          "when": "view == aiContextStackerView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "aiContextStacker.clearAll",
+          "when": "view == aiContextStackerView",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "aiContextStacker.removeFile",
+          "when": "view == aiContextStackerView && viewItem == stagedFile",
+          "group": "inline"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
