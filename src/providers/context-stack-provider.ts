@@ -18,7 +18,7 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StagedFile>
 
   getTreeItem(element: StagedFile): vscode.TreeItem {
     const item = new vscode.TreeItem(element.label)
-    item.resourceUri = element.uri
+    item.resourceUri = element.uri.with({ scheme: 'ai-stack' })
     item.tooltip = element.uri.fsPath
     item.contextValue = 'stagedFile'
     return item
