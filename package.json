@@ -109,12 +109,12 @@
           "group": "navigation@2"
         },
         {
-          "command": "aiContextStacker.copyAll",
+          "command": "aiContextStacker.clearAll",
           "when": "view == aiContextStackerView",
           "group": "navigation@3"
         },
         {
-          "command": "aiContextStacker.clearAll",
+          "command": "aiContextStacker.copyAll",
           "when": "view == aiContextStackerView",
           "group": "navigation@4"
         }
