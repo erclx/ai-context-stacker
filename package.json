@@ -112,6 +112,12 @@
         "key": "delete",
         "mac": "cmd+backspace",
         "when": "focusedView == aiContextStackerView && !inputFocus"
+      },
+      {
+        "command": "aiContextStacker.copyFile",
+        "key": "ctrl+c",
+        "mac": "cmd+c",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
       }
     ]
   },

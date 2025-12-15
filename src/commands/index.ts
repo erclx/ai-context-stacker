@@ -20,8 +20,10 @@ interface Providers {
 export function registerAllCommands({ context, contextStackProvider, ignorePatternProvider, treeView }: Providers) {
   registerAddFileCommand(context, contextStackProvider)
   registerAddFilePickerCommand(context, contextStackProvider, ignorePatternProvider)
-  registerRemoveFileCommand(context, contextStackProvider, treeView)
-  registerCopyAllCommand(context, contextStackProvider)
-  registerCopyFileCommand(context)
+
   registerClearAllCommand(context, contextStackProvider)
+  registerCopyAllCommand(context, contextStackProvider)
+
+  registerCopyFileCommand(context, contextStackProvider, treeView)
+  registerRemoveFileCommand(context, contextStackProvider, treeView)
 }
