@@ -2,26 +2,19 @@
   "version": "0.2",
   "language": "en",
   "words": [
-    "vscode",
-    "vsix",
+    "cloudern",
     "codicons",
-    "webview",
+    "cutcopypaste",
+    "disposables",
+    "eslintrc",
+    "l10n",
+    "prettierrc",
+    "quickpick",
     "sidebar",
     "treedata",
-    "quickpick",
-    "disposables",
-    "l10n",
-    "eslintrc",
-    "prettierrc",
-    "cloudern"
+    "vscode",
+    "vsix",
+    "webview"
   ],
-  "ignorePaths": [
-    "node_modules",
-    "out",
-    "dist",
-    "package-lock.json",
-    ".vscode-test",
-    "**/*.vsix",
-    "**/*.svg"
-  ]
+  "ignorePaths": ["node_modules", "out", "dist", "package-lock.json", ".vscode-test", "**/*.vsix", "**/*.svg"]
 }
