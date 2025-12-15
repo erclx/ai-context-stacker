@@ -1,5 +1,7 @@
 import * as vscode from 'vscode'
 
+import { Logger } from '@/utils/logger'
+
 const FALLBACK_EXCLUDE_PATTERNS = [
   '**/.git/**',
   '**/node_modules/**',
@@ -27,7 +29,7 @@ export class IgnorePatternProvider {
     this._watcher = vscode.workspace.createFileSystemWatcher('**/.gitignore')
 
     const invalidate = () => {
-      console.log('[AI Context Stacker] .gitignore changed, invalidating cache.')
+      Logger.info('Ignore patterns cache invalidated (due to .gitignore change).')
       this._cachedPatterns = undefined
     }
 
@@ -38,10 +40,11 @@ export class IgnorePatternProvider {
 
   public async getExcludePatterns(): Promise<string> {
     if (this._cachedPatterns) {
+      Logger.info('Ignore patterns cache hit.')
       return this._cachedPatterns
     }
 
-    console.log('[AI Context Stacker] Reading .gitignore from disk...')
+    Logger.info('Ignore patterns cache miss. Generating patterns from disk...')
     this._cachedPatterns = await this.readGitIgnore()
     return this._cachedPatterns
   }
@@ -51,6 +54,7 @@ export class IgnorePatternProvider {
       const files = await vscode.workspace.findFiles('.gitignore', null, 1)
 
       if (files.length === 0) {
+        Logger.info('.gitignore not found. Using fallback excludes.')
         return this.DEFAULT_EXCLUDES
       }
 
@@ -72,14 +76,16 @@ export class IgnorePatternProvider {
       const combinedPatternsArray = [...userPatterns, ...standardExcludes]
       const finalPatterns = combinedPatternsArray.filter((p) => p.length > 0)
 
+      Logger.info('.gitignore parsed; exclusion patterns generated.')
       return `{${finalPatterns.join(',')}}`
     } catch (error) {
-      console.error('Error reading .gitignore:', error)
+      Logger.error('Error reading/parsing .gitignore. Reverting to fallback excludes.', error)
       return this.DEFAULT_EXCLUDES
     }
   }
 
   public dispose() {
     this._watcher?.dispose()
+    Logger.info('IgnorePatternProvider disposed: FileSystemWatcher cleaned up.')
   }
 }

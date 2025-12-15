@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 
 import { type StagedFile } from '@/models/staged-file'
+import { Logger } from '@/utils/logger'
 
 export class ContextStackProvider implements vscode.TreeDataProvider<StagedFile> {
   private files: StagedFile[] = []
@@ -52,5 +53,9 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StagedFile>
 
   getFiles(): StagedFile[] {
     return this.files
+  }
+  public dispose() {
+    this._onDidChangeTreeData.dispose()
+    Logger.info('ContextStackProvider disposed: EventEmitter cleaned up.')
   }
 }

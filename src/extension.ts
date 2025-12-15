@@ -7,6 +7,7 @@ import {
   registerRemoveFileCommand,
 } from './commands'
 import { ContextStackProvider, IgnorePatternProvider } from './providers'
+import { Logger } from './utils/logger'
 
 interface Providers {
   contextStackProvider: ContextStackProvider
@@ -24,7 +25,8 @@ function registerAllCommands(
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('AI Context Stacker is activating...')
+  Logger.configure('AI Context Stacker')
+  Logger.info('Extension is activating...')
 
   const contextStackProvider = new ContextStackProvider()
   const ignorePatternProvider = new IgnorePatternProvider()
@@ -34,11 +36,15 @@ export function activate(context: vscode.ExtensionContext) {
     treeDataProvider: contextStackProvider,
   })
   context.subscriptions.push(treeView)
+  context.subscriptions.push(contextStackProvider)
   context.subscriptions.push(ignorePatternProvider)
 
   registerAllCommands(context, providers)
 
-  console.log('AI Context Stacker activated!')
+  Logger.info('Extension is activated')
 }
 
-export function deactivate() {}
+export function deactivate() {
+  Logger.info('Extension is deactivating...')
+  Logger.dispose()
+}
