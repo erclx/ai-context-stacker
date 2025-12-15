@@ -8,13 +8,23 @@ export function registerAddFilePickerCommand(
   ignorePatternProvider: IgnorePatternProvider,
 ): void {
   const command = vscode.commands.registerCommand('aiContextStacker.addFilePicker', async () => {
-    const excludePatterns = await ignorePatternProvider.getExcludePatterns()
-    const files = await vscode.workspace.findFiles('**/*', excludePatterns)
+    const stagedFiles = contextStackProvider.getFiles()
+    const stagedFileIds = new Set(stagedFiles.map((f) => f.uri.toString()))
 
-    const items = files.map((uri) => ({
+    const excludePatterns = await ignorePatternProvider.getExcludePatterns()
+    const allFiles = await vscode.workspace.findFiles('**/*', excludePatterns)
+
+    const newFiles = allFiles.filter((uri) => !stagedFileIds.has(uri.toString()))
+
+    const items = newFiles.map((uri) => ({
       label: vscode.workspace.asRelativePath(uri),
       uri: uri,
     }))
+
+    if (items.length === 0) {
+      vscode.window.showInformationMessage('All files in workspace are already staged!')
+      return
+    }
 
     const selectedParams = await vscode.window.showQuickPick(items, {
       canPickMany: true,
