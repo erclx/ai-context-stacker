@@ -35,20 +35,33 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StagedFile>
   }
 
   addFile(uri: vscode.Uri): void {
-    const label = uri.path.split('/').pop() || 'unknown'
-    this.files.push({ uri, label })
-    this._onDidChangeTreeData.fire()
+    const exists = this.files.some((f) => f.uri.toString() === uri.toString())
+
+    if (!exists) {
+      const label = uri.path.split('/').pop() || 'unknown'
+      this.files.push({ uri, label })
+      this._onDidChangeTreeData.fire()
+    } else {
+      vscode.window.setStatusBarMessage('File is already staged.', 2000)
+    }
   }
 
   addFiles(uris: vscode.Uri[]): void {
+    let addedCount = 0
+
     uris.forEach((uri) => {
-      const label = uri.path.split('/').pop() || 'unknown'
       const exists = this.files.some((f) => f.uri.toString() === uri.toString())
+
       if (!exists) {
+        const label = uri.path.split('/').pop() || 'unknown'
         this.files.push({ uri, label })
+        addedCount++
       }
     })
-    this._onDidChangeTreeData.fire()
+
+    if (addedCount > 0) {
+      this._onDidChangeTreeData.fire()
+    }
   }
 
   removeFile(file: StagedFile): void {
