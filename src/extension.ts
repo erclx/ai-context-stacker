@@ -4,23 +4,25 @@ import {
   registerAddFileCommand,
   registerAddFilePickerCommand,
   registerClearAllCommand,
+  registerCopyAllCommand,
+  registerCopyFileCommand,
   registerRemoveFileCommand,
 } from './commands'
 import { ContextStackProvider, IgnorePatternProvider } from './providers'
 import { Logger } from './utils/logger'
 
 interface Providers {
+  context: vscode.ExtensionContext
   contextStackProvider: ContextStackProvider
   ignorePatternProvider: IgnorePatternProvider
 }
 
-function registerAllCommands(
-  context: vscode.ExtensionContext,
-  { contextStackProvider, ignorePatternProvider }: Providers,
-) {
+function registerAllCommands({ context, contextStackProvider, ignorePatternProvider }: Providers) {
   registerAddFileCommand(context, contextStackProvider)
   registerAddFilePickerCommand(context, contextStackProvider, ignorePatternProvider)
   registerRemoveFileCommand(context, contextStackProvider)
+  registerCopyAllCommand(context, contextStackProvider)
+  registerCopyFileCommand(context)
   registerClearAllCommand(context, contextStackProvider)
 }
 
@@ -30,7 +32,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   const contextStackProvider = new ContextStackProvider()
   const ignorePatternProvider = new IgnorePatternProvider()
-  const providers = { contextStackProvider, ignorePatternProvider }
 
   const treeView = vscode.window.createTreeView('aiContextStackerView', {
     treeDataProvider: contextStackProvider,
@@ -39,7 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(contextStackProvider)
   context.subscriptions.push(ignorePatternProvider)
 
-  registerAllCommands(context, providers)
+  registerAllCommands({ context, contextStackProvider, ignorePatternProvider })
 
   Logger.info('Extension is activated')
 }

@@ -48,6 +48,16 @@
         "command": "aiContextStacker.clearAll",
         "title": "AI Context Stacker: Clear All",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "aiContextStacker.copyAll",
+        "title": "AI Context Stacker: Copy to Clipboard",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "aiContextStacker.copyFile",
+        "title": "Copy File Content",
+        "icon": "$(copy)"
       }
     ],
     "menus": {
@@ -61,13 +71,23 @@
           "command": "aiContextStacker.clearAll",
           "when": "view == aiContextStackerView",
           "group": "navigation@2"
+        },
+        {
+          "command": "aiContextStacker.copyAll",
+          "when": "view == aiContextStackerView",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
         {
+          "command": "aiContextStacker.copyFile",
+          "when": "view == aiContextStackerView && viewItem == stagedFile",
+          "group": "inline@1"
+        },
+        {
           "command": "aiContextStacker.removeFile",
           "when": "view == aiContextStackerView && viewItem == stagedFile",
-          "group": "inline"
+          "group": "inline@2"
         }
       ]
     }

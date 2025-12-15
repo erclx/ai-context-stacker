@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
-import { type StagedFile } from '@/models/staged-file'
-import { ContextStackProvider } from '@/providers/context-stack-provider'
+import { type StagedFile } from '@/models'
+import { ContextStackProvider } from '@/providers'
 
 export function registerRemoveFileCommand(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
   const command = vscode.commands.registerCommand('aiContextStacker.removeFile', (file: StagedFile) => {

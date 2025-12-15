@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '@/providers/context-stack-provider'
+import { ContextStackProvider } from '@/providers'
 
 export function registerAddFileCommand(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
   const command = vscode.commands.registerCommand('aiContextStacker.addCurrentFile', () => {
