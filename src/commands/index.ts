@@ -6,6 +6,7 @@ import { ContextStackProvider, IgnorePatternProvider } from '@/providers'
 import { registerAddFileCommand } from './add-file'
 import { registerAddFileContextMenuCommand } from './add-file-context-menu'
 import { registerAddFilePickerCommand } from './add-file-picker'
+import { registerAddOpenFilesCommand } from './add-open-files'
 import { registerClearAllCommand } from './clear-all'
 import { registerCopyAllCommand } from './copy-all'
 import { registerCopyFileCommand } from './copy-file'
@@ -22,6 +23,7 @@ export function registerAllCommands({ context, contextStackProvider, ignorePatte
   registerAddFileCommand(context, contextStackProvider)
   registerAddFileContextMenuCommand(context, contextStackProvider, ignorePatternProvider)
   registerAddFilePickerCommand(context, contextStackProvider, ignorePatternProvider)
+  registerAddOpenFilesCommand(context, contextStackProvider)
 
   registerClearAllCommand(context, contextStackProvider)
   registerCopyAllCommand(context, contextStackProvider)

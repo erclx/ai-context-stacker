@@ -49,6 +49,11 @@
         "icon": "$(add)"
       },
       {
+        "command": "aiContextStacker.addOpenFiles",
+        "title": "Add All Open Files",
+        "icon": "$(editor-layout)"
+      },
+      {
         "command": "aiContextStacker.removeFile",
         "title": "AI Context Stacker: Remove from Stack",
         "icon": "$(close)"
@@ -86,12 +91,12 @@
       ],
       "view/title": [
         {
-          "command": "aiContextStacker.addFilePicker",
+          "command": "aiContextStacker.addOpenFiles",
           "when": "view == aiContextStackerView",
           "group": "navigation@1"
         },
         {
-          "command": "aiContextStacker.clearAll",
+          "command": "aiContextStacker.addFilePicker",
           "when": "view == aiContextStackerView",
           "group": "navigation@2"
         },
@@ -99,6 +104,11 @@
           "command": "aiContextStacker.copyAll",
           "when": "view == aiContextStackerView",
           "group": "navigation@3"
+        },
+        {
+          "command": "aiContextStacker.clearAll",
+          "when": "view == aiContextStackerView",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
@@ -108,14 +118,14 @@
           "group": "inline@1"
         },
         {
-          "command": "aiContextStacker.copyFile",
-          "when": "view == aiContextStackerView && viewItem == stagedFile",
-          "group": "`1_modification"
-        },
-        {
           "command": "aiContextStacker.removeFile",
           "when": "view == aiContextStackerView && viewItem == stagedFile",
-          "group": "inline"
+          "group": "inline@2"
+        },
+        {
+          "command": "aiContextStacker.copyFile",
+          "when": "view == aiContextStackerView && viewItem == stagedFile",
+          "group": "1_modification"
         },
         {
           "command": "aiContextStacker.removeFile",
