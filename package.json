@@ -40,6 +40,10 @@
         "title": "AI Context Stacker: Add Current File"
       },
       {
+        "command": "aiContextStacker.addFileToStack",
+        "title": "AI Context Stacker: Add to AI Context Stack"
+      },
+      {
         "command": "aiContextStacker.addFilePicker",
         "title": "AI Context Stacker: Add Files...",
         "icon": "$(add)"
@@ -66,6 +70,20 @@
       }
     ],
     "menus": {
+      "explorer/context": [
+        {
+          "command": "aiContextStacker.addFileToStack",
+          "when": "resourceScheme == file",
+          "group": "7_modification"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "aiContextStacker.addFileToStack",
+          "when": "resourceScheme == file",
+          "group": "1_cutcopypaste"
+        }
+      ],
       "view/title": [
         {
           "command": "aiContextStacker.addFilePicker",

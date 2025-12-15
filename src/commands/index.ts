@@ -4,6 +4,7 @@ import { StagedFile } from '@/models'
 import { ContextStackProvider, IgnorePatternProvider } from '@/providers'
 
 import { registerAddFileCommand } from './add-file'
+import { registerAddFileContextMenuCommand } from './add-file-context-menu'
 import { registerAddFilePickerCommand } from './add-file-picker'
 import { registerClearAllCommand } from './clear-all'
 import { registerCopyAllCommand } from './copy-all'
@@ -19,6 +20,7 @@ interface Providers {
 
 export function registerAllCommands({ context, contextStackProvider, ignorePatternProvider, treeView }: Providers) {
   registerAddFileCommand(context, contextStackProvider)
+  registerAddFileContextMenuCommand(context, contextStackProvider, ignorePatternProvider)
   registerAddFilePickerCommand(context, contextStackProvider, ignorePatternProvider)
 
   registerClearAllCommand(context, contextStackProvider)
