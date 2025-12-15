@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 
 import { registerAllCommands } from './commands'
 import { ContextStackProvider, HelpProvider, IgnorePatternProvider } from './providers'
+import { StackerStatusBar } from './ui'
 import { Logger } from './utils'
 
 export function activate(context: vscode.ExtensionContext) {
@@ -21,10 +22,13 @@ export function activate(context: vscode.ExtensionContext) {
     treeDataProvider: helpProvider,
   })
 
+  const statusBar = new StackerStatusBar(context, contextStackProvider)
+
   context.subscriptions.push(treeView)
   context.subscriptions.push(helpTreeView)
   context.subscriptions.push(contextStackProvider)
   context.subscriptions.push(ignorePatternProvider)
+  context.subscriptions.push(statusBar)
 
   registerAllCommands({ context, contextStackProvider, ignorePatternProvider, treeView })
 
