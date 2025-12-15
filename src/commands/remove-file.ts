@@ -10,23 +10,27 @@ export function registerRemoveFileCommand(
 ): void {
   const command = vscode.commands.registerCommand(
     'aiContextStacker.removeFile',
-    (item?: StagedFile, multiSelect?: StagedFile[]) => {
-      if (multiSelect && multiSelect.length > 0) {
-        multiSelect.forEach((file) => provider.removeFile(file))
+    (item?: StagedFile, selectedItems?: StagedFile[]) => {
+      let filesToRemove: StagedFile[] = []
+
+      if (selectedItems && selectedItems.length > 0) {
+        filesToRemove = selectedItems
+      } else if (item) {
+        filesToRemove = [item]
+      } else {
+        filesToRemove = [...treeView.selection]
+      }
+
+      if (filesToRemove.length === 0) {
+        vscode.window.showWarningMessage('Please select files to remove.')
         return
       }
 
-      if (item) {
-        provider.removeFile(item)
-        return
-      }
+      provider.removeFiles(filesToRemove)
 
-      if (treeView.selection.length > 0) {
-        treeView.selection.forEach((file) => provider.removeFile(file))
-        return
+      if (filesToRemove.length > 1) {
+        vscode.window.setStatusBarMessage(`Removed ${filesToRemove.length} files.`, 2000)
       }
-
-      vscode.window.showWarningMessage('Please select a file to remove.')
     },
   )
 

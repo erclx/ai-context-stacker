@@ -56,6 +56,12 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StagedFile>
     this._onDidChangeTreeData.fire()
   }
 
+  removeFiles(filesToRemove: StagedFile[]): void {
+    const pathsToRemove = new Set(filesToRemove.map((f) => f.uri.fsPath))
+    this.files = this.files.filter((f) => !pathsToRemove.has(f.uri.fsPath))
+    this._onDidChangeTreeData.fire()
+  }
+
   clear(): void {
     this.files = []
     this._onDidChangeTreeData.fire()

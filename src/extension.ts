@@ -14,6 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const treeView = vscode.window.createTreeView('aiContextStackerView', {
     treeDataProvider: contextStackProvider,
+    canSelectMany: true,
   })
 
   const helpTreeView = vscode.window.createTreeView('aiContextStackerHelpView', {

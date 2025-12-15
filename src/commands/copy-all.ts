@@ -26,7 +26,6 @@ export function registerCopyAllCommand(context: vscode.ExtensionContext, provide
 
         const duration = Date.now() - startTime
 
-        // Measure stats
         const stats = TokenEstimator.measure(formattedContent)
 
         Logger.info(`Copied ${files.length} files. Stats: ${stats.tokenCount} tokens, ${duration}ms`)
