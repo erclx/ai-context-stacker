@@ -4,6 +4,10 @@ import { type StagedFile } from '../models'
 import { Logger } from './logger'
 
 export class ContentFormatter {
+  public static async readFileFromDisk(uri: vscode.Uri): Promise<Uint8Array> {
+    return vscode.workspace.fs.readFile(uri)
+  }
+
   public static async format(files: StagedFile[]): Promise<string> {
     const parts: string[] = []
 
@@ -17,7 +21,6 @@ export class ContentFormatter {
         }
 
         const relativePath = vscode.workspace.asRelativePath(file.uri)
-
         const extension = file.uri.path.split('.').pop() || ''
 
         parts.push(`File: ${relativePath}`)
@@ -36,7 +39,7 @@ export class ContentFormatter {
 
   private static async readFileContent(uri: vscode.Uri): Promise<string | null> {
     try {
-      const uint8Array = await vscode.workspace.fs.readFile(uri)
+      const uint8Array = await this.readFileFromDisk(uri)
 
       const snippet = uint8Array.slice(0, 512)
       const isBinary = snippet.some((byte) => byte === 0)
