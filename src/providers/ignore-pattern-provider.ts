@@ -25,6 +25,10 @@ export class IgnorePatternProvider {
     this.initWatcher()
   }
 
+  public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
+    return vscode.workspace.fs.readFile(uri)
+  }
+
   private initWatcher() {
     this._watcher = vscode.workspace.createFileSystemWatcher('**/.gitignore')
 
@@ -59,7 +63,7 @@ export class IgnorePatternProvider {
       }
 
       const uri = files[0]
-      const uint8Array = await vscode.workspace.fs.readFile(uri)
+      const uint8Array = await this.readFile(uri)
       const content = Buffer.from(uint8Array).toString('utf-8')
 
       const userPatterns = content
