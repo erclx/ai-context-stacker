@@ -24,11 +24,11 @@ export class Logger {
         this._log('ERROR', JSON.stringify(error))
       }
     }
-    this.show() // Automatically show the logs on error
+    this.show()
   }
 
   public static show() {
-    this._outputChannel?.show(true) // true = preserves focus on editor
+    this._outputChannel?.show(true)
   }
 
   public static dispose() {
@@ -37,7 +37,6 @@ export class Logger {
 
   private static _log(level: string, message: string) {
     if (!this._outputChannel) {
-      // Prevent crash if Logger is used before initialization
       return
     }
     const timestamp = new Date().toLocaleTimeString()
