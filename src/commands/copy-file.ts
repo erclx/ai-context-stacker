@@ -4,6 +4,15 @@ import { type StagedFile } from '../models'
 import { ContextStackProvider } from '../providers'
 import { ContentFormatter, Logger, TokenEstimator } from '../utils'
 
+/**
+ * Registers the command to copy selected (or all) staged files to the clipboard.
+ * This command handles various ways of being triggered: context menu on a single item,
+ * context menu on multiple items, or a toolbar button when items are selected.
+ *
+ * @param context The extension context.
+ * @param provider The ContextStackProvider instance.
+ * @param treeView The TreeView instance to check for current selections.
+ */
 export function registerCopyFileCommand(
   context: vscode.ExtensionContext,
   provider: ContextStackProvider,
@@ -13,6 +22,9 @@ export function registerCopyFileCommand(
     'aiContextStacker.copyFile',
     async (item?: StagedFile, selectedItems?: StagedFile[]) => {
       // 1. Resolve Selection
+      // The VS Code API for commands triggered from a TreeView context menu
+      // can pass the clicked item (item) and/or a list of selected items (selectedItems).
+      // We must handle all permutations, including no selection (fallback to all).
       const filesToCopy = resolveTargetFiles(item, selectedItems, treeView, provider)
 
       if (filesToCopy.length === 0) {
@@ -56,6 +68,8 @@ export function registerCopyFileCommand(
 /**
  * Determines which files to copy based on context menu args, tree selection,
  * or defaulting to the entire stack.
+ *
+ * @returns The array of StagedFile objects to be copied.
  */
 function resolveTargetFiles(
   clickedItem: StagedFile | undefined,
@@ -63,33 +77,44 @@ function resolveTargetFiles(
   treeView: vscode.TreeView<StagedFile>,
   provider: ContextStackProvider,
 ): StagedFile[] {
+  // 1. Check for explicit multi-select from context menu (Highest precedence)
   if (multiSelect && multiSelect.length > 0) {
     return multiSelect
   }
 
+  // 2. Check for single item click (Next precedence)
   if (clickedItem) {
     return [clickedItem]
   }
 
+  // 3. Check for selection made via UI (e.g., toolbar button triggered)
   if (treeView.selection.length > 0) {
+    // VS Code's TreeView selection is always up-to-date
     return [...treeView.selection]
   }
 
-  // Fallback: Copy all files
+  // Fallback: Copy all files if the stack is not empty
   return provider.getFiles()
 }
 
 /**
  * Generates a human-readable label for the copied content.
+ *
+ * @param files The files that were copied.
+ * @param totalStagedCount The total number of files in the stack.
+ * @returns A user-friendly string for notifications.
  */
 function getFeedbackLabel(files: StagedFile[], totalStagedCount: number): string {
+  // Use "All Staged Files" only if copying everything AND there's more than one file
   if (files.length === totalStagedCount && files.length > 1) {
     return 'All Staged Files'
   }
 
+  // If a single file was copied, use its label (filename)
   if (files.length === 1) {
     return files[0].label
   }
 
+  // Otherwise, report the count
   return `${files.length} Files`
 }

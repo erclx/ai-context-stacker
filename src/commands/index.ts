@@ -11,13 +11,23 @@ import { registerCopyAllCommand } from './copy-all'
 import { registerCopyFileCommand } from './copy-file'
 import { registerRemoveFileCommand } from './remove-file'
 
+/**
+ * Defines the dependencies required by command registration functions.
+ */
 interface Providers {
   context: vscode.ExtensionContext
   contextStackProvider: ContextStackProvider
   ignorePatternProvider: IgnorePatternProvider
+  // The TreeView instance is required by file-specific commands to resolve selection
   treeView: vscode.TreeView<StagedFile>
 }
 
+/**
+ * Registers all commands exposed by the extension.
+ * This function serves as the central command registration entry point.
+ *
+ * @param {Providers} dependencies The necessary providers and context.
+ */
 export function registerAllCommands({ context, contextStackProvider, ignorePatternProvider, treeView }: Providers) {
   registerAddFileCommand(context, contextStackProvider)
   registerAddFileContextMenuCommand(context, contextStackProvider, ignorePatternProvider)
@@ -27,6 +37,7 @@ export function registerAllCommands({ context, contextStackProvider, ignorePatte
   registerClearAllCommand(context, contextStackProvider)
   registerCopyAllCommand(context, contextStackProvider)
 
+  // These commands operate on specific files selected in the TreeView
   registerCopyFileCommand(context, contextStackProvider, treeView)
   registerRemoveFileCommand(context, contextStackProvider, treeView)
 }

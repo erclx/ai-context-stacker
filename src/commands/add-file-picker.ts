@@ -2,10 +2,21 @@ import * as vscode from 'vscode'
 
 import { ContextStackProvider, IgnorePatternProvider } from '../providers'
 
+/**
+ * Extends QuickPickItem to hold the underlying file URI.
+ */
 interface FileQuickPickItem extends vscode.QuickPickItem {
   uri: vscode.Uri
 }
 
+/**
+ * Registers the command that allows the user to pick files from the workspace
+ * to add to the stack, excluding already staged files and ignored files.
+ *
+ * @param context The extension context.
+ * @param contextStackProvider The provider managing the staged files.
+ * @param ignorePatternProvider The provider handling file exclusion patterns.
+ */
 export function registerAddFilePickerCommand(
   context: vscode.ExtensionContext,
   contextStackProvider: ContextStackProvider,
@@ -37,24 +48,36 @@ export function registerAddFilePickerCommand(
 /**
  * Helper: Finds all workspace files that are not currently in the stack,
  * respecting the ignore patterns.
+ *
+ * @param provider The current file stack provider.
+ * @param ignoreProvider The provider for exclusion patterns.
+ * @returns A promise resolving to an array of URIs that can be staged.
  */
 async function findUnstagedFiles(
   provider: ContextStackProvider,
   ignoreProvider: IgnorePatternProvider,
 ): Promise<vscode.Uri[]> {
   const stagedFiles = provider.getFiles()
+  // Use a Set for O(1) lookups to check if a file is already staged
   const stagedFileIds = new Set(stagedFiles.map((f) => f.uri.toString()))
 
+  // Get combined exclusion patterns (.gitignore + defaults)
   const excludePatterns = await ignoreProvider.getExcludePatterns()
+  // Find all files in the workspace, respecting exclusion patterns
   const allFiles = await vscode.workspace.findFiles('**/*', excludePatterns)
 
+  // Filter the full list to only include files that are not already staged
   return allFiles.filter((uri) => !stagedFileIds.has(uri.toString()))
 }
 
 /**
  * Helper: Configures and shows the QuickPick UI.
+ *
+ * @param files The list of URIs available for selection.
+ * @returns A promise resolving to the selected QuickPick items or undefined if cancelled.
  */
 async function showFilePicker(files: vscode.Uri[]): Promise<FileQuickPickItem[] | undefined> {
+  // Convert URIs to QuickPick items, using relative path for the primary label
   const items: FileQuickPickItem[] = files.map((uri) => ({
     label: vscode.workspace.asRelativePath(uri),
     uri: uri,
@@ -64,6 +87,7 @@ async function showFilePicker(files: vscode.Uri[]): Promise<FileQuickPickItem[] 
     canPickMany: true,
     placeHolder: 'Search and select files to add...',
     title: 'Add Files to Context Stack',
+    // Enable fuzzy matching against description/detail for better search
     matchOnDescription: true,
     matchOnDetail: true,
   })
