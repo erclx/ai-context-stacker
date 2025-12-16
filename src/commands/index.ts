@@ -1,8 +1,7 @@
 import * as vscode from 'vscode'
 
-import { StagedFile } from '@/models'
-import { ContextStackProvider, IgnorePatternProvider } from '@/providers'
-
+import { StagedFile } from '../models'
+import { ContextStackProvider, IgnorePatternProvider } from '../providers'
 import { registerAddFileCommand } from './add-file'
 import { registerAddFileContextMenuCommand } from './add-file-context-menu'
 import { registerAddFilePickerCommand } from './add-file-picker'

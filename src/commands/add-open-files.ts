@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '@/providers'
-import { Logger } from '@/utils'
+import { ContextStackProvider } from '../providers'
+import { Logger } from '../utils'
 
 export function registerAddOpenFilesCommand(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
   const command = vscode.commands.registerCommand('aiContextStacker.addOpenFiles', () => {

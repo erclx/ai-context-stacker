@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
-import { type StagedFile } from '@/models'
-import { Logger } from '@/utils'
+import { type StagedFile } from '../models'
+import { Logger } from '../utils'
 
 export class ContextStackProvider implements vscode.TreeDataProvider<StagedFile> {
   private files: StagedFile[] = []

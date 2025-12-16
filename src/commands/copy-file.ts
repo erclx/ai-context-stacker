@@ -1,8 +1,8 @@
 import * as vscode from 'vscode'
 
-import { type StagedFile } from '@/models'
-import { ContextStackProvider } from '@/providers'
-import { ContentFormatter, Logger, TokenEstimator } from '@/utils'
+import { type StagedFile } from '../models'
+import { ContextStackProvider } from '../providers'
+import { ContentFormatter, Logger, TokenEstimator } from '../utils'
 
 export function registerCopyFileCommand(
   context: vscode.ExtensionContext,

@@ -1,7 +1,6 @@
 import * as vscode from 'vscode'
 
-import { type StagedFile } from '@/models'
-
+import { type StagedFile } from '../models'
 import { Logger } from './logger'
 
 export class ContentFormatter {

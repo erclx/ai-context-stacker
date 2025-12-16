@@ -5,9 +5,6 @@
     "lib": ["ES2022"],
     "sourceMap": true,
     "rootDir": "src",
-    "strict": true,
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "strict": true
   }
 }

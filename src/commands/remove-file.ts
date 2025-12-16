@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
-import { type StagedFile } from '@/models'
-import { ContextStackProvider } from '@/providers'
+import { type StagedFile } from '../models'
+import { ContextStackProvider } from '../providers'
 
 export function registerRemoveFileCommand(
   context: vscode.ExtensionContext,

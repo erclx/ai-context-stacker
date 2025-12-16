@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '@/providers'
-import { ContentFormatter, Logger, TokenEstimator } from '@/utils'
+import { ContextStackProvider } from '../providers'
+import { ContentFormatter, Logger, TokenEstimator } from '../utils'
 
 export function registerCopyAllCommand(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
   const command = vscode.commands.registerCommand('aiContextStacker.copyAll', async () => {

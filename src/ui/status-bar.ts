@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '@/providers'
+import { ContextStackProvider } from '../providers'
 
 export class StackerStatusBar {
   private item: vscode.StatusBarItem

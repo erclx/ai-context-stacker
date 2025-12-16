@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider, IgnorePatternProvider } from '@/providers'
-import { Logger } from '@/utils'
+import { ContextStackProvider, IgnorePatternProvider } from '../providers'
+import { Logger } from '../utils'
 
 export function registerAddFileContextMenuCommand(
   context: vscode.ExtensionContext,

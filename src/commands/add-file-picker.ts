@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider, IgnorePatternProvider } from '@/providers'
+import { ContextStackProvider, IgnorePatternProvider } from '../providers'
 
 export function registerAddFilePickerCommand(
   context: vscode.ExtensionContext,

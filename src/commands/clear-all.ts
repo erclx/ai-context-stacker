@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '@/providers'
+import { ContextStackProvider } from '../providers'
 
 export function registerClearAllCommand(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
   const command = vscode.commands.registerCommand('aiContextStacker.clearAll', async () => {
