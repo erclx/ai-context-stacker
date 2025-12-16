@@ -12,24 +12,16 @@ export function registerCopyFileCommand(
   const command = vscode.commands.registerCommand(
     'aiContextStacker.copyFile',
     async (item?: StagedFile, selectedItems?: StagedFile[]) => {
-      let filesToCopy: StagedFile[] = []
+      // 1. Resolve Selection
+      const filesToCopy = resolveTargetFiles(item, selectedItems, treeView, provider)
 
-      if (selectedItems && selectedItems.length > 0) {
-        filesToCopy = selectedItems
-      } else if (item) {
-        filesToCopy = [item]
-      } else if (treeView.selection.length > 0) {
-        filesToCopy = [...treeView.selection]
-      } else {
-        filesToCopy = provider.getFiles()
-        if (filesToCopy.length === 0) {
-          vscode.window.showInformationMessage('Context stack is empty.')
-          return
-        }
-        vscode.window.setStatusBarMessage('Nothing selected. Copied entire stack.', 3000)
+      if (filesToCopy.length === 0) {
+        vscode.window.showInformationMessage('Context stack is empty.')
+        return
       }
 
       try {
+        // 2. Format & Validate
         const formattedContent = await ContentFormatter.format(filesToCopy)
 
         if (!formattedContent) {
@@ -37,21 +29,20 @@ export function registerCopyFileCommand(
           return
         }
 
+        // 3. Execute Copy
         await vscode.env.clipboard.writeText(formattedContent)
 
+        // 4. Calculate Stats & Notify
         const stats = TokenEstimator.measure(formattedContent)
-
-        let label = ''
-        if (filesToCopy.length === provider.getFiles().length && filesToCopy.length > 1) {
-          label = 'All Staged Files'
-        } else if (filesToCopy.length === 1) {
-          label = filesToCopy[0].label
-        } else {
-          label = `${filesToCopy.length} Files`
-        }
+        const label = getFeedbackLabel(filesToCopy, provider.getFiles().length)
 
         Logger.info(`Copied: ${label}`)
         vscode.window.showInformationMessage(`Copied ${label}! (${TokenEstimator.format(stats)})`)
+
+        // Special UI case: if we fell back to copying everything because nothing was selected
+        if (!item && (!selectedItems || selectedItems.length === 0) && treeView.selection.length === 0) {
+          vscode.window.setStatusBarMessage('Nothing selected. Copied entire stack.', 3000)
+        }
       } catch (error) {
         Logger.error('Copy failed', error)
         vscode.window.showErrorMessage('Failed to copy files.')
@@ -60,4 +51,45 @@ export function registerCopyFileCommand(
   )
 
   context.subscriptions.push(command)
+}
+
+/**
+ * Determines which files to copy based on context menu args, tree selection,
+ * or defaulting to the entire stack.
+ */
+function resolveTargetFiles(
+  clickedItem: StagedFile | undefined,
+  multiSelect: StagedFile[] | undefined,
+  treeView: vscode.TreeView<StagedFile>,
+  provider: ContextStackProvider,
+): StagedFile[] {
+  if (multiSelect && multiSelect.length > 0) {
+    return multiSelect
+  }
+
+  if (clickedItem) {
+    return [clickedItem]
+  }
+
+  if (treeView.selection.length > 0) {
+    return [...treeView.selection]
+  }
+
+  // Fallback: Copy all files
+  return provider.getFiles()
+}
+
+/**
+ * Generates a human-readable label for the copied content.
+ */
+function getFeedbackLabel(files: StagedFile[], totalStagedCount: number): string {
+  if (files.length === totalStagedCount && files.length > 1) {
+    return 'All Staged Files'
+  }
+
+  if (files.length === 1) {
+    return files[0].label
+  }
+
+  return `${files.length} Files`
 }

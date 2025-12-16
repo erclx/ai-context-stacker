@@ -19,27 +19,16 @@ export class IgnorePatternProvider {
   private _cachedPatterns: string | undefined
   private _watcher: vscode.FileSystemWatcher | undefined
 
+  // Pre-calculate defaults once
   private readonly DEFAULT_EXCLUDES: string = `{${FALLBACK_EXCLUDE_PATTERNS.join(',')}}`
 
   constructor() {
     this.initWatcher()
   }
 
+  // KEPT PUBLIC: Preserving original API contract
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
     return vscode.workspace.fs.readFile(uri)
-  }
-
-  private initWatcher() {
-    this._watcher = vscode.workspace.createFileSystemWatcher('**/.gitignore')
-
-    const invalidate = () => {
-      Logger.info('Ignore patterns cache invalidated (due to .gitignore change).')
-      this._cachedPatterns = undefined
-    }
-
-    this._watcher.onDidCreate(invalidate)
-    this._watcher.onDidChange(invalidate)
-    this._watcher.onDidDelete(invalidate)
   }
 
   public async getExcludePatterns(): Promise<string> {
@@ -53,6 +42,10 @@ export class IgnorePatternProvider {
     return this._cachedPatterns
   }
 
+  /**
+   * Refactored: Orchestrates I/O operations only.
+   * Logic is delegated to `generatePatternString`.
+   */
   private async readGitIgnore(): Promise<string> {
     try {
       const files = await vscode.workspace.findFiles('.gitignore', null, 1)
@@ -66,26 +59,48 @@ export class IgnorePatternProvider {
       const uint8Array = await this.readFile(uri)
       const content = Buffer.from(uint8Array).toString('utf-8')
 
-      const userPatterns = content
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line && !line.startsWith('#') && !line.startsWith('!'))
-        .map((line) => {
-          const cleanLine = line.replace(/^\//, '').replace(/\/$/, '')
-          return `**/${cleanLine}`
-        })
-
-      const standardExcludes = FALLBACK_EXCLUDE_PATTERNS.filter((p) => !userPatterns.includes(p))
-
-      const combinedPatternsArray = [...userPatterns, ...standardExcludes]
-      const finalPatterns = combinedPatternsArray.filter((p) => p.length > 0)
+      const finalPatterns = this.generatePatternString(content)
 
       Logger.info('.gitignore parsed; exclusion patterns generated.')
-      return `{${finalPatterns.join(',')}}`
+      return finalPatterns
     } catch (error) {
       Logger.error('Error reading/parsing .gitignore. Reverting to fallback excludes.', error)
       return this.DEFAULT_EXCLUDES
     }
+  }
+
+  /**
+   * Pure Logic: parses content and merges with defaults.
+   * Isolated for testability and readability.
+   */
+  private generatePatternString(content: string): string {
+    const userPatterns = content
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#') && !line.startsWith('!'))
+      .map((line) => {
+        const cleanLine = line.replace(/^\//, '').replace(/\/$/, '')
+        return `**/${cleanLine}`
+      })
+
+    // Filter out defaults that are already covered by user patterns to avoid duplicates
+    const defaultsToAdd = FALLBACK_EXCLUDE_PATTERNS.filter((p) => !userPatterns.includes(p))
+    const combinedPatterns = [...userPatterns, ...defaultsToAdd]
+
+    return `{${combinedPatterns.join(',')}}`
+  }
+
+  private initWatcher() {
+    this._watcher = vscode.workspace.createFileSystemWatcher('**/.gitignore')
+
+    const invalidate = () => {
+      Logger.info('Ignore patterns cache invalidated (due to .gitignore change).')
+      this._cachedPatterns = undefined
+    }
+
+    this._watcher.onDidCreate(invalidate)
+    this._watcher.onDidChange(invalidate)
+    this._watcher.onDidDelete(invalidate)
   }
 
   public dispose() {
