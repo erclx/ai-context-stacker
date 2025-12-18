@@ -21,12 +21,6 @@
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "aiContextStackerView",
-        "contents": "Drag and drop files here to stage them.\n[Add Open Files](command:aiContextStacker.addOpenFiles) | [Add File...](command:aiContextStacker.addFilePicker)"
-      }
-    ],
     "views": {
       "aiContextStacker": [
         {
