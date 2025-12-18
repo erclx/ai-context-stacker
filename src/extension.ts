@@ -14,7 +14,10 @@ export function activate(context: vscode.ExtensionContext) {
   Logger.info('Extension is activating...')
 
   const ignorePatternProvider = new IgnorePatternProvider()
-  const contextStackProvider = new ContextStackProvider(ignorePatternProvider)
+  const contextStackProvider = new ContextStackProvider(context, ignorePatternProvider)
+
+  // Restore persisted state
+  restoreState(context, contextStackProvider)
 
   const treeView = vscode.window.createTreeView('aiContextStackerView', {
     treeDataProvider: contextStackProvider,
@@ -34,6 +37,30 @@ export function activate(context: vscode.ExtensionContext) {
   })
 
   Logger.info('Extension is activated')
+}
+
+/**
+ * Rehydrates the context stack from workspace state.
+ */
+function restoreState(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
+  const storedUris = context.workspaceState.get<string[]>(ContextStackProvider.STORAGE_KEY) || []
+
+  if (storedUris.length === 0) return
+
+  const urisToRestore = storedUris
+    .map((uriStr) => {
+      try {
+        return vscode.Uri.parse(uriStr)
+      } catch {
+        return null
+      }
+    })
+    .filter((uri): uri is vscode.Uri => uri !== null)
+
+  if (urisToRestore.length > 0) {
+    provider.addFiles(urisToRestore)
+    Logger.info(`Restored ${urisToRestore.length} files from workspace state.`)
+  }
 }
 
 export function deactivate() {

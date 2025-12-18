@@ -6,11 +6,14 @@ import { categorizeTargets, handleFolderScanning, Logger, TokenEstimator } from 
 import { IgnorePatternProvider } from './ignore-pattern-provider'
 
 /**
- * Manages staged files and handles asynchronous token calculation.
+ * Manages staged files, handles asynchronous token calculation,
+ * and persists state across workspace reloads.
  */
 export class ContextStackProvider
   implements vscode.TreeDataProvider<StagedFile>, vscode.TreeDragAndDropController<StagedFile>, vscode.Disposable
 {
+  public static readonly STORAGE_KEY = 'aiContextStacker.stagedUris'
+
   private files: StagedFile[] = []
   private _onDidChangeTreeData = new vscode.EventEmitter<StagedFile | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
@@ -19,7 +22,10 @@ export class ContextStackProvider
   private readonly EMPTY_URI = vscode.Uri.parse('ai-stack:empty-drop-target')
   private readonly EMPTY_ID = 'emptyState'
 
-  constructor(private ignorePatternProvider: IgnorePatternProvider) {}
+  constructor(
+    private context: vscode.ExtensionContext,
+    private ignorePatternProvider: IgnorePatternProvider,
+  ) {}
 
   get dropMimeTypes(): string[] {
     return ['text/uri-list', 'text/plain']
@@ -159,6 +165,7 @@ export class ContextStackProvider
 
     this.files.push(...newFiles)
     this._onDidChangeTreeData.fire()
+    this.persistState()
 
     // Non-blocking stats calculation
     this.enrichFileStats(newFiles)
@@ -208,28 +215,40 @@ export class ContextStackProvider
   removeFile(file: StagedFile): void {
     this.files = this.files.filter((f) => f.uri.fsPath !== file.uri.fsPath)
     this._onDidChangeTreeData.fire()
+    this.persistState()
   }
 
   removeFiles(filesToRemove: StagedFile[]): void {
     const pathsToRemove = new Set(filesToRemove.map((f) => f.uri.fsPath))
     this.files = this.files.filter((f) => !pathsToRemove.has(f.uri.fsPath))
     this._onDidChangeTreeData.fire()
+    this.persistState()
   }
 
   clear(): void {
     this.files = []
     this._onDidChangeTreeData.fire()
+    this.persistState()
   }
 
   getFiles(): StagedFile[] {
     return this.files
   }
 
-  /**
-   * Aggregates total tokens from all staged files.
-   */
   getTotalTokens(): number {
     return this.files.reduce((sum, file) => sum + (file.stats?.tokenCount ?? 0), 0)
+  }
+
+  /**
+   * Serializes the current list of URIs to workspace state.
+   */
+  private persistState(): void {
+    try {
+      const uris = this.files.map((f) => f.uri.toString())
+      this.context.workspaceState.update(ContextStackProvider.STORAGE_KEY, uris)
+    } catch (error) {
+      Logger.error('Failed to persist context stack state', error)
+    }
   }
 
   dispose() {
