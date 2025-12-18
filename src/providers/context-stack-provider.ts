@@ -2,68 +2,115 @@ import * as vscode from 'vscode'
 
 import { type StagedFile } from '../models'
 import { Logger } from '../utils'
+import { categorizeTargets, handleFolderScanning } from '../utils'
+import { IgnorePatternProvider } from './ignore-pattern-provider'
 
 /**
- * Manages the state and provides the data for the main Context Stack Tree View.
- * Implements the TreeDataProvider interface and handles file addition/removal.
+ * Manages the state of staged files and handles Drag & Drop interactions.
+ * Acts as the bridge between the Tree View UI and the file system.
  */
-export class ContextStackProvider implements vscode.TreeDataProvider<StagedFile>, vscode.Disposable {
-  // The core state: an array of staged file objects
+export class ContextStackProvider
+  implements vscode.TreeDataProvider<StagedFile>, vscode.TreeDragAndDropController<StagedFile>, vscode.Disposable
+{
   private files: StagedFile[] = []
-
-  // Event emitter to signal VS Code that the data has changed and the view needs to refresh
   private _onDidChangeTreeData = new vscode.EventEmitter<StagedFile | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
+  readonly dragMimeTypes = []
 
-  getChildren(element?: StagedFile): StagedFile[] {
-    // Top level elements are the staged files themselves
-    if (!element) {
-      return this.files
-    }
-    // Staged files are leaves and have no children
-    return []
+  constructor(private ignorePatternProvider: IgnorePatternProvider) {}
+
+  get dropMimeTypes(): string[] {
+    return [
+      'text/uri-list',
+      'text/plain',
+      'application/vnd.code.tree.testViewDragAndDrop',
+      'application/vnd.code.tree.explorer',
+      'application/octet-stream',
+    ]
   }
 
   /**
-   * Maps a StagedFile data object to a VS Code TreeItem for display in the view.
-   *
-   * @param element The StagedFile to convert.
-   * @returns A configured VS Code TreeItem.
+   * Handles files dropped onto the TreeView from internal or external sources.
+   * @param dataTransfer VS Code data transfer object containing dropped items
    */
+  async handleDrop(
+    target: StagedFile | undefined,
+    dataTransfer: vscode.DataTransfer,
+    token: vscode.CancellationToken,
+  ): Promise<void> {
+    let uris: vscode.Uri[] = []
+
+    const uriListItem = dataTransfer.get('text/uri-list')
+    if (uriListItem) {
+      const str = await uriListItem.asString()
+      uris = this.parseUriList(str)
+    }
+
+    // Fallback for Linux/WSL environments where drops often provide raw paths via text/plain
+    if (uris.length === 0) {
+      const plainItem = dataTransfer.get('text/plain')
+      if (plainItem) {
+        const str = await plainItem.asString()
+        uris = this.parseUriList(str)
+      }
+    }
+
+    if (uris.length === 0) return
+
+    const { files, folders } = await categorizeTargets(uris)
+
+    if (files.length > 0) this.addFiles(files)
+    if (folders.length > 0) await handleFolderScanning(folders, this, this.ignorePatternProvider)
+  }
+
+  /**
+   * Safely parses newline-separated URI strings or raw paths into Uri objects.
+   */
+  private parseUriList(content: string): vscode.Uri[] {
+    return content
+      .split(/\r?\n/)
+      .filter((line) => line.trim())
+      .map((line) => {
+        try {
+          // Manual schema detection for environments that drop raw file paths without a protocol
+          if (!line.startsWith('file:') && !line.startsWith('vscode-remote:')) {
+            return vscode.Uri.file(line)
+          }
+          return vscode.Uri.parse(line)
+        } catch {
+          return null
+        }
+      })
+      .filter((u): u is vscode.Uri => u !== null)
+  }
+
+  getChildren(element?: StagedFile): StagedFile[] {
+    return element ? [] : this.files
+  }
+
   getTreeItem(element: StagedFile): vscode.TreeItem {
     const item = new vscode.TreeItem(element.label)
-    // Use the URI as a stable ID for VS Code's view tracking
-    item.id = element.uri.toString()
+    item.resourceUri = element.uri
 
-    // Assign a custom resource URI scheme to enable custom icon/theme handling by VS Code
-    item.resourceUri = element.uri.with({ scheme: 'ai-stack' })
+    item.iconPath = vscode.ThemeIcon.File
 
     const relativePath = vscode.workspace.asRelativePath(element.uri)
-    // Extract the folder path to use as the TreeItem's description
     const folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'))
 
-    // Only set the description if it's a subfolder path and not the file itself (for root files)
     if (folderPath && folderPath !== relativePath) {
       item.description = folderPath
     }
 
     item.tooltip = element.uri.fsPath
-    // A context value is used to enable/disable context menu commands conditionally
     item.contextValue = 'stagedFile'
     return item
   }
 
-  /**
-   * Adds a single file to the stack if it is not already present.
-   */
   addFile(uri: vscode.Uri): void {
     const exists = this.files.some((f) => f.uri.toString() === uri.toString())
-
     if (!exists) {
-      // Use the filename as the label, defaulting if parsing fails
       const label = uri.path.split('/').pop() || 'unknown'
       this.files.push({ uri, label })
-      // Trigger a view refresh
       this._onDidChangeTreeData.fire()
     } else {
       vscode.window.setStatusBarMessage('File is already staged.', 2000)
@@ -71,14 +118,10 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StagedFile>
   }
 
   /**
-   * Adds multiple files to the stack, filtering out duplicates.
-   *
-   * @param uris An array of URIs to add.
+   * Batch adds multiple URIs to the provider state while preventing duplicates.
    */
   addFiles(uris: vscode.Uri[]): void {
     let addedCount = 0
-
-    // Use a Set for fast checking of current staged files during iteration
     const currentStagedUris = new Set(this.files.map((f) => f.uri.toString()))
 
     uris.forEach((uri) => {
@@ -86,58 +129,39 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StagedFile>
       if (!currentStagedUris.has(uriString)) {
         const label = uri.path.split('/').pop() || 'unknown'
         this.files.push({ uri, label })
-        currentStagedUris.add(uriString) // Add to set to prevent duplicates within the batch
+        currentStagedUris.add(uriString)
         addedCount++
       }
     })
 
-    if (addedCount > 0) {
-      this._onDidChangeTreeData.fire()
-    }
+    if (addedCount > 0) this._onDidChangeTreeData.fire()
   }
 
-  /**
-   * Removes a single StagedFile object from the stack.
-   *
-   * @param file The StagedFile object to remove.
-   */
   removeFile(file: StagedFile): void {
     this.files = this.files.filter((f) => f.uri.fsPath !== file.uri.fsPath)
     this._onDidChangeTreeData.fire()
   }
 
   /**
-   * Removes multiple StagedFile objects from the stack in a single operation.
-   *
-   * @param filesToRemove An array of StagedFile objects.
+   * Efficiently removes multiple files using a Set for path lookup.
    */
   removeFiles(filesToRemove: StagedFile[]): void {
-    // Use a Set for O(1) removal lookup
     const pathsToRemove = new Set(filesToRemove.map((f) => f.uri.fsPath))
     this.files = this.files.filter((f) => !pathsToRemove.has(f.uri.fsPath))
     this._onDidChangeTreeData.fire()
   }
 
-  /**
-   * Clears the entire stack.
-   */
   clear(): void {
     this.files = []
     this._onDidChangeTreeData.fire()
   }
 
-  /**
-   * Gets the current list of staged files.
-   */
   getFiles(): StagedFile[] {
     return this.files
   }
 
-  /**
-   * Cleans up the internal EventEmitter.
-   */
   public dispose() {
     this._onDidChangeTreeData.dispose()
-    Logger.info('ContextStackProvider disposed: EventEmitter cleaned up.')
+    Logger.info('ContextStackProvider disposed.')
   }
 }
