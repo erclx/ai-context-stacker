@@ -19,6 +19,7 @@ export class ContextStackProvider
 
   private readonly EMPTY_URI = vscode.Uri.parse('ai-stack:empty-drop-target')
   private readonly EMPTY_ID = 'emptyState'
+  private disposables: vscode.Disposable[] = []
 
   constructor(
     private context: vscode.ExtensionContext,
@@ -28,8 +29,23 @@ export class ContextStackProvider
     // Listen for track switches to refresh view and re-calculate stats
     this.trackManager.onDidChangeTrack(() => this.handleTrackChange())
 
+    // Listen for dirty/save events to update the UI indicators (dots)
+    this.disposables.push(
+      vscode.workspace.onDidChangeTextDocument((e) => this.handleDocChange(e.document)),
+      vscode.workspace.onDidSaveTextDocument((doc) => this.handleDocChange(doc)),
+    )
+
     // Initial stat calculation on load
     this.enrichFileStats(this.getFiles())
+  }
+
+  /**
+   * Refreshes the tree view if a staged document changes (to update dirty indicator).
+   */
+  private handleDocChange(doc: vscode.TextDocument) {
+    if (this.trackManager.hasUri(doc.uri)) {
+      this._onDidChangeTreeData.fire()
+    }
   }
 
   get dropMimeTypes(): string[] {
@@ -117,8 +133,21 @@ export class ContextStackProvider
     const item = new vscode.TreeItem(element.label)
     item.resourceUri = element.uri
     item.iconPath = vscode.ThemeIcon.File
-    item.tooltip = element.uri.fsPath
     item.contextValue = 'stagedFile'
+
+    // Check Dirty State (Unsaved changes)
+    const isDirty = vscode.workspace.textDocuments.some(
+      (doc) => doc.uri.toString() === element.uri.toString() && doc.isDirty,
+    )
+
+    if (isDirty) {
+      // Visual cue: Append a dot to the label
+      item.label = `${element.label} ●`
+      item.tooltip = `${element.uri.fsPath}\n⚠ Unsaved changes in editor (Copy will use disk version)`
+    } else {
+      item.tooltip = element.uri.fsPath
+    }
+
     this.decorateTreeItem(item, element)
     return item
   }
@@ -192,5 +221,6 @@ export class ContextStackProvider
 
   dispose() {
     this._onDidChangeTreeData.dispose()
+    this.disposables.forEach((d) => d.dispose())
   }
 }

@@ -79,6 +79,65 @@ export class ContextTrackManager implements vscode.Disposable {
   }
 
   /**
+   * Checks if a URI exists in ANY track.
+   * Used by the file watcher to determine if an event is relevant.
+   */
+  hasUri(uri: vscode.Uri): boolean {
+    for (const track of this.tracks.values()) {
+      if (track.files.some((f) => f.uri.toString() === uri.toString())) {
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
+   * Removes a file from ALL tracks (e.g., on deletion).
+   */
+  removeUriEverywhere(uri: vscode.Uri): void {
+    let changed = false
+    const uriStr = uri.toString()
+
+    for (const track of this.tracks.values()) {
+      const initialLength = track.files.length
+      track.files = track.files.filter((f) => f.uri.toString() !== uriStr)
+
+      if (track.files.length !== initialLength) {
+        changed = true
+      }
+    }
+
+    if (changed) {
+      this.persistState()
+      this._onDidChangeTrack.fire(this.getActiveTrack())
+    }
+  }
+
+  /**
+   * Updates a file's URI in ALL tracks (e.g., on rename).
+   */
+  replaceUri(oldUri: vscode.Uri, newUri: vscode.Uri): void {
+    let changed = false
+    const oldStr = oldUri.toString()
+    const newLabel = newUri.path.split('/').pop() || 'unknown'
+
+    for (const track of this.tracks.values()) {
+      const file = track.files.find((f) => f.uri.toString() === oldStr)
+      if (file) {
+        file.uri = newUri
+        file.label = newLabel
+        // We do NOT clear stats here; content is likely identical (rename/move)
+        changed = true
+      }
+    }
+
+    if (changed) {
+      this.persistState()
+      this._onDidChangeTrack.fire(this.getActiveTrack())
+    }
+  }
+
+  /**
    * Delegates file addition to the active track.
    * Returns the newly created StagedFile objects for the provider to enrich.
    */

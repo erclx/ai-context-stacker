@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 
 import { registerAllCommands } from './commands'
 import { ContextStackProvider, ContextTrackManager, IgnorePatternProvider } from './providers'
+import { FileWatcherService } from './services'
 import { StackerStatusBar } from './ui'
 import { Logger } from './utils'
 
@@ -12,6 +13,9 @@ export function activate(context: vscode.ExtensionContext) {
   const ignorePatternProvider = new IgnorePatternProvider()
   const trackManager = new ContextTrackManager(context)
 
+  // Initialize File Watcher
+  const fileWatcher = new FileWatcherService(trackManager)
+
   const contextStackProvider = new ContextStackProvider(context, ignorePatternProvider, trackManager)
 
   const treeView = vscode.window.createTreeView('aiContextStackerView', {
@@ -20,17 +24,23 @@ export function activate(context: vscode.ExtensionContext) {
     canSelectMany: true,
   })
 
-  // Sets the title immediately on load: "Staged Files — Main"
+  // Dynamic Title Updates
   updateTitle(treeView, trackManager.getActiveTrack().name)
-
-  // Updates the title whenever the track switches or is renamed
   trackManager.onDidChangeTrack((track) => {
     updateTitle(treeView, track.name)
   })
 
   const statusBar = new StackerStatusBar(context, contextStackProvider)
 
-  context.subscriptions.push(treeView, contextStackProvider, ignorePatternProvider, trackManager, statusBar)
+  // Add all disposables (including the new watcher)
+  context.subscriptions.push(
+    treeView,
+    contextStackProvider,
+    ignorePatternProvider,
+    trackManager,
+    statusBar,
+    fileWatcher,
+  )
 
   registerAllCommands({
     context,
