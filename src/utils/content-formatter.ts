@@ -8,9 +8,10 @@ import { Logger } from './logger'
  * string suitable for use as AI context (e.g., Markdown file blocks).
  */
 export class ContentFormatter {
-  /**
-   * Wrapper around VS Code's file system API to read raw bytes.
-   */
+  private static readonly PREAMBLE =
+    'The following is a collection of source code files provided as context for our discussion.\n' +
+    'Please analyze the code structure and logic as needed.\n\n---'
+
   public static async readFileFromDisk(uri: vscode.Uri): Promise<Uint8Array> {
     return vscode.workspace.fs.readFile(uri)
   }
@@ -18,17 +19,14 @@ export class ContentFormatter {
   /**
    * Reads the content of multiple staged files, formats each one with
    * a header and Markdown code block, and combines them into one string.
-   * Files marked as binary are skipped immediately.
    */
   public static async format(files: StagedFile[]): Promise<string> {
-    const parts: string[] = []
+    const parts: string[] = [this.PREAMBLE]
 
     for (const file of files) {
-      // OPTIMIZATION: Skip known binary files without reading from disk
       if (file.isBinary) {
         Logger.warn(`Skipping binary file: ${file.uri.fsPath}`)
-        parts.push(`> Skipped binary file: ${vscode.workspace.asRelativePath(file.uri)}`)
-        parts.push('')
+        parts.push(`> Skipped binary file: ${vscode.workspace.asRelativePath(file.uri)}\n`)
         continue
       }
 
@@ -46,8 +44,7 @@ export class ContentFormatter {
         parts.push(`File: ${relativePath}`)
         parts.push('```' + extension)
         parts.push(content)
-        parts.push('```')
-        parts.push('')
+        parts.push('```\n')
       } catch (err) {
         Logger.error(`Failed to read file ${file.uri.fsPath}`, err)
         parts.push(`> Error reading file: ${vscode.workspace.asRelativePath(file.uri)}`)
@@ -59,7 +56,6 @@ export class ContentFormatter {
 
   /**
    * Reads a file's content and performs a heuristic check for binary content.
-   * This acts as a secondary safeguard if the `isBinary` flag wasn't set.
    */
   private static async readFileContent(uri: vscode.Uri): Promise<string | null> {
     try {

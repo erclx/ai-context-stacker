@@ -3,7 +3,8 @@ import * as vscode from 'vscode'
 import { ContextStackProvider } from '../providers'
 
 /**
- * Manages the Status Bar Item displaying the aggregate token count.
+ * Manages the Status Bar Item.
+ * Primary Action: Copy All to Clipboard.
  */
 export class StackerStatusBar implements vscode.Disposable {
   private item: vscode.StatusBarItem
@@ -16,8 +17,9 @@ export class StackerStatusBar implements vscode.Disposable {
     // Priority 100 ensures it stays near the right side
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
 
-    this.item.command = 'aiContextStacker.switchTrack' // improved: clicking now opens the switcher
-    this.item.tooltip = 'Click to Switch Track'
+    // ZERO-CLICK FLOW: Primary click now copies immediately
+    this.item.command = 'aiContextStacker.copyAll'
+    this.item.tooltip = 'Click to Copy Stack to Clipboard'
 
     const changeListener = provider.onDidChangeTreeData(() => this.update())
 
@@ -33,7 +35,6 @@ export class StackerStatusBar implements vscode.Disposable {
   private update() {
     const files = this.provider.getFiles()
 
-    // Hide if empty, matching existing behavior
     if (files.length === 0) {
       this.item.hide()
       return
@@ -43,18 +44,21 @@ export class StackerStatusBar implements vscode.Disposable {
     const formattedTokens = this.provider.formatTokenCount(totalTokens)
     const trackName = this.provider.getActiveTrackName()
 
-    // Displays: $(layers) [TrackName] ~ 4.5k Tokens
-    this.item.text = `$(layers) ${trackName} ${formattedTokens} Tokens`
+    // Icon changed to 'copy' to indicate the primary action
+    this.item.text = `$(copy) ${trackName} (${formattedTokens})`
 
-    // Detailed tooltip
-    this.item.tooltip = `Active Track: ${trackName}\n${files.length} Staged Files\nClick to Switch Track`
+    this.item.tooltip = new vscode.MarkdownString(
+      `**Active Track:** ${trackName}\n\n` +
+        `**Files:** ${files.length} staged\n` +
+        `**Tokens:** ${formattedTokens}\n\n` +
+        `$(copy) Click to Copy All\n` +
+        `$(list-flat) Use View Title icons to Switch Track`,
+    )
+    this.item.tooltip.isTrusted = true
 
     this.item.show()
   }
 
-  /**
-   * Cleans up resources.
-   */
   public dispose() {
     this._disposables.forEach((d) => d.dispose())
   }

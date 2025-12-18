@@ -8,7 +8,7 @@ import { IgnorePatternProvider } from './ignore-pattern-provider'
 
 /**
  * Acts as the ViewModel for the active track.
- * Handles rendering and coordinates token calculation.
+ * Handles rendering, coordinates token calculation, and visualizes "weight".
  */
 export class ContextStackProvider
   implements vscode.TreeDataProvider<StagedFile>, vscode.TreeDragAndDropController<StagedFile>, vscode.Disposable
@@ -16,12 +16,13 @@ export class ContextStackProvider
   private _onDidChangeTreeData = new vscode.EventEmitter<StagedFile | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
-  // Explicitly typed for TreeDragAndDropController interface compliance
   public readonly dragMimeTypes: readonly string[] = ['text/uri-list', 'text/plain']
   public readonly dropMimeTypes: readonly string[] = ['text/uri-list', 'text/plain']
 
   private readonly EMPTY_URI = vscode.Uri.parse('ai-stack:empty-drop-target')
   private readonly EMPTY_ID = 'emptyState'
+  private readonly HIGH_TOKEN_THRESHOLD = 5000
+
   private disposables: vscode.Disposable[] = []
 
   constructor(
@@ -29,38 +30,26 @@ export class ContextStackProvider
     private ignorePatternProvider: IgnorePatternProvider,
     private trackManager: ContextTrackManager,
   ) {
-    // Listen for track switches to refresh view and re-calculate stats
     this.trackManager.onDidChangeTrack(() => this.handleTrackChange())
 
-    // Listen for dirty/save events to update the UI indicators (dots)
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument((e) => this.handleDocChange(e.document)),
       vscode.workspace.onDidSaveTextDocument((doc) => this.handleDocChange(doc)),
     )
 
-    // Initial stat calculation on load
     this.enrichFileStats(this.getFiles())
   }
 
-  /**
-   * Refreshes the tree view if a staged document changes (to update dirty indicator).
-   */
   private handleDocChange(doc: vscode.TextDocument) {
     if (this.trackManager.hasUri(doc.uri)) {
       this._onDidChangeTreeData.fire()
     }
   }
 
-  /**
-   * Returns files from the currently active track.
-   */
   getFiles(): StagedFile[] {
     return this.trackManager.getActiveTrack().files
   }
 
-  /**
-   * Returns the name of the currently active track.
-   */
   getActiveTrackName(): string {
     return this.trackManager.getActiveTrack().name
   }
@@ -69,12 +58,8 @@ export class ContextStackProvider
     return this.getFiles().reduce((sum, file) => sum + (file.stats?.tokenCount ?? 0), 0)
   }
 
-  /**
-   * Refreshes UI and triggers async stat calculation for the new track.
-   */
   private handleTrackChange(): void {
     this._onDidChangeTreeData.fire()
-    // Re-hydrate stats for the newly active files
     this.enrichFileStats(this.getFiles())
   }
 
@@ -140,43 +125,51 @@ export class ContextStackProvider
     item.resourceUri = element.uri
     item.contextValue = 'stagedFile'
 
-    // 1. Binary State Check (High Priority)
+    // Navigation Sync: Click to open
+    item.command = {
+      command: 'vscode.open',
+      title: 'Open File',
+      arguments: [element.uri],
+    }
+
     if (element.isBinary) {
       item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
       item.description = 'Binary • Skipped'
-      item.tooltip = `${element.uri.fsPath}\n⚠ Binary file detected. Will be excluded from copy operations.`
-      return item // Exit early
+      item.tooltip = `${element.uri.fsPath}\n⚠ Binary file detected.`
+      return item
     }
 
-    // 2. Standard File Icon
-    item.iconPath = vscode.ThemeIcon.File
-
-    // 3. Dirty State Check (Unsaved changes)
-    const isDirty = vscode.workspace.textDocuments.some(
-      (doc) => doc.uri.toString() === element.uri.toString() && doc.isDirty,
-    )
-
-    if (isDirty) {
-      item.label = `${element.label} ●`
-      item.tooltip = `${element.uri.fsPath}\n⚠ Unsaved changes in editor (Copy will use disk version)`
-    } else {
-      item.tooltip = element.uri.fsPath
-    }
+    // Visual Weight Logic
+    const tokenCount = element.stats?.tokenCount ?? 0
+    item.iconPath = new vscode.ThemeIcon('file', this.getIconColor(tokenCount))
 
     this.decorateTreeItem(item, element)
     return item
+  }
+
+  private getIconColor(tokenCount: number): vscode.ThemeColor | undefined {
+    if (tokenCount > this.HIGH_TOKEN_THRESHOLD) {
+      return new vscode.ThemeColor('charts.orange') // Visual warning for heavy files
+    }
+    return undefined
   }
 
   private decorateTreeItem(item: vscode.TreeItem, element: StagedFile): void {
     const relativePath = vscode.workspace.asRelativePath(element.uri)
     const folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'))
     const parts: string[] = []
+    const isDirty = vscode.workspace.textDocuments.some(
+      (doc) => doc.uri.toString() === element.uri.toString() && doc.isDirty,
+    )
 
     if (element.stats) parts.push(`${this.formatTokenCount(element.stats.tokenCount)} tokens`)
     else parts.push('calculating...')
 
     if (folderPath && folderPath !== relativePath) parts.push(folderPath)
+
     item.description = parts.join(' • ')
+    item.label = isDirty ? `${element.label} ●` : element.label
+    item.tooltip = `${element.uri.fsPath}\nTokens: ${element.stats?.tokenCount ?? '...'}`
   }
 
   formatTokenCount(count: number): string {
@@ -186,9 +179,7 @@ export class ContextStackProvider
   addFiles(uris: vscode.Uri[]): void {
     const newFiles = this.trackManager.addFilesToActive(uris)
     if (newFiles.length === 0) return
-
     this._onDidChangeTreeData.fire()
-    // Non-blocking stats calculation
     this.enrichFileStats(newFiles)
   }
 
@@ -214,13 +205,10 @@ export class ContextStackProvider
     const decoder = new TextDecoder()
 
     for (const file of targets) {
-      // Skip if already calculated
       if (file.stats) continue
 
       try {
         const uint8Array = await vscode.workspace.fs.readFile(file.uri)
-
-        // Check first 512 bytes for null bytes to detect binary
         const snippet = uint8Array.slice(0, 512)
         const isBinary = snippet.some((byte) => byte === 0)
 

@@ -118,18 +118,21 @@
       ],
       "view/title": [
         {
-          "//": "--- VISIBLE ICONS (Navigation) ---",
           "command": "aiContextStacker.switchTrack",
           "when": "view == aiContextStackerView",
           "group": "navigation@1"
         },
         {
-          "command": "aiContextStacker.newTrack",
+          "command": "aiContextStacker.clearAll",
           "when": "view == aiContextStackerView",
           "group": "navigation@2"
         },
         {
-          "//": "--- OVERFLOW MENU (...) - Group 1: Track Management ---",
+          "command": "aiContextStacker.newTrack",
+          "when": "view == aiContextStackerView",
+          "group": "navigation@3"
+        },
+        {
           "command": "aiContextStacker.renameTrack",
           "when": "view == aiContextStackerView",
           "group": "1_track"
@@ -140,7 +143,6 @@
           "group": "1_track"
         },
         {
-          "//": "--- OVERFLOW MENU (...) - Group 2: Add Files ---",
           "command": "aiContextStacker.addFilePicker",
           "when": "view == aiContextStackerView",
           "group": "2_add"
@@ -151,13 +153,7 @@
           "group": "2_add"
         },
         {
-          "//": "--- OVERFLOW MENU (...) - Group 3: Bulk Actions ---",
           "command": "aiContextStacker.copyAll",
-          "when": "view == aiContextStackerView",
-          "group": "3_actions"
-        },
-        {
-          "command": "aiContextStacker.clearAll",
           "when": "view == aiContextStackerView",
           "group": "3_actions"
         }
