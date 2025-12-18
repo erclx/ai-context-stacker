@@ -58,6 +58,13 @@ export class ContextStackProvider
     return this.trackManager.getActiveTrack().files
   }
 
+  /**
+   * Returns the name of the currently active track.
+   */
+  getActiveTrackName(): string {
+    return this.trackManager.getActiveTrack().name
+  }
+
   getTotalTokens(): number {
     return this.getFiles().reduce((sum, file) => sum + (file.stats?.tokenCount ?? 0), 0)
   }
@@ -138,7 +145,7 @@ export class ContextStackProvider
       item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
       item.description = 'Binary • Skipped'
       item.tooltip = `${element.uri.fsPath}\n⚠ Binary file detected. Will be excluded from copy operations.`
-      return item // Exit early, no need for dirty checks or token decoration
+      return item // Exit early
     }
 
     // 2. Standard File Icon
@@ -203,10 +210,6 @@ export class ContextStackProvider
     this._onDidChangeTreeData.fire()
   }
 
-  /**
-   * Reads file content, checks for binary data, and calculates tokens.
-   * Updates the objects in-place.
-   */
   private async enrichFileStats(targets: StagedFile[]): Promise<void> {
     const decoder = new TextDecoder()
 

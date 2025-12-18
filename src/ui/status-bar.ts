@@ -16,8 +16,8 @@ export class StackerStatusBar implements vscode.Disposable {
     // Priority 100 ensures it stays near the right side
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
 
-    this.item.command = 'aiContextStacker.copyAll'
-    this.item.tooltip = 'Click to Copy All Staged Files to Clipboard'
+    this.item.command = 'aiContextStacker.switchTrack' // improved: clicking now opens the switcher
+    this.item.tooltip = 'Click to Switch Track'
 
     const changeListener = provider.onDidChangeTreeData(() => this.update())
 
@@ -28,11 +28,12 @@ export class StackerStatusBar implements vscode.Disposable {
   }
 
   /**
-   * Updates the status bar text with the total token count.
+   * Updates the status bar text with the current track and token count.
    */
   private update() {
     const files = this.provider.getFiles()
 
+    // Hide if empty, matching existing behavior
     if (files.length === 0) {
       this.item.hide()
       return
@@ -40,9 +41,14 @@ export class StackerStatusBar implements vscode.Disposable {
 
     const totalTokens = this.provider.getTotalTokens()
     const formattedTokens = this.provider.formatTokenCount(totalTokens)
+    const trackName = this.provider.getActiveTrackName()
 
-    // Displays: $(database) ~4.5k Tokens
-    this.item.text = `$(database) ${formattedTokens} Tokens`
+    // Displays: $(layers) [TrackName] ~ 4.5k Tokens
+    this.item.text = `$(layers) ${trackName} ${formattedTokens} Tokens`
+
+    // Detailed tooltip
+    this.item.tooltip = `Active Track: ${trackName}\n${files.length} Staged Files\nClick to Switch Track`
+
     this.item.show()
   }
 

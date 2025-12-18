@@ -21,12 +21,20 @@ export function registerTrackCommands(context: vscode.ExtensionContext, manager:
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.switchTrack', async () => {
       const tracks = manager.allTracks
+      const activeId = manager.getActiveTrack().id
+
       const selected = await vscode.window.showQuickPick(
-        tracks.map((t) => ({
-          label: t.name,
-          description: t.id === manager.getActiveTrack().id ? '(Active)' : '',
-          id: t.id,
-        })),
+        tracks.map((t) => {
+          const isActive = t.id === activeId
+          return {
+            label: t.name,
+            // Visual indicator: Check mark for active, empty for others
+            description: isActive ? '$(check) Active' : '',
+            // Functional indicator: Pre-selects the active item in the list
+            picked: isActive,
+            id: t.id,
+          }
+        }),
         { placeHolder: 'Select a Context Track' },
       )
 
