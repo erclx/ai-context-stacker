@@ -24,12 +24,14 @@ export function activate(context: vscode.ExtensionContext) {
 
   const statusBar = new StackerStatusBar(context, contextStackProvider)
 
-  context.subscriptions.push(treeView)
-  context.subscriptions.push(contextStackProvider)
-  context.subscriptions.push(ignorePatternProvider)
-  context.subscriptions.push(statusBar)
+  context.subscriptions.push(treeView, contextStackProvider, ignorePatternProvider, statusBar)
 
-  registerAllCommands({ context, contextStackProvider, ignorePatternProvider, treeView })
+  registerAllCommands({
+    context,
+    contextStackProvider,
+    ignorePatternProvider,
+    treeView,
+  })
 
   Logger.info('Extension is activated')
 }
