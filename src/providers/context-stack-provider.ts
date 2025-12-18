@@ -3,18 +3,16 @@ import * as vscode from 'vscode'
 
 import { type StagedFile } from '../models'
 import { categorizeTargets, handleFolderScanning, Logger, TokenEstimator } from '../utils'
+import { ContextTrackManager } from './context-track-manager'
 import { IgnorePatternProvider } from './ignore-pattern-provider'
 
 /**
- * Manages staged files, handles asynchronous token calculation,
- * and persists state across workspace reloads.
+ * Acts as the ViewModel for the active track.
+ * Handles rendering and coordinates token calculation.
  */
 export class ContextStackProvider
   implements vscode.TreeDataProvider<StagedFile>, vscode.TreeDragAndDropController<StagedFile>, vscode.Disposable
 {
-  public static readonly STORAGE_KEY = 'aiContextStacker.stagedUris'
-
-  private files: StagedFile[] = []
   private _onDidChangeTreeData = new vscode.EventEmitter<StagedFile | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
   readonly dragMimeTypes = []
@@ -25,59 +23,67 @@ export class ContextStackProvider
   constructor(
     private context: vscode.ExtensionContext,
     private ignorePatternProvider: IgnorePatternProvider,
-  ) {}
+    private trackManager: ContextTrackManager,
+  ) {
+    // Listen for track switches to refresh view and re-calculate stats
+    this.trackManager.onDidChangeTrack(() => this.handleTrackChange())
+
+    // Initial stat calculation on load
+    this.enrichFileStats(this.getFiles())
+  }
 
   get dropMimeTypes(): string[] {
     return ['text/uri-list', 'text/plain']
   }
 
   /**
-   * Processes files dropped onto the view.
-   * @param dataTransfer - VS Code transfer object.
+   * Returns files from the currently active track.
    */
+  getFiles(): StagedFile[] {
+    return this.trackManager.getActiveTrack().files
+  }
+
+  getTotalTokens(): number {
+    return this.getFiles().reduce((sum, file) => sum + (file.stats?.tokenCount ?? 0), 0)
+  }
+
+  /**
+   * Refreshes UI and triggers async stat calculation for the new track.
+   */
+  private handleTrackChange(): void {
+    this._onDidChangeTreeData.fire()
+    // Re-hydrate stats for the newly active files
+    this.enrichFileStats(this.getFiles())
+  }
+
   async handleDrop(
     target: StagedFile | undefined,
     dataTransfer: vscode.DataTransfer,
     token: vscode.CancellationToken,
   ): Promise<void> {
-    try {
-      const uris = await this.extractUrisFromTransfer(dataTransfer)
-      if (uris.length === 0) return
+    const uris = await this.extractUrisFromTransfer(dataTransfer)
+    if (uris.length === 0) return
 
-      const { files, folders } = await categorizeTargets(uris)
-
-      if (files.length > 0) this.addFiles(files)
-      if (folders.length > 0) await handleFolderScanning(folders, this, this.ignorePatternProvider)
-    } catch (error) {
-      Logger.error('Failed to handle drop', error)
-    }
+    const { files, folders } = await categorizeTargets(uris)
+    if (files.length > 0) this.addFiles(files)
+    if (folders.length > 0) await handleFolderScanning(folders, this, this.ignorePatternProvider)
   }
 
-  /**
-   * Extracts URIs from transfer to support cross-platform drag interactions.
-   */
   private async extractUrisFromTransfer(dataTransfer: vscode.DataTransfer): Promise<vscode.Uri[]> {
     const uriListItem = dataTransfer.get('text/uri-list')
     if (uriListItem) return this.parseUriList(await uriListItem.asString())
-
     const plainItem = dataTransfer.get('text/plain')
     if (plainItem) return this.parseUriList(await plainItem.asString())
-
     return []
   }
 
-  /**
-   * Parses newline-separated strings into URIs.
-   */
   private parseUriList(content: string): vscode.Uri[] {
     return content
       .split(/\r?\n/)
       .filter((line) => line.trim())
       .map((line) => {
         try {
-          if (!line.startsWith('file:') && !line.startsWith('vscode-remote:')) {
-            return vscode.Uri.file(line)
-          }
+          if (!line.startsWith('file:') && !line.startsWith('vscode-remote:')) return vscode.Uri.file(line)
           return vscode.Uri.parse(line)
         } catch {
           return null
@@ -88,16 +94,15 @@ export class ContextStackProvider
 
   getChildren(element?: StagedFile): StagedFile[] {
     if (element) return []
-    if (this.files.length === 0) {
-      return [{ uri: this.EMPTY_URI, label: 'Drag files here to start...' }]
+    const files = this.getFiles()
+    if (files.length === 0) {
+      return [{ uri: this.EMPTY_URI, label: 'Drag files here to start...', stats: undefined } as StagedFile]
     }
-    return this.files
+    return files
   }
 
   getTreeItem(element: StagedFile): vscode.TreeItem {
-    if (element.uri.scheme === this.EMPTY_URI.scheme) {
-      return this.createEmptyTreeItem(element)
-    }
+    if (element.uri.scheme === this.EMPTY_URI.scheme) return this.createEmptyTreeItem(element)
     return this.createFileTreeItem(element)
   }
 
@@ -105,7 +110,6 @@ export class ContextStackProvider
     const item = new vscode.TreeItem(element.label)
     item.iconPath = new vscode.ThemeIcon('cloud-upload')
     item.contextValue = this.EMPTY_ID
-    item.collapsibleState = vscode.TreeItemCollapsibleState.None
     return item
   }
 
@@ -115,97 +119,33 @@ export class ContextStackProvider
     item.iconPath = vscode.ThemeIcon.File
     item.tooltip = element.uri.fsPath
     item.contextValue = 'stagedFile'
-
     this.decorateTreeItem(item, element)
     return item
   }
 
-  /**
-   * Adds token stats and folder path to the tree item description.
-   * Prioritizes token count visibility.
-   */
   private decorateTreeItem(item: vscode.TreeItem, element: StagedFile): void {
     const relativePath = vscode.workspace.asRelativePath(element.uri)
     const folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'))
     const parts: string[] = []
 
-    // 1. Token Count (Primary)
-    if (element.stats) {
-      parts.push(`${this.formatTokenCount(element.stats.tokenCount)} tokens`)
-    } else {
-      parts.push('calculating...')
-    }
+    if (element.stats) parts.push(`${this.formatTokenCount(element.stats.tokenCount)} tokens`)
+    else parts.push('calculating...')
 
-    // 2. Folder Path (Secondary)
-    if (folderPath && folderPath !== relativePath) {
-      parts.push(folderPath)
-    }
-
+    if (folderPath && folderPath !== relativePath) parts.push(folderPath)
     item.description = parts.join(' • ')
   }
 
-  /**
-   * Formats numbers with 'k' shorthand and tilde for estimates.
-   * e.g., 4500 -> "~4.5k", 300 -> "~300"
-   */
-  public formatTokenCount(count: number): string {
-    const prefix = '~'
-    if (count >= 1000) {
-      return `${prefix}${(count / 1000).toFixed(1)}k`
-    }
-    return `${prefix}${count}`
+  formatTokenCount(count: number): string {
+    return count >= 1000 ? `~${(count / 1000).toFixed(1)}k` : `~${count}`
   }
 
-  /**
-   * Adds files to the stack and triggers background token calculation.
-   */
   addFiles(uris: vscode.Uri[]): void {
-    const newFiles = this.filterNewFiles(uris)
+    const newFiles = this.trackManager.addFilesToActive(uris)
     if (newFiles.length === 0) return
 
-    this.files.push(...newFiles)
     this._onDidChangeTreeData.fire()
-    this.persistState()
-
     // Non-blocking stats calculation
     this.enrichFileStats(newFiles)
-  }
-
-  private filterNewFiles(uris: vscode.Uri[]): StagedFile[] {
-    const currentPaths = new Set(this.files.map((f) => f.uri.toString()))
-
-    return uris
-      .filter((uri) => !currentPaths.has(uri.toString()))
-      .map((uri) => ({
-        uri,
-        label: uri.path.split('/').pop() || 'unknown',
-      }))
-  }
-
-  /**
-   * Reads file content and calculates tokens in the background.
-   */
-  private async enrichFileStats(targets: StagedFile[]): Promise<void> {
-    const decoder = new TextDecoder()
-
-    for (const file of targets) {
-      try {
-        const uint8Array = await vscode.workspace.fs.readFile(file.uri)
-        const content = decoder.decode(uint8Array)
-        const measurements = TokenEstimator.measure(content)
-
-        file.stats = {
-          tokenCount: measurements.tokenCount,
-          charCount: content.length,
-        }
-      } catch (error) {
-        Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
-        file.stats = { tokenCount: 0, charCount: 0 }
-      }
-    }
-
-    // Refresh UI once stats are ready
-    this._onDidChangeTreeData.fire()
   }
 
   addFile(uri: vscode.Uri): void {
@@ -213,46 +153,44 @@ export class ContextStackProvider
   }
 
   removeFile(file: StagedFile): void {
-    this.files = this.files.filter((f) => f.uri.fsPath !== file.uri.fsPath)
-    this._onDidChangeTreeData.fire()
-    this.persistState()
+    this.removeFiles([file])
   }
 
   removeFiles(filesToRemove: StagedFile[]): void {
-    const pathsToRemove = new Set(filesToRemove.map((f) => f.uri.fsPath))
-    this.files = this.files.filter((f) => !pathsToRemove.has(f.uri.fsPath))
+    this.trackManager.removeFilesFromActive(filesToRemove)
     this._onDidChangeTreeData.fire()
-    this.persistState()
   }
 
   clear(): void {
-    this.files = []
+    this.trackManager.clearActive()
     this._onDidChangeTreeData.fire()
-    this.persistState()
-  }
-
-  getFiles(): StagedFile[] {
-    return this.files
-  }
-
-  getTotalTokens(): number {
-    return this.files.reduce((sum, file) => sum + (file.stats?.tokenCount ?? 0), 0)
   }
 
   /**
-   * Serializes the current list of URIs to workspace state.
+   * Reads file content and calculates tokens.
+   * Updates the objects in-place (reference held by Manager).
    */
-  private persistState(): void {
-    try {
-      const uris = this.files.map((f) => f.uri.toString())
-      this.context.workspaceState.update(ContextStackProvider.STORAGE_KEY, uris)
-    } catch (error) {
-      Logger.error('Failed to persist context stack state', error)
+  private async enrichFileStats(targets: StagedFile[]): Promise<void> {
+    const decoder = new TextDecoder()
+
+    for (const file of targets) {
+      // Skip if already calculated
+      if (file.stats) continue
+
+      try {
+        const uint8Array = await vscode.workspace.fs.readFile(file.uri)
+        const content = decoder.decode(uint8Array)
+        const measurements = TokenEstimator.measure(content)
+        file.stats = { tokenCount: measurements.tokenCount, charCount: content.length }
+      } catch (error) {
+        Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
+        file.stats = { tokenCount: 0, charCount: 0 }
+      }
     }
+    this._onDidChangeTreeData.fire()
   }
 
   dispose() {
     this._onDidChangeTreeData.dispose()
-    Logger.info('ContextStackProvider disposed.')
   }
 }

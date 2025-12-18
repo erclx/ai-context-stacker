@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { StagedFile } from '../models'
-import { ContextStackProvider, IgnorePatternProvider } from '../providers'
+import { ContextStackProvider, ContextTrackManager, IgnorePatternProvider } from '../providers'
 import { registerAddFileCommand } from './add-file'
 import { registerAddFileContextMenuCommand } from './add-file-context-menu'
 import { registerAddFilePickerCommand } from './add-file-picker'
@@ -10,34 +10,28 @@ import { registerClearAllCommand } from './clear-all'
 import { registerCopyAllCommand } from './copy-all'
 import { registerCopyFileCommand } from './copy-file'
 import { registerRemoveFileCommand } from './remove-file'
+import { registerTrackCommands } from './track-ops'
 
-/**
- * Defines the dependencies required by command registration functions.
- */
 interface Providers {
   context: vscode.ExtensionContext
   contextStackProvider: ContextStackProvider
   ignorePatternProvider: IgnorePatternProvider
-  // The TreeView instance is required by file-specific commands to resolve selection
   treeView: vscode.TreeView<StagedFile>
+  trackManager: ContextTrackManager
 }
 
-/**
- * Registers all commands exposed by the extension.
- * This function serves as the central command registration entry point.
- *
- * @param {Providers} dependencies The necessary providers and context.
- */
-export function registerAllCommands({ context, contextStackProvider, ignorePatternProvider, treeView }: Providers) {
-  registerAddFileCommand(context, contextStackProvider)
-  registerAddFileContextMenuCommand(context, contextStackProvider, ignorePatternProvider)
-  registerAddFilePickerCommand(context, contextStackProvider, ignorePatternProvider)
-  registerAddOpenFilesCommand(context, contextStackProvider)
+export function registerAllCommands(deps: Providers) {
+  // File Operations
+  registerAddFileCommand(deps.context, deps.contextStackProvider)
+  registerAddFileContextMenuCommand(deps.context, deps.contextStackProvider, deps.ignorePatternProvider)
+  registerAddFilePickerCommand(deps.context, deps.contextStackProvider, deps.ignorePatternProvider)
+  registerAddOpenFilesCommand(deps.context, deps.contextStackProvider)
 
-  registerClearAllCommand(context, contextStackProvider)
-  registerCopyAllCommand(context, contextStackProvider)
+  registerClearAllCommand(deps.context, deps.contextStackProvider)
+  registerCopyAllCommand(deps.context, deps.contextStackProvider)
+  registerCopyFileCommand(deps.context, deps.contextStackProvider, deps.treeView)
+  registerRemoveFileCommand(deps.context, deps.contextStackProvider, deps.treeView)
 
-  // These commands operate on specific files selected in the TreeView
-  registerCopyFileCommand(context, contextStackProvider, treeView)
-  registerRemoveFileCommand(context, contextStackProvider, treeView)
+  // Track Operations (New)
+  registerTrackCommands(deps.context, deps.trackManager)
 }

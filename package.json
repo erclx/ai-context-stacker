@@ -60,13 +60,13 @@
       },
       {
         "command": "aiContextStacker.clearAll",
-        "title": "Clear All",
+        "title": "Clear Stack",
         "category": "AI Context Stacker",
         "icon": "$(clear-all)"
       },
       {
         "command": "aiContextStacker.copyAll",
-        "title": "Copy to Clipboard",
+        "title": "Copy Stack to Clipboard",
         "category": "AI Context Stacker",
         "icon": "$(copy)"
       },
@@ -75,6 +75,30 @@
         "title": "Copy File Content",
         "category": "AI Context Stacker",
         "icon": "$(copy)"
+      },
+      {
+        "command": "aiContextStacker.newTrack",
+        "title": "New Track...",
+        "category": "AI Context Stacker",
+        "icon": "$(add)"
+      },
+      {
+        "command": "aiContextStacker.switchTrack",
+        "title": "Switch Track...",
+        "category": "AI Context Stacker",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "aiContextStacker.renameTrack",
+        "title": "Rename Track...",
+        "category": "AI Context Stacker",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "aiContextStacker.deleteTrack",
+        "title": "Delete Track...",
+        "category": "AI Context Stacker",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -94,28 +118,53 @@
       ],
       "view/title": [
         {
-          "command": "aiContextStacker.addOpenFiles",
+          "//": "--- VISIBLE ICONS (Navigation) ---",
+          "command": "aiContextStacker.switchTrack",
           "when": "view == aiContextStackerView",
           "group": "navigation@1"
         },
         {
-          "command": "aiContextStacker.addFilePicker",
+          "command": "aiContextStacker.newTrack",
           "when": "view == aiContextStackerView",
           "group": "navigation@2"
         },
         {
-          "command": "aiContextStacker.clearAll",
+          "//": "--- OVERFLOW MENU (...) - Group 1: Track Management ---",
+          "command": "aiContextStacker.renameTrack",
           "when": "view == aiContextStackerView",
-          "group": "navigation@3"
+          "group": "1_track"
         },
         {
+          "command": "aiContextStacker.deleteTrack",
+          "when": "view == aiContextStackerView",
+          "group": "1_track"
+        },
+        {
+          "//": "--- OVERFLOW MENU (...) - Group 2: Add Files ---",
+          "command": "aiContextStacker.addFilePicker",
+          "when": "view == aiContextStackerView",
+          "group": "2_add"
+        },
+        {
+          "command": "aiContextStacker.addOpenFiles",
+          "when": "view == aiContextStackerView",
+          "group": "2_add"
+        },
+        {
+          "//": "--- OVERFLOW MENU (...) - Group 3: Bulk Actions ---",
           "command": "aiContextStacker.copyAll",
           "when": "view == aiContextStackerView",
-          "group": "navigation@4"
+          "group": "3_actions"
+        },
+        {
+          "command": "aiContextStacker.clearAll",
+          "when": "view == aiContextStackerView",
+          "group": "3_actions"
         }
       ],
       "view/item/context": [
         {
+          "//": "--- HOVER ICONS (Inline) ---",
           "command": "aiContextStacker.copyFile",
           "when": "view == aiContextStackerView && viewItem == stagedFile",
           "group": "inline@1"
@@ -126,6 +175,7 @@
           "group": "inline@2"
         },
         {
+          "//": "--- RIGHT CLICK MENU (Dropdown) ---",
           "command": "aiContextStacker.copyFile",
           "when": "view == aiContextStackerView && viewItem == stagedFile",
           "group": "1_modification"
@@ -142,13 +192,13 @@
         "command": "aiContextStacker.removeFile",
         "key": "delete",
         "mac": "cmd+backspace",
-        "when": "focusedView == aiContextStackerView && !inputFocus && viewItem == stagedFile"
+        "when": "focusedView == aiContextStackerView && !inputFocus"
       },
       {
         "command": "aiContextStacker.copyFile",
         "key": "ctrl+c",
         "mac": "cmd+c",
-        "when": "focusedView == aiContextStackerView && !inputFocus && viewItem == stagedFile"
+        "when": "focusedView == aiContextStackerView && !inputFocus"
       }
     ]
   },
