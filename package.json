@@ -160,6 +160,17 @@
       ],
       "view/item/context": [
         {
+          "//": "--- EMPTY STATE CONTEXT ---",
+          "command": "aiContextStacker.addFilePicker",
+          "when": "view == aiContextStackerView && viewItem == emptyState",
+          "group": "1_add"
+        },
+        {
+          "command": "aiContextStacker.addOpenFiles",
+          "when": "view == aiContextStackerView && viewItem == emptyState",
+          "group": "1_add"
+        },
+        {
           "//": "--- HOVER ICONS (Inline) ---",
           "command": "aiContextStacker.copyFile",
           "when": "view == aiContextStackerView && viewItem == stagedFile",

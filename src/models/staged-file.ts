@@ -12,11 +12,15 @@ export interface ContentStats {
 
 /**
  * Defines the structure for a file tracked in the context stack.
- * Includes optional stats which are calculated asynchronously after staging.
  */
 export interface StagedFile {
   uri: vscode.Uri
   label: string
+  /**
+   * Optional discriminator for duplicate filenames.
+   * e.g., "auth" for "src/auth/index.ts" vs "api" for "src/api/index.ts".
+   */
+  parentHint?: string
   /**
    * Statistics regarding the file content.
    * Undefined while the file is being processed asynchronously.

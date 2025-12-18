@@ -1,3 +1,4 @@
+import * as path from 'path'
 import { TextDecoder } from 'util'
 import * as vscode from 'vscode'
 
@@ -23,6 +24,8 @@ export class ContextStackProvider
   private readonly EMPTY_ID = 'emptyState'
   private readonly HIGH_TOKEN_THRESHOLD = 5000
 
+  // Tracks filenames that appear >1 time to trigger smart labeling
+  private nameCollisions = new Set<string>()
   private disposables: vscode.Disposable[] = []
 
   constructor(
@@ -30,20 +33,40 @@ export class ContextStackProvider
     private ignorePatternProvider: IgnorePatternProvider,
     private trackManager: ContextTrackManager,
   ) {
-    this.trackManager.onDidChangeTrack(() => this.handleTrackChange())
+    this.trackManager.onDidChangeTrack(() => this.refreshState())
 
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument((e) => this.handleDocChange(e.document)),
       vscode.workspace.onDidSaveTextDocument((doc) => this.handleDocChange(doc)),
     )
 
-    this.enrichFileStats(this.getFiles())
+    this.refreshState()
   }
 
   private handleDocChange(doc: vscode.TextDocument) {
     if (this.trackManager.hasUri(doc.uri)) {
       this._onDidChangeTreeData.fire()
     }
+  }
+
+  /**
+   * Centralized refresh: Recalculates collisions -> Fires View Update -> Enriches Stats.
+   */
+  private refreshState(): void {
+    const files = this.getFiles()
+    this.calculateCollisions(files)
+    this._onDidChangeTreeData.fire()
+    this.enrichFileStats(files)
+  }
+
+  private calculateCollisions(files: StagedFile[]): void {
+    const counts = new Map<string, number>()
+    files.forEach((f) => counts.set(f.label, (counts.get(f.label) || 0) + 1))
+
+    this.nameCollisions.clear()
+    counts.forEach((count, name) => {
+      if (count > 1) this.nameCollisions.add(name)
+    })
   }
 
   getFiles(): StagedFile[] {
@@ -56,11 +79,6 @@ export class ContextStackProvider
 
   getTotalTokens(): number {
     return this.getFiles().reduce((sum, file) => sum + (file.stats?.tokenCount ?? 0), 0)
-  }
-
-  private handleTrackChange(): void {
-    this._onDidChangeTreeData.fire()
-    this.enrichFileStats(this.getFiles())
   }
 
   async handleDrop(
@@ -99,6 +117,10 @@ export class ContextStackProvider
       .filter((u): u is vscode.Uri => u !== null)
   }
 
+  getParent(element: StagedFile): vscode.ProviderResult<StagedFile> {
+    return undefined
+  }
+
   getChildren(element?: StagedFile): StagedFile[] {
     if (element) return []
     const files = this.getFiles()
@@ -117,59 +139,81 @@ export class ContextStackProvider
     const item = new vscode.TreeItem(element.label)
     item.iconPath = new vscode.ThemeIcon('cloud-upload')
     item.contextValue = this.EMPTY_ID
+    // Actionable Empty State: Click to open file picker
+    item.command = {
+      command: 'aiContextStacker.addFilePicker',
+      title: 'Add Files',
+    }
+    item.tooltip = 'Click to add files, or drag and drop items here.'
     return item
   }
 
   private createFileTreeItem(element: StagedFile): vscode.TreeItem {
-    const item = new vscode.TreeItem(element.label)
+    const label = this.getSmartLabel(element)
+    const item = new vscode.TreeItem(label)
+
     item.resourceUri = element.uri
     item.contextValue = 'stagedFile'
-
-    // Navigation Sync: Click to open
-    item.command = {
-      command: 'vscode.open',
-      title: 'Open File',
-      arguments: [element.uri],
-    }
+    item.command = { command: 'vscode.open', title: 'Open File', arguments: [element.uri] }
 
     if (element.isBinary) {
-      item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
-      item.description = 'Binary • Skipped'
-      item.tooltip = `${element.uri.fsPath}\n⚠ Binary file detected.`
+      this.decorateBinaryItem(item, element)
       return item
     }
 
-    // Visual Weight Logic
     const tokenCount = element.stats?.tokenCount ?? 0
     item.iconPath = new vscode.ThemeIcon('file', this.getIconColor(tokenCount))
+    this.decorateStandardItem(item, element)
 
-    this.decorateTreeItem(item, element)
     return item
   }
 
-  private getIconColor(tokenCount: number): vscode.ThemeColor | undefined {
-    if (tokenCount > this.HIGH_TOKEN_THRESHOLD) {
-      return new vscode.ThemeColor('charts.orange') // Visual warning for heavy files
-    }
-    return undefined
-  }
+  /**
+   * Generates the label. If collision detected, appends (parentDir).
+   * Also appends dirty indicator '●'.
+   */
+  private getSmartLabel(element: StagedFile): string {
+    let label = element.label
 
-  private decorateTreeItem(item: vscode.TreeItem, element: StagedFile): void {
-    const relativePath = vscode.workspace.asRelativePath(element.uri)
-    const folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'))
-    const parts: string[] = []
+    if (this.nameCollisions.has(element.label)) {
+      const relative = vscode.workspace.asRelativePath(element.uri)
+      const parentDir = path.dirname(relative).split(path.sep).pop()
+      if (parentDir && parentDir !== '.') {
+        label = `${element.label} (${parentDir})`
+      }
+    }
+
     const isDirty = vscode.workspace.textDocuments.some(
       (doc) => doc.uri.toString() === element.uri.toString() && doc.isDirty,
     )
+    return isDirty ? `${label} ●` : label
+  }
+
+  private decorateBinaryItem(item: vscode.TreeItem, element: StagedFile) {
+    item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
+    item.description = 'Binary • Skipped'
+    item.tooltip = `${element.uri.fsPath}\n⚠ Binary file detected.`
+  }
+
+  private decorateStandardItem(item: vscode.TreeItem, element: StagedFile) {
+    const relativePath = vscode.workspace.asRelativePath(element.uri)
+    const folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'))
+    const parts: string[] = []
 
     if (element.stats) parts.push(`${this.formatTokenCount(element.stats.tokenCount)} tokens`)
     else parts.push('calculating...')
 
-    if (folderPath && folderPath !== relativePath) parts.push(folderPath)
+    // Only show path in description if it wasn't added to the label via smart labeling
+    if (folderPath && folderPath !== relativePath && !this.nameCollisions.has(element.label)) {
+      parts.push(folderPath)
+    }
 
     item.description = parts.join(' • ')
-    item.label = isDirty ? `${element.label} ●` : element.label
     item.tooltip = `${element.uri.fsPath}\nTokens: ${element.stats?.tokenCount ?? '...'}`
+  }
+
+  private getIconColor(tokenCount: number): vscode.ThemeColor | undefined {
+    return tokenCount > this.HIGH_TOKEN_THRESHOLD ? new vscode.ThemeColor('charts.orange') : undefined
   }
 
   formatTokenCount(count: number): string {
@@ -178,9 +222,7 @@ export class ContextStackProvider
 
   addFiles(uris: vscode.Uri[]): void {
     const newFiles = this.trackManager.addFilesToActive(uris)
-    if (newFiles.length === 0) return
-    this._onDidChangeTreeData.fire()
-    this.enrichFileStats(newFiles)
+    if (newFiles.length > 0) this.refreshState()
   }
 
   addFile(uri: vscode.Uri): void {
@@ -193,24 +235,24 @@ export class ContextStackProvider
 
   removeFiles(filesToRemove: StagedFile[]): void {
     this.trackManager.removeFilesFromActive(filesToRemove)
-    this._onDidChangeTreeData.fire()
+    this.refreshState()
   }
 
   clear(): void {
     this.trackManager.clearActive()
-    this._onDidChangeTreeData.fire()
+    this.refreshState()
   }
 
   private async enrichFileStats(targets: StagedFile[]): Promise<void> {
     const decoder = new TextDecoder()
+    let changed = false
 
     for (const file of targets) {
       if (file.stats) continue
 
       try {
         const uint8Array = await vscode.workspace.fs.readFile(file.uri)
-        const snippet = uint8Array.slice(0, 512)
-        const isBinary = snippet.some((byte) => byte === 0)
+        const isBinary = uint8Array.slice(0, 512).some((b) => b === 0)
 
         if (isBinary) {
           file.isBinary = true
@@ -221,12 +263,12 @@ export class ContextStackProvider
           const measurements = TokenEstimator.measure(content)
           file.stats = { tokenCount: measurements.tokenCount, charCount: content.length }
         }
+        changed = true
       } catch (error) {
         Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
-        file.stats = { tokenCount: 0, charCount: 0 }
       }
     }
-    this._onDidChangeTreeData.fire()
+    if (changed) this._onDidChangeTreeData.fire()
   }
 
   dispose() {
