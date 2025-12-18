@@ -142,13 +142,13 @@
         "command": "aiContextStacker.removeFile",
         "key": "delete",
         "mac": "cmd+backspace",
-        "when": "focusedView == aiContextStackerView && !inputFocus"
+        "when": "focusedView == aiContextStackerView && !inputFocus && viewItem == stagedFile"
       },
       {
         "command": "aiContextStacker.copyFile",
         "key": "ctrl+c",
         "mac": "cmd+c",
-        "when": "focusedView == aiContextStackerView && !inputFocus"
+        "when": "focusedView == aiContextStackerView && !inputFocus && viewItem == stagedFile"
       }
     ]
   },
