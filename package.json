@@ -32,11 +32,6 @@
         {
           "id": "aiContextStackerView",
           "name": "Staged Files"
-        },
-        {
-          "id": "aiContextStackerHelpView",
-          "name": "Help & Usage",
-          "visibility": "collapsed"
         }
       ]
     },
