@@ -17,8 +17,14 @@ export interface ContentStats {
 export interface StagedFile {
   uri: vscode.Uri
   label: string
-  /** * Statistics regarding the file content.
+  /**
+   * Statistics regarding the file content.
    * Undefined while the file is being processed asynchronously.
    */
   stats?: ContentStats
+  /**
+   * Indicates if the file contains binary data (detected via null-byte check).
+   * If true, this file is excluded from token calculations and copy operations.
+   */
+  isBinary?: boolean
 }

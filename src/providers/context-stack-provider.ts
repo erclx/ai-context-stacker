@@ -15,7 +15,10 @@ export class ContextStackProvider
 {
   private _onDidChangeTreeData = new vscode.EventEmitter<StagedFile | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
-  readonly dragMimeTypes = []
+
+  // Explicitly typed for TreeDragAndDropController interface compliance
+  public readonly dragMimeTypes: readonly string[] = ['text/uri-list', 'text/plain']
+  public readonly dropMimeTypes: readonly string[] = ['text/uri-list', 'text/plain']
 
   private readonly EMPTY_URI = vscode.Uri.parse('ai-stack:empty-drop-target')
   private readonly EMPTY_ID = 'emptyState'
@@ -46,10 +49,6 @@ export class ContextStackProvider
     if (this.trackManager.hasUri(doc.uri)) {
       this._onDidChangeTreeData.fire()
     }
-  }
-
-  get dropMimeTypes(): string[] {
-    return ['text/uri-list', 'text/plain']
   }
 
   /**
@@ -132,16 +131,25 @@ export class ContextStackProvider
   private createFileTreeItem(element: StagedFile): vscode.TreeItem {
     const item = new vscode.TreeItem(element.label)
     item.resourceUri = element.uri
-    item.iconPath = vscode.ThemeIcon.File
     item.contextValue = 'stagedFile'
 
-    // Check Dirty State (Unsaved changes)
+    // 1. Binary State Check (High Priority)
+    if (element.isBinary) {
+      item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
+      item.description = 'Binary • Skipped'
+      item.tooltip = `${element.uri.fsPath}\n⚠ Binary file detected. Will be excluded from copy operations.`
+      return item // Exit early, no need for dirty checks or token decoration
+    }
+
+    // 2. Standard File Icon
+    item.iconPath = vscode.ThemeIcon.File
+
+    // 3. Dirty State Check (Unsaved changes)
     const isDirty = vscode.workspace.textDocuments.some(
       (doc) => doc.uri.toString() === element.uri.toString() && doc.isDirty,
     )
 
     if (isDirty) {
-      // Visual cue: Append a dot to the label
       item.label = `${element.label} ●`
       item.tooltip = `${element.uri.fsPath}\n⚠ Unsaved changes in editor (Copy will use disk version)`
     } else {
@@ -196,8 +204,8 @@ export class ContextStackProvider
   }
 
   /**
-   * Reads file content and calculates tokens.
-   * Updates the objects in-place (reference held by Manager).
+   * Reads file content, checks for binary data, and calculates tokens.
+   * Updates the objects in-place.
    */
   private async enrichFileStats(targets: StagedFile[]): Promise<void> {
     const decoder = new TextDecoder()
@@ -208,9 +216,20 @@ export class ContextStackProvider
 
       try {
         const uint8Array = await vscode.workspace.fs.readFile(file.uri)
-        const content = decoder.decode(uint8Array)
-        const measurements = TokenEstimator.measure(content)
-        file.stats = { tokenCount: measurements.tokenCount, charCount: content.length }
+
+        // Check first 512 bytes for null bytes to detect binary
+        const snippet = uint8Array.slice(0, 512)
+        const isBinary = snippet.some((byte) => byte === 0)
+
+        if (isBinary) {
+          file.isBinary = true
+          file.stats = { tokenCount: 0, charCount: 0 }
+        } else {
+          file.isBinary = false
+          const content = decoder.decode(uint8Array)
+          const measurements = TokenEstimator.measure(content)
+          file.stats = { tokenCount: measurements.tokenCount, charCount: content.length }
+        }
       } catch (error) {
         Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
         file.stats = { tokenCount: 0, charCount: 0 }
