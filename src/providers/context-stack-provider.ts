@@ -1,11 +1,12 @@
+import { TextDecoder } from 'util'
 import * as vscode from 'vscode'
 
 import { type StagedFile } from '../models'
-import { categorizeTargets, handleFolderScanning, Logger } from '../utils'
+import { categorizeTargets, handleFolderScanning, Logger, TokenEstimator } from '../utils'
 import { IgnorePatternProvider } from './ignore-pattern-provider'
 
 /**
- * Manages the staged files state and handles the Virtual Drop Zone logic.
+ * Manages staged files and handles asynchronous token calculation.
  */
 export class ContextStackProvider
   implements vscode.TreeDataProvider<StagedFile>, vscode.TreeDragAndDropController<StagedFile>, vscode.Disposable
@@ -25,8 +26,8 @@ export class ContextStackProvider
   }
 
   /**
-   * Processes files dropped onto the view, categorizing them into files vs folders.
-   * @param dataTransfer - VS Code transfer object containing the dropped resources.
+   * Processes files dropped onto the view.
+   * @param dataTransfer - VS Code transfer object.
    */
   async handleDrop(
     target: StagedFile | undefined,
@@ -47,27 +48,20 @@ export class ContextStackProvider
   }
 
   /**
-   * Extracts URIs from multiple MIME types to support cross-platform drag interactions.
+   * Extracts URIs from transfer to support cross-platform drag interactions.
    */
   private async extractUrisFromTransfer(dataTransfer: vscode.DataTransfer): Promise<vscode.Uri[]> {
     const uriListItem = dataTransfer.get('text/uri-list')
-    if (uriListItem) {
-      const str = await uriListItem.asString()
-      return this.parseUriList(str)
-    }
+    if (uriListItem) return this.parseUriList(await uriListItem.asString())
 
-    // Fallback for Linux/WSL where file drops often appear as raw text paths
     const plainItem = dataTransfer.get('text/plain')
-    if (plainItem) {
-      const str = await plainItem.asString()
-      return this.parseUriList(str)
-    }
+    if (plainItem) return this.parseUriList(await plainItem.asString())
 
     return []
   }
 
   /**
-   * Parses newline-separated strings into strongly typed URIs.
+   * Parses newline-separated strings into URIs.
    */
   private parseUriList(content: string): vscode.Uri[] {
     return content
@@ -75,7 +69,6 @@ export class ContextStackProvider
       .filter((line) => line.trim())
       .map((line) => {
         try {
-          // Handle raw paths lacking a protocol scheme
           if (!line.startsWith('file:') && !line.startsWith('vscode-remote:')) {
             return vscode.Uri.file(line)
           }
@@ -87,22 +80,14 @@ export class ContextStackProvider
       .filter((u): u is vscode.Uri => u !== null)
   }
 
-  /**
-   * Returns the staged files or a virtual placeholder if the stack is empty.
-   */
   getChildren(element?: StagedFile): StagedFile[] {
     if (element) return []
-
     if (this.files.length === 0) {
       return [{ uri: this.EMPTY_URI, label: 'Drag files here to start...' }]
     }
-
     return this.files
   }
 
-  /**
-   * Generates the UI representation for a file or the virtual drop zone.
-   */
   getTreeItem(element: StagedFile): vscode.TreeItem {
     if (element.uri.scheme === this.EMPTY_URI.scheme) {
       return this.createEmptyTreeItem(element)
@@ -114,7 +99,6 @@ export class ContextStackProvider
     const item = new vscode.TreeItem(element.label)
     item.iconPath = new vscode.ThemeIcon('cloud-upload')
     item.contextValue = this.EMPTY_ID
-    // Prevent expansion since this is a leaf node placeholder
     item.collapsibleState = vscode.TreeItemCollapsibleState.None
     return item
   }
@@ -126,51 +110,99 @@ export class ContextStackProvider
     item.tooltip = element.uri.fsPath
     item.contextValue = 'stagedFile'
 
-    this.addDescription(item, element.uri)
+    this.decorateTreeItem(item, element)
     return item
   }
 
   /**
-   * Adds a folder path description if the file is not at the workspace root.
+   * Adds token stats and folder path to the tree item description.
+   * Prioritizes token count visibility.
    */
-  private addDescription(item: vscode.TreeItem, uri: vscode.Uri): void {
-    const relativePath = vscode.workspace.asRelativePath(uri)
+  private decorateTreeItem(item: vscode.TreeItem, element: StagedFile): void {
+    const relativePath = vscode.workspace.asRelativePath(element.uri)
     const folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'))
+    const parts: string[] = []
 
-    if (folderPath && folderPath !== relativePath) {
-      item.description = folderPath
-    }
-  }
-
-  addFile(uri: vscode.Uri): void {
-    const exists = this.files.some((f) => f.uri.toString() === uri.toString())
-    if (!exists) {
-      const label = uri.path.split('/').pop() || 'unknown'
-      this.files.push({ uri, label })
-      this._onDidChangeTreeData.fire()
+    // 1. Token Count (Primary)
+    if (element.stats) {
+      parts.push(`${this.formatTokenCount(element.stats.tokenCount)} tokens`)
     } else {
-      vscode.window.setStatusBarMessage('File is already staged.', 2000)
+      parts.push('calculating...')
     }
+
+    // 2. Folder Path (Secondary)
+    if (folderPath && folderPath !== relativePath) {
+      parts.push(folderPath)
+    }
+
+    item.description = parts.join(' • ')
   }
 
   /**
-   * Batch adds files while filtering out duplicates.
+   * Formats numbers with 'k' shorthand and tilde for estimates.
+   * e.g., 4500 -> "~4.5k", 300 -> "~300"
+   */
+  public formatTokenCount(count: number): string {
+    const prefix = '~'
+    if (count >= 1000) {
+      return `${prefix}${(count / 1000).toFixed(1)}k`
+    }
+    return `${prefix}${count}`
+  }
+
+  /**
+   * Adds files to the stack and triggers background token calculation.
    */
   addFiles(uris: vscode.Uri[]): void {
-    let addedCount = 0
-    const currentStagedUris = new Set(this.files.map((f) => f.uri.toString()))
+    const newFiles = this.filterNewFiles(uris)
+    if (newFiles.length === 0) return
 
-    uris.forEach((uri) => {
-      const uriString = uri.toString()
-      if (!currentStagedUris.has(uriString)) {
-        const label = uri.path.split('/').pop() || 'unknown'
-        this.files.push({ uri, label })
-        currentStagedUris.add(uriString)
-        addedCount++
+    this.files.push(...newFiles)
+    this._onDidChangeTreeData.fire()
+
+    // Non-blocking stats calculation
+    this.enrichFileStats(newFiles)
+  }
+
+  private filterNewFiles(uris: vscode.Uri[]): StagedFile[] {
+    const currentPaths = new Set(this.files.map((f) => f.uri.toString()))
+
+    return uris
+      .filter((uri) => !currentPaths.has(uri.toString()))
+      .map((uri) => ({
+        uri,
+        label: uri.path.split('/').pop() || 'unknown',
+      }))
+  }
+
+  /**
+   * Reads file content and calculates tokens in the background.
+   */
+  private async enrichFileStats(targets: StagedFile[]): Promise<void> {
+    const decoder = new TextDecoder()
+
+    for (const file of targets) {
+      try {
+        const uint8Array = await vscode.workspace.fs.readFile(file.uri)
+        const content = decoder.decode(uint8Array)
+        const measurements = TokenEstimator.measure(content)
+
+        file.stats = {
+          tokenCount: measurements.tokenCount,
+          charCount: content.length,
+        }
+      } catch (error) {
+        Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
+        file.stats = { tokenCount: 0, charCount: 0 }
       }
-    })
+    }
 
-    if (addedCount > 0) this._onDidChangeTreeData.fire()
+    // Refresh UI once stats are ready
+    this._onDidChangeTreeData.fire()
+  }
+
+  addFile(uri: vscode.Uri): void {
+    this.addFiles([uri])
   }
 
   removeFile(file: StagedFile): void {
@@ -178,9 +210,6 @@ export class ContextStackProvider
     this._onDidChangeTreeData.fire()
   }
 
-  /**
-   * Efficiently removes a batch of files using a Set lookup.
-   */
   removeFiles(filesToRemove: StagedFile[]): void {
     const pathsToRemove = new Set(filesToRemove.map((f) => f.uri.fsPath))
     this.files = this.files.filter((f) => !pathsToRemove.has(f.uri.fsPath))
@@ -194,6 +223,13 @@ export class ContextStackProvider
 
   getFiles(): StagedFile[] {
     return this.files
+  }
+
+  /**
+   * Aggregates total tokens from all staged files.
+   */
+  getTotalTokens(): number {
+    return this.files.reduce((sum, file) => sum + (file.stats?.tokenCount ?? 0), 0)
   }
 
   dispose() {
