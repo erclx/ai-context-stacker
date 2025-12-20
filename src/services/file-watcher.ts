@@ -16,6 +16,7 @@ interface PendingRename {
 export class FileWatcherService implements vscode.Disposable {
   private watcher: vscode.FileSystemWatcher
   private pendingRenames = new Map<string, PendingRename>()
+  // Window to correlate a delete event with a subsequent create event (VS Code rename behavior)
   private readonly RENAME_WINDOW_MS = 300
 
   constructor(private contextTrackManager: ContextTrackManager) {

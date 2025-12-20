@@ -19,7 +19,6 @@ export class IgnoreParser {
 
   /**
    * Parses .gitignore content and merges with defaults.
-   * Filters comments, negations, and converts to VS Code glob syntax.
    */
   public static generatePatternString(content: string): string {
     const userPatterns = content

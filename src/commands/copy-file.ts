@@ -51,6 +51,7 @@ function checkImplicitSelection(
   nodes: StackTreeItem[] | undefined,
   view: vscode.TreeView<StackTreeItem>,
 ): void {
+  // If no specific item selected, we defaulted to "Copy All" behavior
   const isImplicit = !item && (!nodes || nodes.length === 0) && view.selection.length === 0
 
   if (isImplicit) {

@@ -62,6 +62,7 @@ export class ContextTrackManager implements vscode.Disposable {
     this.tracks.delete(id)
 
     if (wasActive) {
+      // Fallback to first available track if active was deleted
       const nextId = this.tracks.keys().next().value
       if (nextId) this.switchToTrack(nextId)
       else this.createDefaultTrack()
@@ -84,6 +85,9 @@ export class ContextTrackManager implements vscode.Disposable {
     )
   }
 
+  /**
+   * Removes a file from ALL tracks. Used when a file is deleted from disk.
+   */
   removeUriEverywhere(uri: vscode.Uri): void {
     let changed = false
     const uriStr = uri.toString()

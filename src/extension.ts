@@ -5,6 +5,10 @@ import { ServiceRegistry } from './services'
 import { PreviewWebview, PreviewWebviewSerializer, StackerStatusBar, ViewManager } from './ui'
 import { Logger } from './utils'
 
+/**
+ * Extension entry point.
+ * Initializes DI container, views, and command registration.
+ */
 export function activate(context: vscode.ExtensionContext) {
   Logger.configure('AI Context Stacker')
   Logger.info('Extension is activating...')
@@ -18,6 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
   const statusBar = new StackerStatusBar(context, services.contextStackProvider)
   context.subscriptions.push(statusBar)
 
+  // Handle webview revival on restart
   context.subscriptions.push(
     vscode.window.registerWebviewPanelSerializer(
       PreviewWebview.viewType,

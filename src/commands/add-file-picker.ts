@@ -38,6 +38,7 @@ async function findUnstagedFiles(
   const stagedFiles = contextStackProvider.getFiles()
   const stagedFileIds = new Set(stagedFiles.map((f) => f.uri.toString()))
 
+  // Respect .gitignore to avoid cluttering picker with build artifacts
   const excludePatterns = await ignorePatternProvider.getExcludePatterns()
   const allFiles = await vscode.workspace.findFiles('**/*', excludePatterns)
 

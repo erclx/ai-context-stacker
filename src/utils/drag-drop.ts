@@ -10,6 +10,7 @@ export async function extractUrisFromTransfer(dataTransfer: vscode.DataTransfer)
 
   const content = await item.asString()
 
+  // Parse lines, supporting both file:// and vscode-remote:// schemas
   return content
     .split(/\r?\n/)
     .filter((l) => l.trim())

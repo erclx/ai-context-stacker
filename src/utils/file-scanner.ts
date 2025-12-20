@@ -60,7 +60,7 @@ export async function handleFolderScanning(
 
 /**
  * Core Logic: Iterates through folders and performs glob matching.
- * agnostic of UI/VSCode Windows.
+ * Agnostic of UI/VSCode Windows.
  */
 export async function scanMultipleFolders(
   folders: vscode.Uri[],

@@ -12,7 +12,7 @@ export function registerAddOpenFilesCommand(
 
     vscode.window.tabGroups.all.forEach((group) => {
       group.tabs.forEach((tab) => {
-        // Only text documents, not custom editors/webviews
+        // Only text documents, filters out custom editors/webviews/images
         if (tab.input instanceof vscode.TabInputText) {
           uris.push(tab.input.uri)
         }

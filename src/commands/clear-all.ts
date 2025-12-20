@@ -32,7 +32,7 @@ async function handleClearAll(provider: ContextStackProvider): Promise<void> {
     return
   }
 
-  // Handle 'confirm' case
+  // Handle 'confirm' case with modal dialog to prevent accidental data loss
   const answer = await vscode.window.showWarningMessage(action.message, { modal: true }, 'Confirm')
 
   if (answer === 'Confirm') {

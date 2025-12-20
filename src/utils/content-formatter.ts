@@ -50,7 +50,7 @@ export class ContentFormatter {
     try {
       const uint8Array = await vscode.workspace.fs.readFile(uri)
 
-      // Safety check: sniff first 512 bytes for nulls
+      // Safety check: sniff first 512 bytes for nulls to avoid loading large binaries
       const isBinary = uint8Array.slice(0, 512).some((byte) => byte === 0)
       if (isBinary) return null
 

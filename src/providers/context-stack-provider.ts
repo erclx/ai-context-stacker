@@ -183,6 +183,7 @@ export class ContextStackProvider
       this.pendingUpdates.delete(key)
     }
 
+    // Debounce updates during typing to avoid recalculating stats on every keystroke
     if (immediate) updateLogic()
     else this.pendingUpdates.set(key, setTimeout(updateLogic, this.DEBOUNCE_MS))
   }

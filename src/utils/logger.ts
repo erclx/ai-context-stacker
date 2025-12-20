@@ -3,6 +3,10 @@ import * as vscode from 'vscode'
 export class Logger {
   private static _outputChannel: vscode.OutputChannel | undefined
 
+  /**
+   * Initializes the shared output channel. Must be called on extension activation.
+   * @param name - Display name for the Output tab
+   */
   public static configure(name: string): void {
     this._outputChannel = vscode.window.createOutputChannel(name)
   }
@@ -42,6 +46,7 @@ export class Logger {
   }
 
   private static _logErrorDetails(error: unknown): void {
+    // Handle non-standard throws (e.g. strings) gracefully
     if (error instanceof Error) {
       this._log('ERROR', error.stack || error.message)
     } else {
@@ -52,7 +57,7 @@ export class Logger {
   private static _notifyUser(message: string): void {
     const userMessage = `AI Context Stacker: ${message}`
 
-    // Explicitly ignore promise (fire-and-forget) to satisfy strict linting
+    // Fire-and-forget: we don't await the user's interaction with the toast
     void vscode.window.showErrorMessage(userMessage, 'Show Log').then((selection) => {
       if (selection === 'Show Log') {
         this.show()

@@ -7,6 +7,7 @@ export interface SimpleStats {
 }
 
 export class TokenEstimator {
+  // Trade-off: 100KB is where regex-based splitting starts causing UI freezes
   private static readonly LARGE_FILE_THRESHOLD = 100 * 1024 // 100KB
 
   /**
@@ -28,6 +29,7 @@ export class TokenEstimator {
       // More accurate split-based heuristic for smaller files
       const wordCount = text.trim().split(/\s+/).length
       const heuristic = Math.ceil(wordCount * 1.3)
+      // Ensure we don't underestimate heavily compressed code (minified)
       const charFallback = Math.ceil(charCount / 4)
       tokenCount = Math.max(heuristic, charFallback)
     }
