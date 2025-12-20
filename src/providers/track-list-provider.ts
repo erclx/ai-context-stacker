@@ -23,7 +23,7 @@ export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>,
   /**
    * Injects stack provider for live token stats on active track.
    */
-  setStackProvider(provider: ContextStackProvider) {
+  setStackProvider(provider: ContextStackProvider): void {
     this.stackProvider = provider
     this.stackProvider.onDidChangeTreeData(() => this.refresh())
   }
@@ -38,16 +38,7 @@ export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>,
 
     item.contextValue = 'contextTrack'
     item.iconPath = isActive ? new vscode.ThemeIcon('check') : new vscode.ThemeIcon('git-branch')
-
-    if (isActive && this.stackProvider) {
-      const fileCount = element.files.length
-      const tokenCount = this.stackProvider.getTotalTokens()
-      const formattedTokens = tokenCount >= 1000 ? `~${(tokenCount / 1000).toFixed(1)}k` : `~${tokenCount}`
-
-      item.description = `(Active) • ${fileCount} files • ${formattedTokens} tokens`
-    } else {
-      item.description = `${element.files.length} files`
-    }
+    item.description = this._getTrackDescription(element, isActive)
 
     item.command = {
       command: 'aiContextStacker.switchTrack',
@@ -63,8 +54,21 @@ export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>,
     return this.contextTrackManager.allTracks
   }
 
-  dispose() {
+  dispose(): void {
     this.disposable.dispose()
     this._onDidChangeTreeData.dispose()
+  }
+
+  private _getTrackDescription(element: ContextTrack, isActive: boolean): string {
+    if (isActive && this.stackProvider) {
+      const fileCount = element.files.length
+      const tokenCount = this.stackProvider.getTotalTokens()
+      // Use standardized formatting from the provider
+      const formattedTokens = this.stackProvider.formatTokenCount(tokenCount)
+
+      return `(Active) • ${fileCount} files • ${formattedTokens} tokens`
+    }
+
+    return `${element.files.length} files`
   }
 }
