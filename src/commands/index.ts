@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
-import { ContextTrack, StackTreeItem } from '../models'
-import { ContextStackProvider, ContextTrackManager, IgnorePatternProvider } from '../providers'
+import { ServiceRegistry } from '../services'
+import { ViewManager } from '../ui'
 import { registerAddFileCommand } from './add-file'
 import { registerAddFileContextMenuCommand } from './add-file-context-menu'
 import { registerAddFilePickerCommand } from './add-file-picker'
@@ -14,29 +14,46 @@ import { registerRemoveFileCommand } from './remove-file'
 import { registerTogglePinCommand } from './toggle-pin'
 import { registerTrackCommands } from './track-ops'
 
-interface Providers {
-  extensionContext: vscode.ExtensionContext
-  contextStackProvider: ContextStackProvider
-  ignorePatternProvider: IgnorePatternProvider
-  filesView: vscode.TreeView<StackTreeItem>
-  contextTrackManager: ContextTrackManager
-  tracksView: vscode.TreeView<ContextTrack>
+export interface CommandDependencies {
+  context: vscode.ExtensionContext
+  services: ServiceRegistry
+  views: ViewManager
 }
 
-export function registerAllCommands(deps: Providers) {
-  registerAddFileCommand(deps.extensionContext, deps.contextStackProvider)
-  registerAddFileContextMenuCommand(deps.extensionContext, deps.contextStackProvider, deps.ignorePatternProvider)
-  registerAddFilePickerCommand(deps.extensionContext, deps.contextStackProvider, deps.ignorePatternProvider)
-  registerAddOpenFilesCommand(deps.extensionContext, deps.contextStackProvider)
+/**
+ * Main entry point for command registration.
+ * Delegates to specialized subgroups to keep the logic flat.
+ */
+export function registerAllCommands(deps: CommandDependencies) {
+  registerStackModifications(deps)
+  registerClipboardOperations(deps)
+  registerTrackOperations(deps)
+  registerViewOperations(deps)
+}
 
-  registerTogglePinCommand(deps.extensionContext, deps.contextTrackManager, deps.filesView)
+function registerStackModifications(deps: CommandDependencies) {
+  registerAddFileCommand(deps.context, deps.services.contextStackProvider)
+  registerAddFileContextMenuCommand(
+    deps.context,
+    deps.services.contextStackProvider,
+    deps.services.ignorePatternProvider,
+  )
+  registerAddFilePickerCommand(deps.context, deps.services.contextStackProvider, deps.services.ignorePatternProvider)
+  registerAddOpenFilesCommand(deps.context, deps.services.contextStackProvider)
+  registerRemoveFileCommand(deps.context, deps.services.contextStackProvider, deps.views.filesView)
+  registerTogglePinCommand(deps.context, deps.services.contextTrackManager, deps.views.filesView)
+  registerClearAllCommand(deps.context, deps.services.contextStackProvider)
+}
 
-  registerPreviewContextCommand(deps.extensionContext, deps.contextStackProvider)
+function registerClipboardOperations(deps: CommandDependencies) {
+  registerCopyAllCommand(deps.context, deps.services.contextStackProvider)
+  registerCopyFileCommand(deps.context, deps.services.contextStackProvider, deps.views.filesView)
+}
 
-  registerClearAllCommand(deps.extensionContext, deps.contextStackProvider)
-  registerCopyAllCommand(deps.extensionContext, deps.contextStackProvider)
-  registerCopyFileCommand(deps.extensionContext, deps.contextStackProvider, deps.filesView)
-  registerRemoveFileCommand(deps.extensionContext, deps.contextStackProvider, deps.filesView)
+function registerTrackOperations(deps: CommandDependencies) {
+  registerTrackCommands(deps.context, deps.services.contextTrackManager, deps.views.tracksView)
+}
 
-  registerTrackCommands(deps.extensionContext, deps.contextTrackManager, deps.tracksView)
+function registerViewOperations(deps: CommandDependencies) {
+  registerPreviewContextCommand(deps.context, deps.services.contextStackProvider)
 }

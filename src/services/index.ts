@@ -1,5 +1,6 @@
 export * from './file-watcher'
 export * from './ignore-parser'
+export * from './registry'
 export * from './state-mapper'
 export * from './stats-processor'
 export * from './tree-builder'
