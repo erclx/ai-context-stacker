@@ -81,6 +81,18 @@
         "icon": "$(copy)"
       },
       {
+        "command": "aiContextStacker.previewContext",
+        "title": "Preview Context",
+        "category": "AI Context Stacker",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "aiContextStacker.togglePin",
+        "title": "Toggle Pin",
+        "category": "AI Context Stacker",
+        "icon": "$(pin)"
+      },
+      {
         "command": "aiContextStacker.newTrack",
         "title": "New Track...",
         "category": "AI Context Stacker",
@@ -103,12 +115,6 @@
         "title": "Delete Track",
         "category": "AI Context Stacker",
         "icon": "$(trash)"
-      },
-      {
-        "command": "aiContextStacker.togglePin",
-        "title": "Toggle Pin",
-        "category": "AI Context Stacker",
-        "icon": "$(pin)"
       }
     ],
     "menus": {
@@ -131,10 +137,15 @@
           "//": "--- Context Tracks: Title ---",
           "command": "aiContextStacker.newTrack",
           "when": "view == aiContextTracksView",
-          "group": "navigation"
+          "group": "navigation@0"
         },
         {
-          "//": "--- Staged Files: Title (Visible Icons) ---",
+          "command": "aiContextStacker.previewContext",
+          "when": "view == aiContextTracksView",
+          "group": "navigation@1"
+        },
+        {
+          "//": "--- Staged Files: Title ---",
           "command": "aiContextStacker.addFilePicker",
           "when": "view == aiContextStackerView",
           "group": "navigation@1"
@@ -185,6 +196,11 @@
         },
         {
           "//": "--- Files: HOVER ICONS ---",
+          "command": "aiContextStacker.togglePin",
+          "when": "view == aiContextStackerView && viewItem =~ /stagedFile/",
+          "group": "inline@0"
+        },
+        {
           "command": "aiContextStacker.copyFile",
           "when": "view == aiContextStackerView && viewItem == stagedFile",
           "group": "inline@1"
@@ -196,6 +212,11 @@
         },
         {
           "//": "--- Files: RIGHT CLICK MENU ---",
+          "command": "aiContextStacker.togglePin",
+          "when": "view == aiContextStackerView && viewItem =~ /stagedFile/",
+          "group": "1_modification"
+        },
+        {
           "command": "aiContextStacker.copyFile",
           "when": "view == aiContextStackerView && viewItem == stagedFile",
           "group": "1_modification"
@@ -215,16 +236,6 @@
           "command": "aiContextStacker.addOpenFiles",
           "when": "view == aiContextStackerView && viewItem == emptyState",
           "group": "1_add"
-        },
-        {
-          "command": "aiContextStacker.togglePin",
-          "when": "view == aiContextStackerView && viewItem =~ /stagedFile/",
-          "group": "inline@0"
-        },
-        {
-          "command": "aiContextStacker.togglePin",
-          "when": "view == aiContextStackerView && viewItem =~ /stagedFile/",
-          "group": "1_modification"
         }
       ]
     },

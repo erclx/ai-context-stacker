@@ -4,7 +4,7 @@ import { registerAllCommands } from './commands'
 import { ContextStackProvider, ContextTrackManager, IgnorePatternProvider } from './providers'
 import { TrackListProvider } from './providers/track-list-provider'
 import { FileWatcherService } from './services'
-import { StackerStatusBar } from './ui'
+import { PreviewWebview, PreviewWebviewSerializer, StackerStatusBar } from './ui'
 import { Logger } from './utils'
 
 export function activate(context: vscode.ExtensionContext) {
@@ -43,6 +43,15 @@ export function activate(context: vscode.ExtensionContext) {
   })
 
   const statusBar = new StackerStatusBar(context, contextStackProvider)
+
+  // -- Webview Persistence --
+  // This restores the Preview panel if it was open during the last session
+  context.subscriptions.push(
+    vscode.window.registerWebviewPanelSerializer(
+      PreviewWebview.viewType,
+      new PreviewWebviewSerializer(context.extensionUri, contextStackProvider),
+    ),
+  )
 
   // Add all disposables
   context.subscriptions.push(
