@@ -1,17 +1,17 @@
 import * as vscode from 'vscode'
 
-import { StagedFile } from '../models'
+import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
 import { ContextTrackManager } from '../providers'
 
 export function registerTogglePinCommand(
-  contextStackProvider: vscode.ExtensionContext,
+  extensionContext: vscode.ExtensionContext,
   contextTrackManager: ContextTrackManager,
-  filesView: vscode.TreeView<StagedFile>,
+  filesView: vscode.TreeView<StackTreeItem>,
 ): void {
   const command = vscode.commands.registerCommand(
     'aiContextStacker.togglePin',
-    (item?: StagedFile, selectedItems?: StagedFile[]) => {
-      let targets: StagedFile[] = []
+    (item?: StackTreeItem, selectedItems?: StackTreeItem[]) => {
+      let targets: StackTreeItem[] = []
 
       if (selectedItems && selectedItems.length > 0) {
         targets = selectedItems
@@ -23,9 +23,24 @@ export function registerTogglePinCommand(
 
       if (targets.length === 0) return
 
-      contextTrackManager.toggleFilesPin(targets)
+      const filesToToggle = resolveFilesToToggle(targets)
+      contextTrackManager.toggleFilesPin(filesToToggle)
     },
   )
 
-  contextStackProvider.subscriptions.push(command)
+  extensionContext.subscriptions.push(command)
+}
+
+function resolveFilesToToggle(items: StackTreeItem[]): StagedFile[] {
+  const fileMap = new Map<string, StagedFile>()
+
+  for (const item of items) {
+    if (isStagedFolder(item)) {
+      item.containedFiles.forEach((f) => fileMap.set(f.uri.toString(), f))
+    } else {
+      fileMap.set(item.uri.toString(), item)
+    }
+  }
+
+  return Array.from(fileMap.values())
 }

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { type StagedFile } from '../models'
+import { isStagedFolder, StackTreeItem, type StagedFile } from '../models'
 import { ContextStackProvider } from '../providers'
 import { ContentFormatter, Logger, TokenEstimator } from '../utils'
 
@@ -10,11 +10,11 @@ import { ContentFormatter, Logger, TokenEstimator } from '../utils'
 export function registerCopyFileCommand(
   extensionContext: vscode.ExtensionContext,
   contextStackProvider: ContextStackProvider,
-  filesView: vscode.TreeView<StagedFile>,
+  filesView: vscode.TreeView<StackTreeItem>,
 ): void {
   const command = vscode.commands.registerCommand(
     'aiContextStacker.copyFile',
-    async (item?: StagedFile, selectedItems?: StagedFile[]) => {
+    async (item?: StackTreeItem, selectedItems?: StackTreeItem[]) => {
       const filesToCopy = resolveTargetFiles(item, selectedItems, filesView, contextStackProvider)
 
       if (filesToCopy.length === 0) {
@@ -38,7 +38,7 @@ export function registerCopyFileCommand(
         Logger.info(`Copied: ${label}`)
         vscode.window.showInformationMessage(`Copied ${label}! (${TokenEstimator.format(stats)})`)
 
-        // Clarify fallback behavior when nothing was explicitly selected
+        // Feedback when implicitly copying everything
         if (!item && (!selectedItems || selectedItems.length === 0) && filesView.selection.length === 0) {
           vscode.window.setStatusBarMessage('Nothing selected. Copied entire stack.', 3000)
         }
@@ -53,29 +53,40 @@ export function registerCopyFileCommand(
 }
 
 /**
- * Resolves which files to copy based on invocation context.
- *
- * Selection resolution hierarchy:
- * 1. Multi-select from context menu (right-click with Ctrl/Cmd)
- * 2. Single-click item from context menu
- * 3. Current TreeView selection (keyboard navigation)
- * 4. All files (fallback when command invoked via status bar or palette)
- *
- * This hierarchy ensures intuitive behavior across all interaction patterns.
+ * Resolves selection logic, unpacking Folders into their leaf StagedFiles.
  */
 function resolveTargetFiles(
-  clickedItem: StagedFile | undefined,
-  multiSelect: StagedFile[] | undefined,
-  treeView: vscode.TreeView<StagedFile>,
+  clickedItem: StackTreeItem | undefined,
+  multiSelect: StackTreeItem[] | undefined,
+  treeView: vscode.TreeView<StackTreeItem>,
   provider: ContextStackProvider,
 ): StagedFile[] {
-  if (multiSelect && multiSelect.length > 0) return multiSelect
+  let rawSelection: StackTreeItem[] = []
 
-  if (clickedItem) return [clickedItem]
+  if (multiSelect && multiSelect.length > 0) {
+    rawSelection = multiSelect
+  } else if (clickedItem) {
+    rawSelection = [clickedItem]
+  } else if (treeView.selection.length > 0) {
+    rawSelection = [...treeView.selection]
+  } else {
+    // No selection = All files
+    return provider.getFiles()
+  }
 
-  if (treeView.selection.length > 0) return [...treeView.selection]
+  // Flatten recursive structure
+  const distinctFiles = new Map<string, StagedFile>()
 
-  return provider.getFiles()
+  const collect = (item: StackTreeItem) => {
+    if (isStagedFolder(item)) {
+      item.containedFiles.forEach((f) => distinctFiles.set(f.uri.toString(), f))
+    } else {
+      distinctFiles.set(item.uri.toString(), item)
+    }
+  }
+
+  rawSelection.forEach(collect)
+  return Array.from(distinctFiles.values())
 }
 
 function getFeedbackLabel(files: StagedFile[], totalStagedCount: number): string {

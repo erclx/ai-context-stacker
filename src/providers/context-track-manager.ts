@@ -149,6 +149,7 @@ export class ContextTrackManager implements vscode.Disposable {
     const newFiles: StagedFile[] = uris
       .filter((u) => !existing.has(u.toString()))
       .map((uri) => ({
+        type: 'file',
         uri,
         label: uri.path.split('/').pop() || 'unknown',
         isPinned: false,
@@ -237,6 +238,7 @@ export class ContextTrackManager implements vscode.Disposable {
   private deserializeFiles(trackData: SerializedTrack): StagedFile[] {
     if (trackData.items) {
       return trackData.items.map((item) => ({
+        type: 'file',
         uri: vscode.Uri.parse(item.uri),
         label: vscode.Uri.parse(item.uri).path.split('/').pop() || 'unknown',
         isPinned: item.isPinned,

@@ -21,6 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Wire up for live token stats display
   trackListProvider.setStackProvider(contextStackProvider)
 
+  // NOTE: View updated to support StackTreeItem (Files | Folders)
   const filesView = vscode.window.createTreeView('aiContextStackerView', {
     treeDataProvider: contextStackProvider,
     dragAndDropController: contextStackProvider,

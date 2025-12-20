@@ -1,8 +1,7 @@
-import * as path from 'path'
 import { TextDecoder } from 'util'
 import * as vscode from 'vscode'
 
-import { type StagedFile } from '../models'
+import { isStagedFolder, StackTreeItem, type StagedFile, StagedFolder } from '../models'
 import { categorizeTargets, handleFolderScanning, Logger, TokenEstimator } from '../utils'
 import { ContextTrackManager } from './context-track-manager'
 import { IgnorePatternProvider } from './ignore-pattern-provider'
@@ -12,9 +11,9 @@ import { IgnorePatternProvider } from './ignore-pattern-provider'
  * Handles rendering, coordinates token calculation, and visualizes "weight".
  */
 export class ContextStackProvider
-  implements vscode.TreeDataProvider<StagedFile>, vscode.TreeDragAndDropController<StagedFile>, vscode.Disposable
+  implements vscode.TreeDataProvider<StackTreeItem>, vscode.TreeDragAndDropController<StackTreeItem>, vscode.Disposable
 {
-  private _onDidChangeTreeData = new vscode.EventEmitter<StagedFile | undefined | void>()
+  private _onDidChangeTreeData = new vscode.EventEmitter<StackTreeItem | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
   public readonly dragMimeTypes: readonly string[] = ['text/uri-list', 'text/plain']
@@ -25,7 +24,6 @@ export class ContextStackProvider
   private readonly HIGH_TOKEN_THRESHOLD = 5000
   private readonly DEBOUNCE_MS = 400
 
-  private nameCollisions = new Set<string>()
   private pendingUpdates = new Map<string, NodeJS.Timeout>()
   private disposables: vscode.Disposable[] = []
 
@@ -40,73 +38,7 @@ export class ContextStackProvider
       vscode.workspace.onDidChangeTextDocument((e) => this.handleDocChange(e.document)),
       vscode.workspace.onDidSaveTextDocument((doc) => this.handleDocChange(doc, true)),
     )
-
     this.refreshState()
-  }
-
-  /**
-   * Debounces token recalculation for live edits to avoid UI thrashing.
-   * Immediately processes on save to ensure accurate stats before copy.
-   */
-  private handleDocChange(doc: vscode.TextDocument, immediate = false) {
-    const activeFiles = this.trackManager.getActiveTrack().files
-    const targetFile = activeFiles.find((f) => f.uri.toString() === doc.uri.toString())
-
-    if (!targetFile) return
-
-    const key = doc.uri.toString()
-    if (this.pendingUpdates.has(key)) {
-      clearTimeout(this.pendingUpdates.get(key)!)
-    }
-
-    const updateLogic = () => {
-      this.updateFileStats(targetFile, doc.getText())
-      this.pendingUpdates.delete(key)
-    }
-
-    if (immediate) {
-      updateLogic()
-    } else {
-      const timeout = setTimeout(updateLogic, this.DEBOUNCE_MS)
-      this.pendingUpdates.set(key, timeout)
-    }
-  }
-
-  private updateFileStats(file: StagedFile, content: string) {
-    try {
-      const measurements = TokenEstimator.measure(content)
-      file.stats = {
-        tokenCount: measurements.tokenCount,
-        charCount: content.length,
-      }
-      this._onDidChangeTreeData.fire(file)
-    } catch (error) {
-      Logger.warn(`Failed to update live stats for ${file.label}`)
-    }
-  }
-
-  /**
-   * Refreshes UI state and triggers async token enrichment.
-   * Collision detection runs synchronously to avoid flickering labels.
-   */
-  private refreshState(): void {
-    const files = this.getFiles()
-    this.calculateCollisions(files)
-    this._onDidChangeTreeData.fire()
-    this.enrichFileStats(files)
-  }
-
-  /**
-   * Detects basename collisions to enable smart labeling with parent folders.
-   */
-  private calculateCollisions(files: StagedFile[]): void {
-    const counts = new Map<string, number>()
-    files.forEach((f) => counts.set(f.label, (counts.get(f.label) || 0) + 1))
-
-    this.nameCollisions.clear()
-    counts.forEach((count, name) => {
-      if (count > 1) this.nameCollisions.add(name)
-    })
   }
 
   getFiles(): StagedFile[] {
@@ -122,76 +54,144 @@ export class ContextStackProvider
   }
 
   /**
-   * Handles drag-and-drop from File Explorer or external sources.
-   * Supports both text/uri-list and text/plain MIME types for maximum compatibility.
+   * Transforms the flat list of StagedFiles into a hierarchical tree.
    */
-  async handleDrop(
-    target: StagedFile | undefined,
-    dataTransfer: vscode.DataTransfer,
-    token: vscode.CancellationToken,
-  ): Promise<void> {
-    const uris = await this.extractUrisFromTransfer(dataTransfer)
-    if (uris.length === 0) return
-
-    const { files, folders } = await categorizeTargets(uris)
-    if (files.length > 0) this.addFiles(files)
-    if (folders.length > 0) await handleFolderScanning(folders, this, this.ignorePatternProvider)
-  }
-
-  /**
-   * Extracts URIs from DataTransfer, handling both standard uri-list and plain text.
-   * Falls back to plain text for sources that don't provide proper uri-list.
-   */
-  private async extractUrisFromTransfer(dataTransfer: vscode.DataTransfer): Promise<vscode.Uri[]> {
-    const uriListItem = dataTransfer.get('text/uri-list')
-    if (uriListItem) return this.parseUriList(await uriListItem.asString())
-    const plainItem = dataTransfer.get('text/plain')
-    if (plainItem) return this.parseUriList(await plainItem.asString())
-    return []
-  }
-
-  /**
-   * Parses newline-delimited URI strings into vscode.Uri objects.
-   * Handles both file:// URIs and plain filesystem paths.
-   */
-  private parseUriList(content: string): vscode.Uri[] {
-    return content
-      .split(/\r?\n/)
-      .filter((line) => line.trim())
-      .map((line) => {
-        try {
-          if (!line.startsWith('file:') && !line.startsWith('vscode-remote:')) return vscode.Uri.file(line)
-          return vscode.Uri.parse(line)
-        } catch {
-          return null
-        }
-      })
-      .filter((u): u is vscode.Uri => u !== null)
-  }
-
-  getParent(element: StagedFile): vscode.ProviderResult<StagedFile> {
-    return undefined
-  }
-
-  getChildren(element?: StagedFile): StagedFile[] {
-    if (element) return []
-    const files = this.getFiles()
-    if (files.length === 0) {
-      return [{ uri: this.EMPTY_URI, label: 'Drag files here to start...', stats: undefined } as StagedFile]
+  getChildren(element?: StackTreeItem): StackTreeItem[] {
+    if (element) {
+      // If folder, return its children. If file, it has no children.
+      return isStagedFolder(element) ? element.children : []
     }
 
-    // Pinned items float to top, then alphabetical
-    return [...files].sort((a, b) => {
-      if (a.isPinned !== b.isPinned) {
-        return a.isPinned ? -1 : 1
+    const files = this.getFiles()
+    if (files.length === 0) {
+      return [this.createPlaceholderItem()]
+    }
+
+    return this.buildTree(files)
+  }
+
+  getTreeItem(element: StackTreeItem): vscode.TreeItem {
+    if (isStagedFolder(element)) return this.createFolderTreeItem(element)
+    if (element.uri.scheme === this.EMPTY_URI.scheme) return this.createEmptyTreeItem(element)
+    return this.createFileTreeItem(element)
+  }
+
+  /**
+   * Constructs a tree from flat files by analyzing relative paths.
+   */
+  private buildTree(files: StagedFile[]): StackTreeItem[] {
+    const rootItems: StackTreeItem[] = []
+    const folderMap = new Map<string, StagedFolder>()
+
+    for (const file of files) {
+      this.placeFileInTree(file, rootItems, folderMap)
+    }
+
+    return this.sortTree(rootItems)
+  }
+
+  /**
+   * recursive helper to place a single file into the hierarchy.
+   */
+  private placeFileInTree(file: StagedFile, roots: StackTreeItem[], folderMap: Map<string, StagedFolder>) {
+    const relativePath = vscode.workspace.asRelativePath(file.uri)
+    const segments = relativePath.split('/')
+    const isRootFile = segments.length === 1
+
+    if (isRootFile) {
+      roots.push(file)
+      return
+    }
+
+    // It's in a folder; ensure the folder hierarchy exists
+    let currentPath = ''
+    let parentChildren = roots
+
+    for (let i = 0; i < segments.length - 1; i++) {
+      const segment = segments[i]
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment
+
+      let folder = folderMap.get(currentPath)
+      if (!folder) {
+        folder = this.createVirtualFolder(segment, currentPath, file.uri)
+        folderMap.set(currentPath, folder)
+        parentChildren.push(folder)
       }
+
+      // Add file to folder's recursive registry for command operations
+      folder.containedFiles.push(file)
+      parentChildren = folder.children
+    }
+
+    parentChildren.push(file)
+  }
+
+  private createVirtualFolder(name: string, id: string, sampleUri: vscode.Uri): StagedFolder {
+    // Construct a URI for the folder based on the sample file's root
+    const root = vscode.workspace.getWorkspaceFolder(sampleUri)
+    const folderUri = root ? vscode.Uri.joinPath(root.uri, id) : sampleUri
+
+    return {
+      type: 'folder',
+      id: `folder:${id}`,
+      label: name,
+      resourceUri: folderUri,
+      children: [],
+      containedFiles: [],
+    }
+  }
+
+  private sortTree(items: StackTreeItem[]): StackTreeItem[] {
+    return items.sort((a, b) => {
+      // Folders first
+      const aIsFolder = isStagedFolder(a)
+      const bIsFolder = isStagedFolder(b)
+      if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1
+
+      // Then alphabetical
       return a.label.localeCompare(b.label)
     })
   }
 
-  getTreeItem(element: StagedFile): vscode.TreeItem {
-    if (element.uri.scheme === this.EMPTY_URI.scheme) return this.createEmptyTreeItem(element)
-    return this.createFileTreeItem(element)
+  // --- Rendering Helpers ---
+
+  private createFolderTreeItem(folder: StagedFolder): vscode.TreeItem {
+    const item = new vscode.TreeItem(folder.label, vscode.TreeItemCollapsibleState.Expanded)
+    item.contextValue = 'stagedFolder'
+    item.iconPath = vscode.ThemeIcon.Folder
+    item.resourceUri = folder.resourceUri
+
+    // Aggregate tokens for description
+    const totalTokens = folder.containedFiles.reduce((sum, f) => sum + (f.stats?.tokenCount ?? 0), 0)
+    item.description = this.formatTokenCount(totalTokens)
+    item.tooltip = `${folder.containedFiles.length} files inside`
+
+    return item
+  }
+
+  private createFileTreeItem(file: StagedFile): vscode.TreeItem {
+    const item = new vscode.TreeItem(file.label)
+    item.resourceUri = file.uri
+    item.contextValue = file.isPinned ? 'stagedFile:pinned' : 'stagedFile'
+    item.command = { command: 'vscode.open', title: 'Open File', arguments: [file.uri] }
+
+    if (file.isBinary) {
+      this.decorateBinaryItem(item, file)
+      return item
+    }
+
+    const tokenCount = file.stats?.tokenCount ?? 0
+    item.iconPath = file.isPinned
+      ? new vscode.ThemeIcon('pin')
+      : new vscode.ThemeIcon('file', this.getIconColor(tokenCount))
+
+    const parts = [
+      file.stats ? `${this.formatTokenCount(file.stats.tokenCount)}` : '...',
+      file.isPinned ? '(Pinned)' : '',
+    ]
+    item.description = parts.filter(Boolean).join(' • ')
+
+    return item
   }
 
   private createEmptyTreeItem(element: StagedFile): vscode.TreeItem {
@@ -202,79 +202,23 @@ export class ContextStackProvider
       command: 'aiContextStacker.addFilePicker',
       title: 'Add Files',
     }
-    item.tooltip = 'Click to add files, or drag and drop items here.'
     return item
   }
 
-  private createFileTreeItem(element: StagedFile): vscode.TreeItem {
-    const label = this.getSmartLabel(element)
-    const item = new vscode.TreeItem(label)
-
-    item.resourceUri = element.uri
-    item.contextValue = element.isPinned ? 'stagedFile:pinned' : 'stagedFile'
-    item.command = { command: 'vscode.open', title: 'Open File', arguments: [element.uri] }
-
-    if (element.isBinary) {
-      this.decorateBinaryItem(item, element)
-      return item
+  private createPlaceholderItem(): StagedFile {
+    return {
+      type: 'file',
+      uri: this.EMPTY_URI,
+      label: 'Drag files here to start...',
     }
-
-    const tokenCount = element.stats?.tokenCount ?? 0
-
-    if (element.isPinned) {
-      item.iconPath = new vscode.ThemeIcon('pin')
-    } else {
-      item.iconPath = new vscode.ThemeIcon('file', this.getIconColor(tokenCount))
-    }
-
-    this.decorateStandardItem(item, element)
-
-    return item
   }
 
-  /**
-   * Generates smart labels that show parent folder when base names collide.
-   * Appends dirty indicator (●) for unsaved files.
-   */
-  private getSmartLabel(element: StagedFile): string {
-    let label = element.label
-
-    if (this.nameCollisions.has(element.label)) {
-      const relative = vscode.workspace.asRelativePath(element.uri)
-      const parentDir = path.dirname(relative).split(path.sep).pop()
-      if (parentDir && parentDir !== '.') {
-        label = `${element.label} (${parentDir})`
-      }
-    }
-
-    const isDirty = vscode.workspace.textDocuments.some(
-      (doc) => doc.uri.toString() === element.uri.toString() && doc.isDirty,
-    )
-    return isDirty ? `${label} ●` : label
-  }
+  // --- Stats & Events ---
 
   private decorateBinaryItem(item: vscode.TreeItem, element: StagedFile) {
     item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
-    item.description = 'Binary • Skipped'
-    item.tooltip = `${element.uri.fsPath}\n⚠ Binary file detected.`
-  }
-
-  private decorateStandardItem(item: vscode.TreeItem, element: StagedFile) {
-    const relativePath = vscode.workspace.asRelativePath(element.uri)
-    const folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'))
-    const parts: string[] = []
-
-    if (element.stats) parts.push(`${this.formatTokenCount(element.stats.tokenCount)} tokens`)
-    else parts.push('calculating...')
-
-    if (folderPath && folderPath !== relativePath && !this.nameCollisions.has(element.label)) {
-      parts.push(folderPath)
-    }
-
-    if (element.isPinned) parts.push('(Pinned)')
-
-    item.description = parts.join(' • ')
-    item.tooltip = `${element.uri.fsPath}\nTokens: ${element.stats?.tokenCount ?? '...'}${element.isPinned ? '\n📌 Pinned' : ''}`
+    item.description = 'Binary'
+    item.tooltip = 'Binary file detected.'
   }
 
   private getIconColor(tokenCount: number): vscode.ThemeColor | undefined {
@@ -285,6 +229,40 @@ export class ContextStackProvider
     return count >= 1000 ? `~${(count / 1000).toFixed(1)}k` : `~${count}`
   }
 
+  private handleDocChange(doc: vscode.TextDocument, immediate = false) {
+    const activeFiles = this.trackManager.getActiveTrack().files
+    const targetFile = activeFiles.find((f) => f.uri.toString() === doc.uri.toString())
+    if (!targetFile) return
+
+    const key = doc.uri.toString()
+    if (this.pendingUpdates.has(key)) clearTimeout(this.pendingUpdates.get(key)!)
+
+    const updateLogic = () => {
+      this.updateFileStats(targetFile, doc.getText())
+      this.pendingUpdates.delete(key)
+    }
+
+    if (immediate) updateLogic()
+    else this.pendingUpdates.set(key, setTimeout(updateLogic, this.DEBOUNCE_MS))
+  }
+
+  private updateFileStats(file: StagedFile, content: string) {
+    try {
+      const stats = TokenEstimator.measure(content)
+      file.stats = { tokenCount: stats.tokenCount, charCount: content.length }
+      this._onDidChangeTreeData.fire()
+    } catch {
+      Logger.warn(`Failed to update live stats for ${file.label}`)
+    }
+  }
+
+  private refreshState(): void {
+    this._onDidChangeTreeData.fire()
+    this.enrichFileStats(this.getFiles())
+  }
+
+  // --- CRUD Operations ---
+
   addFiles(uris: vscode.Uri[]): void {
     const newFiles = this.trackManager.addFilesToActive(uris)
     if (newFiles.length > 0) this.refreshState()
@@ -292,10 +270,6 @@ export class ContextStackProvider
 
   addFile(uri: vscode.Uri): void {
     this.addFiles([uri])
-  }
-
-  removeFile(file: StagedFile): void {
-    this.removeFiles([file])
   }
 
   removeFiles(filesToRemove: StagedFile[]): void {
@@ -308,39 +282,60 @@ export class ContextStackProvider
     this.refreshState()
   }
 
-  /**
-   * Enriches file metadata by reading content and calculating token estimates.
-   * Uses Promise.all for parallel processing to avoid blocking UI on large batches.
-   * Binary detection uses first 512 bytes to avoid reading entire large files.
-   */
+  // --- Drag & Drop ---
+
+  async handleDrop(target: StackTreeItem | undefined, dataTransfer: vscode.DataTransfer): Promise<void> {
+    const uris = await this.extractUrisFromTransfer(dataTransfer)
+    if (uris.length === 0) return
+
+    const { files, folders } = await categorizeTargets(uris)
+    if (files.length > 0) this.addFiles(files)
+    if (folders.length > 0) await handleFolderScanning(folders, this, this.ignorePatternProvider)
+  }
+
+  private async extractUrisFromTransfer(dataTransfer: vscode.DataTransfer): Promise<vscode.Uri[]> {
+    const item = dataTransfer.get('text/uri-list') || dataTransfer.get('text/plain')
+    if (!item) return []
+    const content = await item.asString()
+    return content
+      .split(/\r?\n/)
+      .filter((l) => l.trim())
+      .map((l) => {
+        try {
+          return l.startsWith('file:') || l.startsWith('vscode-remote:') ? vscode.Uri.parse(l) : vscode.Uri.file(l)
+        } catch {
+          return null
+        }
+      })
+      .filter((u): u is vscode.Uri => u !== null)
+  }
+
+  // --- Async Stats ---
+
   private async enrichFileStats(targets: StagedFile[]): Promise<void> {
     const decoder = new TextDecoder()
     const filesToProcess = targets.filter((f) => !f.stats)
-
     if (filesToProcess.length === 0) return
 
     await Promise.all(
       filesToProcess.map(async (file) => {
         try {
-          const uint8Array = await vscode.workspace.fs.readFile(file.uri)
-          // Check first 512 bytes for null bytes (binary indicator)
-          const isBinary = uint8Array.slice(0, 512).some((b) => b === 0)
-
+          const u8 = await vscode.workspace.fs.readFile(file.uri)
+          const isBinary = u8.slice(0, 512).some((b) => b === 0)
           if (isBinary) {
             file.isBinary = true
             file.stats = { tokenCount: 0, charCount: 0 }
           } else {
             file.isBinary = false
-            const content = decoder.decode(uint8Array)
-            const measurements = TokenEstimator.measure(content)
-            file.stats = { tokenCount: measurements.tokenCount, charCount: content.length }
+            const content = decoder.decode(u8)
+            const stats = TokenEstimator.measure(content)
+            file.stats = { tokenCount: stats.tokenCount, charCount: content.length }
           }
-        } catch (error) {
-          Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
+        } catch {
+          /* ignore read errors */
         }
       }),
     )
-
     this._onDidChangeTreeData.fire()
   }
 

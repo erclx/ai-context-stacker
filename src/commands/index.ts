@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { ContextTrack, StagedFile } from '../models'
+import { ContextTrack, StackTreeItem } from '../models'
 import { ContextStackProvider, ContextTrackManager, IgnorePatternProvider } from '../providers'
 import { registerAddFileCommand } from './add-file'
 import { registerAddFileContextMenuCommand } from './add-file-context-menu'
@@ -18,7 +18,7 @@ interface Providers {
   extensionContext: vscode.ExtensionContext
   contextStackProvider: ContextStackProvider
   ignorePatternProvider: IgnorePatternProvider
-  filesView: vscode.TreeView<StagedFile>
+  filesView: vscode.TreeView<StackTreeItem>
   contextTrackManager: ContextTrackManager
   tracksView: vscode.TreeView<ContextTrack>
 }
