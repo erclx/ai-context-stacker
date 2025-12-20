@@ -14,10 +14,8 @@ export class StackerStatusBar implements vscode.Disposable {
   constructor(extensionContext: vscode.ExtensionContext, contextStackProvider: ContextStackProvider) {
     this.provider = contextStackProvider
 
-    // Priority 100 ensures it stays near the right side
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
 
-    // ZERO-CLICK FLOW: Primary click now copies immediately
     this.item.command = 'aiContextStacker.copyAll'
     this.item.tooltip = 'Click to Copy Stack to Clipboard'
 
@@ -31,6 +29,15 @@ export class StackerStatusBar implements vscode.Disposable {
 
   /**
    * Updates the status bar text with the current track and token count.
+   *
+   * Update triggers:
+   * - File added/removed from stack
+   * - Track switched
+   * - Token count recalculated (debounced edits or save)
+   *
+   * Icon state logic:
+   * - Hidden when stack is empty (no visual clutter)
+   * - Shows copy icon when stack has content (indicates primary action)
    */
   private update() {
     const files = this.provider.getFiles()
@@ -44,7 +51,6 @@ export class StackerStatusBar implements vscode.Disposable {
     const formattedTokens = this.provider.formatTokenCount(totalTokens)
     const trackName = this.provider.getActiveTrackName()
 
-    // Icon changed to 'copy' to indicate the primary action
     this.item.text = `$(copy) ${trackName} (${formattedTokens})`
 
     this.item.tooltip = new vscode.MarkdownString(

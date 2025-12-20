@@ -24,7 +24,6 @@ interface Providers {
 }
 
 export function registerAllCommands(deps: Providers) {
-  // File Operations
   registerAddFileCommand(deps.extensionContext, deps.contextStackProvider)
   registerAddFileContextMenuCommand(deps.extensionContext, deps.contextStackProvider, deps.ignorePatternProvider)
   registerAddFilePickerCommand(deps.extensionContext, deps.contextStackProvider, deps.ignorePatternProvider)
@@ -39,6 +38,5 @@ export function registerAllCommands(deps: Providers) {
   registerCopyFileCommand(deps.extensionContext, deps.contextStackProvider, deps.filesView)
   registerRemoveFileCommand(deps.extensionContext, deps.contextStackProvider, deps.filesView)
 
-  // Track Operations
   registerTrackCommands(deps.extensionContext, deps.contextTrackManager, deps.tracksView)
 }

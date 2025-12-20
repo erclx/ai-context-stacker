@@ -2,8 +2,6 @@ import * as vscode from 'vscode'
 
 import { Logger } from '../utils'
 
-// Default patterns that should always be excluded, even without a .gitignore file.
-// This prevents common noise and huge dependency folders from being accidentally added.
 const FALLBACK_EXCLUDE_PATTERNS = [
   '**/.git/**',
   '**/node_modules/**',
@@ -18,32 +16,26 @@ const FALLBACK_EXCLUDE_PATTERNS = [
 ]
 
 /**
- * Service responsible for determining file exclusion patterns for workspace searches.
- * It primarily reads the `.gitignore` file, merges it with hardcoded defaults,
- * and handles caching and file system watching for changes.
+ * Manages file exclusion patterns by reading .gitignore and merging with defaults.
+ * Caches results and watches for .gitignore changes.
  */
 export class IgnorePatternProvider implements vscode.Disposable {
   private _cachedPatterns: string | undefined
   private _watcher: vscode.FileSystemWatcher | undefined
 
-  // Pre-calculate defaults once to be used as a fallback. Format is needed for glob syntax.
   private readonly DEFAULT_EXCLUDES: string = `{${FALLBACK_EXCLUDE_PATTERNS.join(',')}}`
 
   constructor() {
     this.initWatcher()
   }
 
-  // KEPT PUBLIC: Preserving original API contract. Readability could suggest moving
-  // this out, but it keeps I/O logic contained for this specific provider.
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
     return vscode.workspace.fs.readFile(uri)
   }
 
   /**
-   * Gets the combined file exclusion pattern string for use with `vscode.workspace.findFiles`.
-   * The result is cached for performance and invalidated upon `.gitignore` changes.
-   *
-   * @returns A promise resolving to a glob pattern string (e.g., `{pattern1,pattern2}`).
+   * Returns combined exclusion patterns for vscode.workspace.findFiles.
+   * Result is cached and invalidated on .gitignore changes.
    */
   public async getExcludePatterns(): Promise<string> {
     if (this._cachedPatterns) {
@@ -56,15 +48,8 @@ export class IgnorePatternProvider implements vscode.Disposable {
     return this._cachedPatterns
   }
 
-  /**
-   * Refactored: Orchestrates I/O operations only.
-   * Locates, reads, and converts the `.gitignore` file content.
-   *
-   * @returns A promise resolving to the final glob exclusion pattern string.
-   */
   private async readGitIgnore(): Promise<string> {
     try {
-      // Search for the .gitignore file only once at the workspace root
       const files = await vscode.workspace.findFiles('.gitignore', null, 1)
 
       if (files.length === 0) {
@@ -76,7 +61,6 @@ export class IgnorePatternProvider implements vscode.Disposable {
       const uint8Array = await this.readFile(uri)
       const content = Buffer.from(uint8Array).toString('utf-8')
 
-      // Delegate pure string manipulation to a dedicated helper
       const finalPatterns = this.generatePatternString(content)
 
       Logger.info('.gitignore parsed; exclusion patterns generated.')
@@ -88,38 +72,32 @@ export class IgnorePatternProvider implements vscode.Disposable {
   }
 
   /**
-   * Pure Logic: Parses .gitignore content and merges it with defaults.
-   * Isolated for testability and readability.
-   *
-   * @param content The raw string content of the .gitignore file.
-   * @returns The final glob pattern string for `findFiles`.
+   * Parses .gitignore content and merges with defaults.
+   * Filters comments, negations, and converts to VS Code glob syntax.
    */
   private generatePatternString(content: string): string {
     const userPatterns = content
       .split('\n')
       .map((line) => line.trim())
-      // Filter out comments (#) and negations (!) as VS Code glob doesn't support them the same way
+      // VS Code glob doesn't support gitignore comments and negations
       .filter((line) => line && !line.startsWith('#') && !line.startsWith('!'))
       .map((line) => {
-        // VS Code's findFiles uses full glob paths, so we prepend `**/` and remove leading/trailing slashes
+        // Convert to full glob paths with **/ prefix
         const cleanLine = line.replace(/^\//, '').replace(/\/$/, '')
         return `**/${cleanLine}`
       })
 
-    // Filter out defaults that are already covered by user patterns to avoid duplicates
+    // Avoid duplicates between user patterns and defaults
     const defaultsToAdd = FALLBACK_EXCLUDE_PATTERNS.filter((p) => !userPatterns.includes(p))
     const combinedPatterns = [...userPatterns, ...defaultsToAdd]
 
-    // Wrap the patterns in `{}` for the required glob syntax
     return `{${combinedPatterns.join(',')}}`
   }
 
   /**
-   * Sets up a file system watcher to detect changes to the `.gitignore` file
-   * and invalidate the cached patterns, forcing a re-read on the next request.
+   * Watches .gitignore for changes and invalidates cache.
    */
   private initWatcher() {
-    // Watch for the `.gitignore` file anywhere in the workspace
     this._watcher = vscode.workspace.createFileSystemWatcher('**/.gitignore')
 
     const invalidate = () => {
@@ -132,9 +110,6 @@ export class IgnorePatternProvider implements vscode.Disposable {
     this._watcher.onDidDelete(invalidate)
   }
 
-  /**
-   * Cleans up the FileSystemWatcher resource.
-   */
   public dispose() {
     this._watcher?.dispose()
     Logger.info('IgnorePatternProvider disposed: FileSystemWatcher cleaned up.')

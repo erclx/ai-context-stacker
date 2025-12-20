@@ -4,8 +4,8 @@ import { ContextStackProvider } from '../providers'
 import { ContentFormatter, Logger } from '../utils'
 
 /**
- * Manages the "Rich Preview" webview panel.
- * Displays a live, read-only rendering of the final AI context payload.
+ * Manages the preview webview panel showing formatted AI context.
+ * Singleton pattern ensures only one preview exists at a time.
  */
 export class PreviewWebview {
   public static currentPanel: PreviewWebview | undefined
@@ -21,13 +21,11 @@ export class PreviewWebview {
   ) {
     this._panel = panel
 
-    // Lifecycle listeners
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
 
-    // Live Updates: Refresh content when the stack changes
+    // Live updates when stack changes
     this._provider.onDidChangeTreeData(() => this.update(), null, this._disposables)
 
-    // Handle messages from the webview (e.g., "Copy" button)
     this._panel.webview.onDidReceiveMessage(
       (message) => {
         switch (message.command) {
@@ -41,13 +39,9 @@ export class PreviewWebview {
       this._disposables,
     )
 
-    // Initial render
     this.update()
   }
 
-  /**
-   * Creates a new panel or reveals the existing one.
-   */
   public static createOrShow(extensionUri: vscode.Uri, provider: ContextStackProvider) {
     const column = vscode.window.activeTextEditor ? vscode.ViewColumn.Beside : undefined
 
@@ -70,7 +64,8 @@ export class PreviewWebview {
   }
 
   /**
-   * Revives a webview panel that has been restored by VS Code (e.g., after reload).
+   * Revives webview after VS Code restart.
+   * Called by VS Code serialization framework.
    */
   public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, provider: ContextStackProvider) {
     PreviewWebview.currentPanel = new PreviewWebview(panel, extensionUri, provider)
@@ -190,7 +185,7 @@ export class PreviewWebview {
 }
 
 /**
- * Handles the deserialization of the webview when VS Code restarts.
+ * Handles webview deserialization after VS Code restart.
  */
 export class PreviewWebviewSerializer implements vscode.WebviewPanelSerializer {
   constructor(
@@ -199,13 +194,11 @@ export class PreviewWebviewSerializer implements vscode.WebviewPanelSerializer {
   ) {}
 
   async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: unknown) {
-    // Reset options to ensure scripts are enabled
     webviewPanel.webview.options = {
       enableScripts: true,
       localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'media')],
     }
 
-    // Revive the panel using the existing instance
     PreviewWebview.revive(webviewPanel, this._extensionUri, this._provider)
   }
 }

@@ -3,13 +3,6 @@ import * as vscode from 'vscode'
 import { ContextStackProvider } from '../providers'
 import { ContentFormatter, Logger, TokenEstimator } from '../utils'
 
-/**
- * Registers the command to copy the entire context stack to the clipboard.
- * This is the main action triggered by the status bar item.
- *
- * @param extensionContext The extension context.
- * @param contextStackProvider The ContextStackProvider instance.
- */
 export function registerCopyAllCommand(
   extensionContext: vscode.ExtensionContext,
   contextStackProvider: ContextStackProvider,
@@ -22,8 +15,6 @@ export function registerCopyAllCommand(
       return
     }
 
-    // Wrap the file reading/formatting process in a progress notification
-    // to give the user feedback during potentially slow I/O operations.
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -37,11 +28,9 @@ export function registerCopyAllCommand(
         await vscode.env.clipboard.writeText(formattedContent)
 
         const duration = Date.now() - startTime
-
         const stats = TokenEstimator.measure(formattedContent)
 
         Logger.info(`Copied ${files.length} files. Stats: ${stats.tokenCount} tokens, ${duration}ms`)
-
         vscode.window.showInformationMessage(`Copied ${files.length} files! (${TokenEstimator.format(stats)})`)
       },
     )

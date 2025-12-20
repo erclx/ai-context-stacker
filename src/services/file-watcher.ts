@@ -19,7 +19,6 @@ export class FileWatcherService implements vscode.Disposable {
   private readonly RENAME_WINDOW_MS = 300
 
   constructor(private contextTrackManager: ContextTrackManager) {
-    // Watch everything; filtering happens in the handler for performance
     this.watcher = vscode.workspace.createFileSystemWatcher('**/*')
 
     this.watcher.onDidDelete((uri) => this.onDelete(uri))
@@ -27,16 +26,19 @@ export class FileWatcherService implements vscode.Disposable {
   }
 
   /**
-   * On delete, we wait briefly to see if a matching 'create' follows (rename).
-   * If not, we confirm the delete.
+   * Handles delete events with delay to detect renames.
+   *
+   * Race condition handling:
+   * VS Code fires onDidDelete immediately, then onDidCreate shortly after for renames.
+   * We wait RENAME_WINDOW_MS to see if a matching create event arrives.
+   * If no create event comes, we commit the delete.
+   * This prevents flickering UI and lost state during file moves/renames.
    */
   private onDelete(uri: vscode.Uri): void {
-    // Optimization: Ignore events for files not in any track
     if (!this.contextTrackManager.hasUri(uri)) return
 
     const key = this.getFileKey(uri)
 
-    // Clear any existing timer for this file key
     if (this.pendingRenames.has(key)) {
       clearTimeout(this.pendingRenames.get(key)!.timer)
     }
@@ -49,15 +51,14 @@ export class FileWatcherService implements vscode.Disposable {
   }
 
   /**
-   * On create, we check if this file matches a pending delete (heuristically).
-   * If it does, we treat it as a rename/move.
+   * Handles create events, checking for pending deletes to detect renames.
+   * Basename-based matching allows detection of folder moves (a/file.ts -> b/file.ts).
    */
   private onCreate(newUri: vscode.Uri): void {
     const key = this.getFileKey(newUri)
     const pending = this.pendingRenames.get(key)
 
     if (pending) {
-      // It's a rename! Cancel the delete and update the reference.
       clearTimeout(pending.timer)
       this.pendingRenames.delete(key)
 
@@ -74,7 +75,7 @@ export class FileWatcherService implements vscode.Disposable {
 
   /**
    * Generates a key for tracking renames.
-   * Using basename allows us to detect moves (folder1/a.ts -> folder2/a.ts).
+   * Uses basename to detect both renames and moves across folders.
    */
   private getFileKey(uri: vscode.Uri): string {
     return path.basename(uri.fsPath)

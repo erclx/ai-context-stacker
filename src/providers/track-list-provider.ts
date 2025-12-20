@@ -5,7 +5,7 @@ import { ContextStackProvider } from './context-stack-provider'
 import { ContextTrackManager } from './context-track-manager'
 
 /**
- * Acts as the ViewModel for the list of available context tracks.
+ * Provides tree view for context tracks with live token stats.
  */
 export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>, vscode.Disposable {
   private _onDidChangeTreeData = new vscode.EventEmitter<ContextTrack | undefined | void>()
@@ -15,18 +15,16 @@ export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>,
   private stackProvider?: ContextStackProvider
 
   constructor(private contextTrackManager: ContextTrackManager) {
-    // Listen for any track changes (renames, switches, deletions) to refresh the list
     this.disposable = this.contextTrackManager.onDidChangeTrack(() => {
       this.refresh()
     })
   }
 
   /**
-   * Injection to access live stats for the active track.
+   * Injects stack provider for live token stats on active track.
    */
   setStackProvider(provider: ContextStackProvider) {
     this.stackProvider = provider
-    // Re-render when stack provider updates (e.g. token recalculation)
     this.stackProvider.onDidChangeTreeData(() => this.refresh())
   }
 
@@ -51,7 +49,6 @@ export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>,
       item.description = `${element.files.length} files`
     }
 
-    // Single click switches the track
     item.command = {
       command: 'aiContextStacker.switchTrack',
       title: 'Switch Track',
@@ -62,7 +59,6 @@ export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>,
   }
 
   getChildren(element?: ContextTrack): ContextTrack[] {
-    // Flattened list; no nesting
     if (element) return []
     return this.contextTrackManager.allTracks
   }

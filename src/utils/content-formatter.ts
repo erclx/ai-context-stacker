@@ -4,8 +4,7 @@ import { type StagedFile } from '../models'
 import { Logger } from './logger'
 
 /**
- * Manages reading files and formatting them into a single, structured
- * string suitable for use as AI context (e.g., Markdown file blocks).
+ * Formats staged files into Markdown code blocks for AI context.
  */
 export class ContentFormatter {
   public static async readFileFromDisk(uri: vscode.Uri): Promise<Uint8Array> {
@@ -13,8 +12,7 @@ export class ContentFormatter {
   }
 
   /**
-   * Reads the content of multiple staged files in parallel, formats each one,
-   * and combines them into one string.
+   * Reads and formats files in parallel into a single concatenated string.
    */
   public static async format(files: StagedFile[]): Promise<string> {
     const filePromises = files.map(async (file) => {
@@ -25,7 +23,6 @@ export class ContentFormatter {
 
       try {
         const content = await this.readFileContent(file.uri)
-
         if (content === null) {
           Logger.warn(`Skipping unreadable/binary file during read: ${file.uri.fsPath}`)
           return ''
@@ -46,13 +43,13 @@ export class ContentFormatter {
   }
 
   /**
-   * Reads a file's content and performs a heuristic check for binary content.
+   * Reads file and performs secondary binary check as safeguard.
    */
   private static async readFileContent(uri: vscode.Uri): Promise<string | null> {
     try {
       const uint8Array = await this.readFileFromDisk(uri)
 
-      // Secondary Check: Ensure we don't accidentally copy binary if the flag was missed
+      // Secondary check in case isBinary flag was missed
       const snippet = uint8Array.slice(0, 512)
       const isBinary = snippet.some((byte) => byte === 0)
 

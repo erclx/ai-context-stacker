@@ -63,7 +63,9 @@ export async function handleFolderScanning(
 }
 
 /**
- * Performs the actual glob search within a single directory root.
+ * Performs glob search within a single directory root.
+ * Uses RelativePattern to scope search strictly to the target folder,
+ * preventing workspace-wide scans which would ignore the folder context.
  */
 async function scanFolder(
   folder: vscode.Uri,
@@ -71,7 +73,7 @@ async function scanFolder(
   token: vscode.CancellationToken,
 ): Promise<vscode.Uri[]> {
   try {
-    // RelativePattern is crucial here to limit search scope strictly to the target folder
+    // RelativePattern is essential: it restricts glob to this folder only
     const searchPattern = new vscode.RelativePattern(folder, '**/*')
     return await vscode.workspace.findFiles(searchPattern, excludes, undefined, token)
   } catch (err) {

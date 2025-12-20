@@ -2,9 +2,6 @@ import * as vscode from 'vscode'
 
 import { ContextStackProvider } from '../providers'
 
-/**
- * Registers the command to clear files, respecting pinned items.
- */
 export function registerClearAllCommand(
   extensionContext: vscode.ExtensionContext,
   contextStackProvider: ContextStackProvider,

@@ -44,6 +44,10 @@ export class ContextStackProvider
     this.refreshState()
   }
 
+  /**
+   * Debounces token recalculation for live edits to avoid UI thrashing.
+   * Immediately processes on save to ensure accurate stats before copy.
+   */
   private handleDocChange(doc: vscode.TextDocument, immediate = false) {
     const activeFiles = this.trackManager.getActiveTrack().files
     const targetFile = activeFiles.find((f) => f.uri.toString() === doc.uri.toString())
@@ -81,6 +85,10 @@ export class ContextStackProvider
     }
   }
 
+  /**
+   * Refreshes UI state and triggers async token enrichment.
+   * Collision detection runs synchronously to avoid flickering labels.
+   */
   private refreshState(): void {
     const files = this.getFiles()
     this.calculateCollisions(files)
@@ -88,6 +96,9 @@ export class ContextStackProvider
     this.enrichFileStats(files)
   }
 
+  /**
+   * Detects basename collisions to enable smart labeling with parent folders.
+   */
   private calculateCollisions(files: StagedFile[]): void {
     const counts = new Map<string, number>()
     files.forEach((f) => counts.set(f.label, (counts.get(f.label) || 0) + 1))
@@ -110,6 +121,10 @@ export class ContextStackProvider
     return this.getFiles().reduce((sum, file) => sum + (file.stats?.tokenCount ?? 0), 0)
   }
 
+  /**
+   * Handles drag-and-drop from File Explorer or external sources.
+   * Supports both text/uri-list and text/plain MIME types for maximum compatibility.
+   */
   async handleDrop(
     target: StagedFile | undefined,
     dataTransfer: vscode.DataTransfer,
@@ -123,6 +138,10 @@ export class ContextStackProvider
     if (folders.length > 0) await handleFolderScanning(folders, this, this.ignorePatternProvider)
   }
 
+  /**
+   * Extracts URIs from DataTransfer, handling both standard uri-list and plain text.
+   * Falls back to plain text for sources that don't provide proper uri-list.
+   */
   private async extractUrisFromTransfer(dataTransfer: vscode.DataTransfer): Promise<vscode.Uri[]> {
     const uriListItem = dataTransfer.get('text/uri-list')
     if (uriListItem) return this.parseUriList(await uriListItem.asString())
@@ -131,6 +150,10 @@ export class ContextStackProvider
     return []
   }
 
+  /**
+   * Parses newline-delimited URI strings into vscode.Uri objects.
+   * Handles both file:// URIs and plain filesystem paths.
+   */
   private parseUriList(content: string): vscode.Uri[] {
     return content
       .split(/\r?\n/)
@@ -157,6 +180,7 @@ export class ContextStackProvider
       return [{ uri: this.EMPTY_URI, label: 'Drag files here to start...', stats: undefined } as StagedFile]
     }
 
+    // Pinned items float to top, then alphabetical
     return [...files].sort((a, b) => {
       if (a.isPinned !== b.isPinned) {
         return a.isPinned ? -1 : 1
@@ -208,6 +232,10 @@ export class ContextStackProvider
     return item
   }
 
+  /**
+   * Generates smart labels that show parent folder when base names collide.
+   * Appends dirty indicator (●) for unsaved files.
+   */
   private getSmartLabel(element: StagedFile): string {
     let label = element.label
 
@@ -280,17 +308,22 @@ export class ContextStackProvider
     this.refreshState()
   }
 
+  /**
+   * Enriches file metadata by reading content and calculating token estimates.
+   * Uses Promise.all for parallel processing to avoid blocking UI on large batches.
+   * Binary detection uses first 512 bytes to avoid reading entire large files.
+   */
   private async enrichFileStats(targets: StagedFile[]): Promise<void> {
     const decoder = new TextDecoder()
     const filesToProcess = targets.filter((f) => !f.stats)
 
     if (filesToProcess.length === 0) return
 
-    // Optimization: Process all stats in parallel
     await Promise.all(
       filesToProcess.map(async (file) => {
         try {
           const uint8Array = await vscode.workspace.fs.readFile(file.uri)
+          // Check first 512 bytes for null bytes (binary indicator)
           const isBinary = uint8Array.slice(0, 512).some((b) => b === 0)
 
           if (isBinary) {

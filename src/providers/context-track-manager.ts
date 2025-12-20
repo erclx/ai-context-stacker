@@ -1,12 +1,6 @@
 import * as vscode from 'vscode'
 
-import {
-  type ContextTrack,
-  type SerializedFile,
-  type SerializedState,
-  type SerializedTrack,
-  type StagedFile,
-} from '../models'
+import { type ContextTrack, type SerializedState, type SerializedTrack, type StagedFile } from '../models'
 
 /**
  * Manages multiple context tracks, handles persistence, and controls the active state.
@@ -31,6 +25,9 @@ export class ContextTrackManager implements vscode.Disposable {
     return Array.from(this.tracks.values())
   }
 
+  /**
+   * Switches active track and triggers persistence + UI update.
+   */
   async switchToTrack(id: string): Promise<void> {
     if (!this.tracks.has(id)) return
     this.activeTrackId = id
@@ -56,6 +53,10 @@ export class ContextTrackManager implements vscode.Disposable {
     }
   }
 
+  /**
+   * Deletes track with safeguard to prevent removing last track.
+   * Auto-switches to next available track if deleting active one.
+   */
   deleteTrack(id: string): void {
     if (this.tracks.size <= 1) {
       vscode.window.showWarningMessage('Cannot delete the last remaining track.')
@@ -77,12 +78,11 @@ export class ContextTrackManager implements vscode.Disposable {
 
   /**
    * Toggles the pinned state for one or more files.
-   * Efficiently persists state only once.
+   * Persists state only once after all toggles to avoid write thrashing.
    */
   toggleFilesPin(files: StagedFile[]): void {
     if (!files || files.length === 0) return
 
-    // Flip the state for all targeted files
     files.forEach((f) => {
       f.isPinned = !f.isPinned
     })
@@ -100,6 +100,9 @@ export class ContextTrackManager implements vscode.Disposable {
     return false
   }
 
+  /**
+   * Removes URI from all tracks (used by FileWatcher on delete events).
+   */
   removeUriEverywhere(uri: vscode.Uri): void {
     let changed = false
     const uriStr = uri.toString()
@@ -116,6 +119,9 @@ export class ContextTrackManager implements vscode.Disposable {
     }
   }
 
+  /**
+   * Updates URI references across all tracks (used by FileWatcher for renames).
+   */
   replaceUri(oldUri: vscode.Uri, newUri: vscode.Uri): void {
     let changed = false
     const oldStr = oldUri.toString()
@@ -160,6 +166,9 @@ export class ContextTrackManager implements vscode.Disposable {
     this.persistState()
   }
 
+  /**
+   * Clears non-pinned files from active track.
+   */
   clearActive(): void {
     const track = this.getActiveTrack()
     track.files = track.files.filter((f) => f.isPinned)
@@ -173,6 +182,10 @@ export class ContextTrackManager implements vscode.Disposable {
     return def
   }
 
+  /**
+   * Persists current state to workspace storage.
+   * Uses workspaceState (not globalState) to keep tracks workspace-specific.
+   */
   private persistState(): void {
     const state: SerializedState = {
       activeTrackId: this.activeTrackId,
@@ -193,6 +206,9 @@ export class ContextTrackManager implements vscode.Disposable {
     this.extensionContext.workspaceState.update(ContextTrackManager.STORAGE_KEY, state)
   }
 
+  /**
+   * Loads persisted state from workspace storage on extension activation.
+   */
   private loadState(): void {
     const state = this.extensionContext.workspaceState.get<SerializedState>(ContextTrackManager.STORAGE_KEY)
 
@@ -215,20 +231,15 @@ export class ContextTrackManager implements vscode.Disposable {
     }
   }
 
+  /**
+   * Deserializes files from storage.
+   */
   private deserializeFiles(trackData: SerializedTrack): StagedFile[] {
     if (trackData.items) {
       return trackData.items.map((item) => ({
         uri: vscode.Uri.parse(item.uri),
         label: vscode.Uri.parse(item.uri).path.split('/').pop() || 'unknown',
         isPinned: item.isPinned,
-      }))
-    }
-
-    if (trackData.uris) {
-      return trackData.uris.map((u) => ({
-        uri: vscode.Uri.parse(u),
-        label: vscode.Uri.parse(u).path.split('/').pop() || 'unknown',
-        isPinned: false,
       }))
     }
 

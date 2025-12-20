@@ -15,7 +15,6 @@ export function registerCopyFileCommand(
   const command = vscode.commands.registerCommand(
     'aiContextStacker.copyFile',
     async (item?: StagedFile, selectedItems?: StagedFile[]) => {
-      // 1. Resolve Selection
       const filesToCopy = resolveTargetFiles(item, selectedItems, filesView, contextStackProvider)
 
       if (filesToCopy.length === 0) {
@@ -24,7 +23,6 @@ export function registerCopyFileCommand(
       }
 
       try {
-        // 2. Format
         const formattedContent = await ContentFormatter.format(filesToCopy)
 
         if (!formattedContent) {
@@ -32,17 +30,15 @@ export function registerCopyFileCommand(
           return
         }
 
-        // 3. Execute Copy
         await vscode.env.clipboard.writeText(formattedContent)
 
-        // 4. Notify
         const stats = TokenEstimator.measure(formattedContent)
         const label = getFeedbackLabel(filesToCopy, contextStackProvider.getFiles().length)
 
         Logger.info(`Copied: ${label}`)
         vscode.window.showInformationMessage(`Copied ${label}! (${TokenEstimator.format(stats)})`)
 
-        // Status bar feedback for empty selection fallback
+        // Clarify fallback behavior when nothing was explicitly selected
         if (!item && (!selectedItems || selectedItems.length === 0) && filesView.selection.length === 0) {
           vscode.window.setStatusBarMessage('Nothing selected. Copied entire stack.', 3000)
         }
@@ -56,22 +52,29 @@ export function registerCopyFileCommand(
   extensionContext.subscriptions.push(command)
 }
 
+/**
+ * Resolves which files to copy based on invocation context.
+ *
+ * Selection resolution hierarchy:
+ * 1. Multi-select from context menu (right-click with Ctrl/Cmd)
+ * 2. Single-click item from context menu
+ * 3. Current TreeView selection (keyboard navigation)
+ * 4. All files (fallback when command invoked via status bar or palette)
+ *
+ * This hierarchy ensures intuitive behavior across all interaction patterns.
+ */
 function resolveTargetFiles(
   clickedItem: StagedFile | undefined,
   multiSelect: StagedFile[] | undefined,
   treeView: vscode.TreeView<StagedFile>,
   provider: ContextStackProvider,
 ): StagedFile[] {
-  // 1. Explicit multi-select
   if (multiSelect && multiSelect.length > 0) return multiSelect
 
-  // 2. Single item click
   if (clickedItem) return [clickedItem]
 
-  // 3. Tree selection
   if (treeView.selection.length > 0) return [...treeView.selection]
 
-  // 4. Fallback: Everything
   return provider.getFiles()
 }
 

@@ -23,14 +23,7 @@ export interface SerializedFile {
 export interface SerializedTrack {
   id: string
   name: string
-  /**
-   * @deprecated Legacy support for v0.0.1 (simple string arrays)
-   */
-  uris?: string[]
-  /**
-   * v0.0.2+ storage format including metadata
-   */
-  items?: SerializedFile[]
+  items: SerializedFile[]
 }
 
 /**

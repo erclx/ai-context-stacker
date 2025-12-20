@@ -41,17 +41,23 @@ export function registerAddFileContextMenuCommand(
 }
 
 /**
- * Normalizes input from different trigger sources (Menu vs Palette vs Shortcut).
+ * Normalizes URI input from different trigger sources.
+ *
+ * VS Code command invocation patterns:
+ * 1. Context menu multi-select: Both clickedUri and selectedUris provided
+ * 2. Context menu single-click: Only clickedUri provided
+ * 3. Command Palette: Neither provided, falls back to active editor
+ * 4. Keyboard shortcut: Same as Command Palette
+ *
  * @param clickedUri The primary URI clicked in the explorer
  * @param selectedUris The full list of URIs selected in the explorer
  */
 function resolveTargets(clickedUri?: vscode.Uri, selectedUris?: vscode.Uri[]): vscode.Uri[] {
-  // VS Code context menu provides both the clicked item and the full selection
   if (selectedUris && selectedUris.length > 0) return selectedUris
 
   if (clickedUri) return [clickedUri]
 
-  // Fallback ensures functionality when command is triggered via Command Palette
+  // Fallback for Command Palette or keyboard shortcuts
   if (vscode.window.activeTextEditor) return [vscode.window.activeTextEditor.document.uri]
 
   return []
