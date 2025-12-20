@@ -30,7 +30,7 @@ export interface StagedFolder {
   label: string
   resourceUri: vscode.Uri
   children: StackTreeItem[]
-  containedFiles: StagedFile[] // Flattened list of all files under this folder
+  containedFiles: StagedFile[]
 }
 
 /**
