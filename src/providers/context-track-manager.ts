@@ -1,6 +1,8 @@
 import * as vscode from 'vscode'
 
-import { type ContextTrack, type SerializedState, type SerializedTrack, type StagedFile } from '../models'
+import { type ContextTrack, type StagedFile } from '../models'
+import { StateMapper } from '../services'
+import { generateId } from '../utils'
 
 /**
  * Manages multiple context tracks, handles persistence, and controls the active state.
@@ -25,9 +27,6 @@ export class ContextTrackManager implements vscode.Disposable {
     return Array.from(this.tracks.values())
   }
 
-  /**
-   * Switches active track and triggers persistence + UI update.
-   */
   async switchToTrack(id: string): Promise<void> {
     if (!this.tracks.has(id)) return
     this.activeTrackId = id
@@ -36,7 +35,7 @@ export class ContextTrackManager implements vscode.Disposable {
   }
 
   createTrack(name: string): string {
-    const id = `track_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
+    const id = generateId('track')
     const newTrack: ContextTrack = { id, name, files: [] }
 
     this.tracks.set(id, newTrack)
@@ -53,10 +52,6 @@ export class ContextTrackManager implements vscode.Disposable {
     }
   }
 
-  /**
-   * Deletes track with safeguard to prevent removing last track.
-   * Auto-switches to next available track if deleting active one.
-   */
   deleteTrack(id: string): void {
     if (this.tracks.size <= 1) {
       vscode.window.showWarningMessage('Cannot delete the last remaining track.')
@@ -76,33 +71,19 @@ export class ContextTrackManager implements vscode.Disposable {
     }
   }
 
-  /**
-   * Toggles the pinned state for one or more files.
-   * Persists state only once after all toggles to avoid write thrashing.
-   */
   toggleFilesPin(files: StagedFile[]): void {
     if (!files || files.length === 0) return
-
-    files.forEach((f) => {
-      f.isPinned = !f.isPinned
-    })
-
+    files.forEach((f) => (f.isPinned = !f.isPinned))
     this.persistState()
     this._onDidChangeTrack.fire(this.getActiveTrack())
   }
 
   hasUri(uri: vscode.Uri): boolean {
-    for (const track of this.tracks.values()) {
-      if (track.files.some((f) => f.uri.toString() === uri.toString())) {
-        return true
-      }
-    }
-    return false
+    return Array.from(this.tracks.values()).some((track) =>
+      track.files.some((f) => f.uri.toString() === uri.toString()),
+    )
   }
 
-  /**
-   * Removes URI from all tracks (used by FileWatcher on delete events).
-   */
   removeUriEverywhere(uri: vscode.Uri): void {
     let changed = false
     const uriStr = uri.toString()
@@ -119,9 +100,6 @@ export class ContextTrackManager implements vscode.Disposable {
     }
   }
 
-  /**
-   * Updates URI references across all tracks (used by FileWatcher for renames).
-   */
   replaceUri(oldUri: vscode.Uri, newUri: vscode.Uri): void {
     let changed = false
     const oldStr = oldUri.toString()
@@ -167,9 +145,6 @@ export class ContextTrackManager implements vscode.Disposable {
     this.persistState()
   }
 
-  /**
-   * Clears non-pinned files from active track.
-   */
   clearActive(): void {
     const track = this.getActiveTrack()
     track.files = track.files.filter((f) => f.isPinned)
@@ -183,69 +158,24 @@ export class ContextTrackManager implements vscode.Disposable {
     return def
   }
 
-  /**
-   * Persists current state to workspace storage.
-   * Uses workspaceState (not globalState) to keep tracks workspace-specific.
-   */
   private persistState(): void {
-    const state: SerializedState = {
-      activeTrackId: this.activeTrackId,
-      tracks: {},
-    }
-
-    this.tracks.forEach((t) => {
-      state.tracks[t.id] = {
-        id: t.id,
-        name: t.name,
-        items: t.files.map((f) => ({
-          uri: f.uri.toString(),
-          isPinned: !!f.isPinned,
-        })),
-      }
-    })
-
+    const state = StateMapper.toSerialized(this.tracks, this.activeTrackId)
     this.extensionContext.workspaceState.update(ContextTrackManager.STORAGE_KEY, state)
   }
 
-  /**
-   * Loads persisted state from workspace storage on extension activation.
-   */
   private loadState(): void {
-    const state = this.extensionContext.workspaceState.get<SerializedState>(ContextTrackManager.STORAGE_KEY)
+    const rawState = this.extensionContext.workspaceState.get<any>(ContextTrackManager.STORAGE_KEY)
+    const { tracks, activeTrackId } = StateMapper.fromSerialized(rawState)
 
-    if (!state || !state.tracks) {
+    this.tracks = tracks
+    this.activeTrackId = activeTrackId
+
+    // Ensure valid state
+    if (this.tracks.size === 0) {
       this.createDefaultTrack()
-      return
-    }
-
-    Object.values(state.tracks).forEach((t) => {
-      this.tracks.set(t.id, {
-        id: t.id,
-        name: t.name,
-        files: this.deserializeFiles(t),
-      })
-    })
-
-    this.activeTrackId = state.activeTrackId || 'default'
-    if (!this.tracks.has(this.activeTrackId)) {
+    } else if (!this.tracks.has(this.activeTrackId)) {
       this.activeTrackId = this.tracks.keys().next().value || 'default'
     }
-  }
-
-  /**
-   * Deserializes files from storage.
-   */
-  private deserializeFiles(trackData: SerializedTrack): StagedFile[] {
-    if (trackData.items) {
-      return trackData.items.map((item) => ({
-        type: 'file',
-        uri: vscode.Uri.parse(item.uri),
-        label: vscode.Uri.parse(item.uri).path.split('/').pop() || 'unknown',
-        isPinned: item.isPinned,
-      }))
-    }
-
-    return []
   }
 
   dispose() {

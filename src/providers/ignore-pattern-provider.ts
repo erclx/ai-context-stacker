@@ -1,19 +1,7 @@
 import * as vscode from 'vscode'
 
+import { IgnoreParser } from '../services'
 import { Logger } from '../utils'
-
-const FALLBACK_EXCLUDE_PATTERNS = [
-  '**/.git/**',
-  '**/node_modules/**',
-  '**/build/**',
-  '**/dist/**',
-  '**/out/**',
-  '**/.vscode/**',
-  '**/package-lock.json',
-  '**/yarn.lock',
-  '**/*.log',
-  '**/.DS_Store',
-]
 
 /**
  * Manages file exclusion patterns by reading .gitignore and merging with defaults.
@@ -23,14 +11,8 @@ export class IgnorePatternProvider implements vscode.Disposable {
   private _cachedPatterns: string | undefined
   private _watcher: vscode.FileSystemWatcher | undefined
 
-  private readonly DEFAULT_EXCLUDES: string = `{${FALLBACK_EXCLUDE_PATTERNS.join(',')}}`
-
   constructor() {
     this.initWatcher()
-  }
-
-  public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-    return vscode.workspace.fs.readFile(uri)
   }
 
   /**
@@ -54,44 +36,21 @@ export class IgnorePatternProvider implements vscode.Disposable {
 
       if (files.length === 0) {
         Logger.info('.gitignore not found. Using fallback excludes.')
-        return this.DEFAULT_EXCLUDES
+        return IgnoreParser.DEFAULT_EXCLUDES
       }
 
       const uri = files[0]
-      const uint8Array = await this.readFile(uri)
+      const uint8Array = await vscode.workspace.fs.readFile(uri)
       const content = Buffer.from(uint8Array).toString('utf-8')
 
-      const finalPatterns = this.generatePatternString(content)
+      const finalPatterns = IgnoreParser.generatePatternString(content)
 
       Logger.info('.gitignore parsed; exclusion patterns generated.')
       return finalPatterns
     } catch (error) {
       Logger.error('Error reading/parsing .gitignore. Reverting to fallback excludes.', error)
-      return this.DEFAULT_EXCLUDES
+      return IgnoreParser.DEFAULT_EXCLUDES
     }
-  }
-
-  /**
-   * Parses .gitignore content and merges with defaults.
-   * Filters comments, negations, and converts to VS Code glob syntax.
-   */
-  private generatePatternString(content: string): string {
-    const userPatterns = content
-      .split('\n')
-      .map((line) => line.trim())
-      // VS Code glob doesn't support gitignore comments and negations
-      .filter((line) => line && !line.startsWith('#') && !line.startsWith('!'))
-      .map((line) => {
-        // Convert to full glob paths with **/ prefix
-        const cleanLine = line.replace(/^\//, '').replace(/\/$/, '')
-        return `**/${cleanLine}`
-      })
-
-    // Avoid duplicates between user patterns and defaults
-    const defaultsToAdd = FALLBACK_EXCLUDE_PATTERNS.filter((p) => !userPatterns.includes(p))
-    const combinedPatterns = [...userPatterns, ...defaultsToAdd]
-
-    return `{${combinedPatterns.join(',')}}`
   }
 
   /**

@@ -1,6 +1,7 @@
 export * from './content-formatter'
 export * from './drag-drop'
 export * from './file-scanner'
+export * from './id-generator'
 export * from './logger'
 export * from './selection-resolver'
 export * from './token-estimator'
