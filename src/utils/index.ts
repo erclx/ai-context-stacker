@@ -1,5 +1,6 @@
 export * from './content-formatter'
 export * from './drag-drop'
+export * from './error-handler'
 export * from './file-scanner'
 export * from './id-generator'
 export * from './logger'

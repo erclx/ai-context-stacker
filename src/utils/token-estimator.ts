@@ -1,49 +1,41 @@
 /**
- * Interface representing statistics about the content size.
+ * Standalone interface to prevent circular dependencies with Models.
  */
-export interface ContentStats {
+export interface SimpleStats {
   tokenCount: number
+  charCount: number
 }
 
-/**
- * Provides utility methods for estimating token counts.
- */
 export class TokenEstimator {
+  private static readonly LARGE_FILE_THRESHOLD = 100 * 1024 // 100KB
+
   /**
-   * Measures content and provides a token estimate using heuristics.
-   *
-   * Algorithm rationale:
-   * - Split by whitespace to get word count (fast, no regex)
-   * - Multiply by 1.3 to account for code punctuation ({}, ;, etc) which tokenize separately
-   * - The 1.3x multiplier was calibrated empirically against real codebases:
-   *   * Pure prose averages ~1.0 tokens/word
-   *   * Code with punctuation averages ~1.3 tokens/word
-   *   * TypeScript/JS with generics can reach ~1.5 tokens/word
-   * - Fallback to char/4 for minified code where whitespace splitting underestimates
-   *
-   * @param text The input string content
-   * @returns A ContentStats object with the estimated token count
+   * Estimates token count. Uses a precise split strategy for small files
+   * and a fast character heuristic for large files to prevent UI freezes.
    */
-  public static measure(text: string): ContentStats {
+  public static measure(text: string): SimpleStats {
     if (!text) {
-      return { tokenCount: 0 }
+      return { tokenCount: 0, charCount: 0 }
     }
 
-    const wordCount = text.trim().split(/\s+/).length
-    const heuristicCount = Math.ceil(wordCount * 1.3)
-    const charHeuristic = Math.ceil(text.length / 4)
+    const charCount = text.length
+    let tokenCount: number
 
-    return {
-      tokenCount: Math.max(heuristicCount, charHeuristic),
+    if (charCount > this.LARGE_FILE_THRESHOLD) {
+      // Fast heuristic for large files (approx 4 chars per token)
+      tokenCount = Math.ceil(charCount / 4)
+    } else {
+      // More accurate split-based heuristic for smaller files
+      const wordCount = text.trim().split(/\s+/).length
+      const heuristic = Math.ceil(wordCount * 1.3)
+      const charFallback = Math.ceil(charCount / 4)
+      tokenCount = Math.max(heuristic, charFallback)
     }
+
+    return { tokenCount, charCount }
   }
 
-  /**
-   * Formats the token count into a human-readable string.
-   * @param stats The ContentStats object
-   * @returns A formatted string, e.g., "~1,234 tokens"
-   */
-  public static format(stats: ContentStats): string {
+  public static format(stats: SimpleStats): string {
     return `~${stats.tokenCount.toLocaleString()} tokens`
   }
 }
