@@ -23,9 +23,11 @@ export class ContextStackProvider
   private readonly EMPTY_URI = vscode.Uri.parse('ai-stack:empty-drop-target')
   private readonly EMPTY_ID = 'emptyState'
   private readonly HIGH_TOKEN_THRESHOLD = 5000
+  private readonly DEBOUNCE_MS = 400
 
   // Tracks filenames that appear >1 time to trigger smart labeling
   private nameCollisions = new Set<string>()
+  private pendingUpdates = new Map<string, NodeJS.Timeout>()
   private disposables: vscode.Disposable[] = []
 
   constructor(
@@ -37,15 +39,57 @@ export class ContextStackProvider
 
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument((e) => this.handleDocChange(e.document)),
-      vscode.workspace.onDidSaveTextDocument((doc) => this.handleDocChange(doc)),
+      vscode.workspace.onDidSaveTextDocument((doc) => this.handleDocChange(doc, true)),
     )
 
     this.refreshState()
   }
 
-  private handleDocChange(doc: vscode.TextDocument) {
-    if (this.trackManager.hasUri(doc.uri)) {
-      this._onDidChangeTreeData.fire()
+  /**
+   * Handles live document updates with debouncing to prevent excessive calculation.
+   */
+  private handleDocChange(doc: vscode.TextDocument, immediate = false) {
+    // 1. Filter: Only process files currently in the active track
+    const activeFiles = this.trackManager.getActiveTrack().files
+    const targetFile = activeFiles.find((f) => f.uri.toString() === doc.uri.toString())
+
+    if (!targetFile) return
+
+    // 2. Clear existing debounce timer for this file
+    const key = doc.uri.toString()
+    if (this.pendingUpdates.has(key)) {
+      clearTimeout(this.pendingUpdates.get(key)!)
+    }
+
+    // 3. Define the update logic
+    const updateLogic = () => {
+      this.updateFileStats(targetFile, doc.getText())
+      this.pendingUpdates.delete(key)
+    }
+
+    // 4. Execute immediately (on save) or debounce (on type)
+    if (immediate) {
+      updateLogic()
+    } else {
+      const timeout = setTimeout(updateLogic, this.DEBOUNCE_MS)
+      this.pendingUpdates.set(key, timeout)
+    }
+  }
+
+  /**
+   * Updates stats in-memory and triggers a surgical tree update for a single node.
+   */
+  private updateFileStats(file: StagedFile, content: string) {
+    try {
+      const measurements = TokenEstimator.measure(content)
+      file.stats = {
+        tokenCount: measurements.tokenCount,
+        charCount: content.length,
+      }
+      // Fire with the specific element to update only that row
+      this._onDidChangeTreeData.fire(file)
+    } catch (error) {
+      Logger.warn(`Failed to update live stats for ${file.label}`)
     }
   }
 
