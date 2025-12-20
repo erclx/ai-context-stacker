@@ -8,15 +8,15 @@ import { ContentFormatter, Logger, TokenEstimator } from '../utils'
  * Registers the command to copy selected (or all) staged files.
  */
 export function registerCopyFileCommand(
-  context: vscode.ExtensionContext,
-  provider: ContextStackProvider,
-  treeView: vscode.TreeView<StagedFile>,
+  extensionContext: vscode.ExtensionContext,
+  contextStackProvider: ContextStackProvider,
+  filesView: vscode.TreeView<StagedFile>,
 ): void {
   const command = vscode.commands.registerCommand(
     'aiContextStacker.copyFile',
     async (item?: StagedFile, selectedItems?: StagedFile[]) => {
       // 1. Resolve Selection
-      const filesToCopy = resolveTargetFiles(item, selectedItems, treeView, provider)
+      const filesToCopy = resolveTargetFiles(item, selectedItems, filesView, contextStackProvider)
 
       if (filesToCopy.length === 0) {
         vscode.window.showInformationMessage('Context stack is empty.')
@@ -37,13 +37,13 @@ export function registerCopyFileCommand(
 
         // 4. Notify
         const stats = TokenEstimator.measure(formattedContent)
-        const label = getFeedbackLabel(filesToCopy, provider.getFiles().length)
+        const label = getFeedbackLabel(filesToCopy, contextStackProvider.getFiles().length)
 
         Logger.info(`Copied: ${label}`)
         vscode.window.showInformationMessage(`Copied ${label}! (${TokenEstimator.format(stats)})`)
 
         // Status bar feedback for empty selection fallback
-        if (!item && (!selectedItems || selectedItems.length === 0) && treeView.selection.length === 0) {
+        if (!item && (!selectedItems || selectedItems.length === 0) && filesView.selection.length === 0) {
           vscode.window.setStatusBarMessage('Nothing selected. Copied entire stack.', 3000)
         }
       } catch (error) {
@@ -53,7 +53,7 @@ export function registerCopyFileCommand(
     },
   )
 
-  context.subscriptions.push(command)
+  extensionContext.subscriptions.push(command)
 }
 
 function resolveTargetFiles(

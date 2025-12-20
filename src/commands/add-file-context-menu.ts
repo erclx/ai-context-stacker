@@ -5,14 +5,14 @@ import { categorizeTargets, handleFolderScanning } from '../utils/file-scanner'
 
 /**
  * Registers command to add files from Context Menu or Command Palette.
- * @param context Extension context for subscription management
- * @param provider The tree data provider managing the stack state
- * @param ignoreProvider Provider for filtering files against ignore patterns
+ * @param extensionContext Extension context for subscription management
+ * @param contextStackProvider The tree data provider managing the stack state
+ * @param ignorePatternProvider Provider for filtering files against ignore patterns
  */
 export function registerAddFileContextMenuCommand(
-  context: vscode.ExtensionContext,
-  provider: ContextStackProvider,
-  ignoreProvider: IgnorePatternProvider,
+  extensionContext: vscode.ExtensionContext,
+  contextStackProvider: ContextStackProvider,
+  ignorePatternProvider: IgnorePatternProvider,
 ): void {
   const command = vscode.commands.registerCommand(
     'aiContextStacker.addFileToStack',
@@ -26,18 +26,18 @@ export function registerAddFileContextMenuCommand(
       const { files, folders } = await categorizeTargets(targets)
 
       if (files.length > 0) {
-        provider.addFiles(files)
+        contextStackProvider.addFiles(files)
       }
 
       if (folders.length > 0) {
-        await handleFolderScanning(folders, provider, ignoreProvider)
+        await handleFolderScanning(folders, contextStackProvider, ignorePatternProvider)
       } else if (files.length > 0) {
         vscode.window.setStatusBarMessage(`Added ${files.length} files.`, 2000)
       }
     },
   )
 
-  context.subscriptions.push(command)
+  extensionContext.subscriptions.push(command)
 }
 
 /**

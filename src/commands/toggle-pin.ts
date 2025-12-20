@@ -7,9 +7,9 @@ import { ContextTrackManager } from '../providers'
  * Toggles the pinned state of one or more staged files.
  */
 export function registerTogglePinCommand(
-  context: vscode.ExtensionContext,
-  trackManager: ContextTrackManager,
-  treeView: vscode.TreeView<StagedFile>,
+  contextStackProvider: vscode.ExtensionContext,
+  contextTrackManager: ContextTrackManager,
+  filesView: vscode.TreeView<StagedFile>,
 ): void {
   const command = vscode.commands.registerCommand(
     'aiContextStacker.togglePin',
@@ -25,15 +25,15 @@ export function registerTogglePinCommand(
         targets = [item]
       }
       // 3. Keybinding / Command Palette (Use active selection)
-      else if (treeView.selection.length > 0) {
-        targets = [...treeView.selection]
+      else if (filesView.selection.length > 0) {
+        targets = [...filesView.selection]
       }
 
       if (targets.length === 0) return
 
-      trackManager.toggleFilesPin(targets)
+      contextTrackManager.toggleFilesPin(targets)
     },
   )
 
-  context.subscriptions.push(command)
+  contextStackProvider.subscriptions.push(command)
 }

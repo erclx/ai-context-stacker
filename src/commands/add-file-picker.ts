@@ -13,12 +13,12 @@ interface FileQuickPickItem extends vscode.QuickPickItem {
  * Registers the command that allows the user to pick files from the workspace
  * to add to the stack, excluding already staged files and ignored files.
  *
- * @param context The extension context.
+ * @param extensionContext The extension context.
  * @param contextStackProvider The provider managing the staged files.
  * @param ignorePatternProvider The provider handling file exclusion patterns.
  */
 export function registerAddFilePickerCommand(
-  context: vscode.ExtensionContext,
+  extensionContext: vscode.ExtensionContext,
   contextStackProvider: ContextStackProvider,
   ignorePatternProvider: IgnorePatternProvider,
 ): void {
@@ -42,27 +42,27 @@ export function registerAddFilePickerCommand(
     }
   })
 
-  context.subscriptions.push(command)
+  extensionContext.subscriptions.push(command)
 }
 
 /**
  * Helper: Finds all workspace files that are not currently in the stack,
  * respecting the ignore patterns.
  *
- * @param provider The current file stack provider.
- * @param ignoreProvider The provider for exclusion patterns.
+ * @param contextStackProvider The current file stack provider.
+ * @param ignorePatternProvider The provider for exclusion patterns.
  * @returns A promise resolving to an array of URIs that can be staged.
  */
 async function findUnstagedFiles(
-  provider: ContextStackProvider,
-  ignoreProvider: IgnorePatternProvider,
+  contextStackProvider: ContextStackProvider,
+  ignorePatternProvider: IgnorePatternProvider,
 ): Promise<vscode.Uri[]> {
-  const stagedFiles = provider.getFiles()
+  const stagedFiles = contextStackProvider.getFiles()
   // Use a Set for O(1) lookups to check if a file is already staged
   const stagedFileIds = new Set(stagedFiles.map((f) => f.uri.toString()))
 
   // Get combined exclusion patterns (.gitignore + defaults)
-  const excludePatterns = await ignoreProvider.getExcludePatterns()
+  const excludePatterns = await ignorePatternProvider.getExcludePatterns()
   // Find all files in the workspace, respecting exclusion patterns
   const allFiles = await vscode.workspace.findFiles('**/*', excludePatterns)
 

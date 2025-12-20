@@ -5,9 +5,12 @@ import { ContextStackProvider } from '../providers'
 /**
  * Registers the command to clear files, respecting pinned items.
  */
-export function registerClearAllCommand(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
+export function registerClearAllCommand(
+  extensionContext: vscode.ExtensionContext,
+  contextStackProvider: ContextStackProvider,
+): void {
   const command = vscode.commands.registerCommand('aiContextStacker.clearAll', async () => {
-    const files = provider.getFiles()
+    const files = contextStackProvider.getFiles()
     if (files.length === 0) {
       vscode.window.showInformationMessage('Context stack is already empty')
       return
@@ -29,10 +32,10 @@ export function registerClearAllCommand(context: vscode.ExtensionContext, provid
     const answer = await vscode.window.showWarningMessage(message, { modal: true }, 'Confirm')
 
     if (answer === 'Confirm') {
-      provider.clear()
+      contextStackProvider.clear()
       vscode.window.showInformationMessage('Context stack cleared')
     }
   })
 
-  context.subscriptions.push(command)
+  extensionContext.subscriptions.push(command)
 }

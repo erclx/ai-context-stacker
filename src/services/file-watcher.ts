@@ -18,7 +18,7 @@ export class FileWatcherService implements vscode.Disposable {
   private pendingRenames = new Map<string, PendingRename>()
   private readonly RENAME_WINDOW_MS = 300
 
-  constructor(private trackManager: ContextTrackManager) {
+  constructor(private contextTrackManager: ContextTrackManager) {
     // Watch everything; filtering happens in the handler for performance
     this.watcher = vscode.workspace.createFileSystemWatcher('**/*')
 
@@ -32,7 +32,7 @@ export class FileWatcherService implements vscode.Disposable {
    */
   private onDelete(uri: vscode.Uri): void {
     // Optimization: Ignore events for files not in any track
-    if (!this.trackManager.hasUri(uri)) return
+    if (!this.contextTrackManager.hasUri(uri)) return
 
     const key = this.getFileKey(uri)
 
@@ -61,14 +61,14 @@ export class FileWatcherService implements vscode.Disposable {
       clearTimeout(pending.timer)
       this.pendingRenames.delete(key)
 
-      this.trackManager.replaceUri(pending.oldUri, newUri)
+      this.contextTrackManager.replaceUri(pending.oldUri, newUri)
       Logger.info(`Auto-updated renamed file: ${pending.oldUri.fsPath} -> ${newUri.fsPath}`)
     }
   }
 
   private commitDelete(uri: vscode.Uri, key: string): void {
     this.pendingRenames.delete(key)
-    this.trackManager.removeUriEverywhere(uri)
+    this.contextTrackManager.removeUriEverywhere(uri)
     Logger.info(`Auto-removed deleted file: ${uri.fsPath}`)
   }
 

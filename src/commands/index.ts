@@ -15,30 +15,30 @@ import { registerTogglePinCommand } from './toggle-pin'
 import { registerTrackCommands } from './track-ops'
 
 interface Providers {
-  context: vscode.ExtensionContext
+  extensionContext: vscode.ExtensionContext
   contextStackProvider: ContextStackProvider
   ignorePatternProvider: IgnorePatternProvider
   filesView: vscode.TreeView<StagedFile>
-  trackManager: ContextTrackManager
+  contextTrackManager: ContextTrackManager
   tracksView: vscode.TreeView<ContextTrack>
 }
 
 export function registerAllCommands(deps: Providers) {
   // File Operations
-  registerAddFileCommand(deps.context, deps.contextStackProvider)
-  registerAddFileContextMenuCommand(deps.context, deps.contextStackProvider, deps.ignorePatternProvider)
-  registerAddFilePickerCommand(deps.context, deps.contextStackProvider, deps.ignorePatternProvider)
-  registerAddOpenFilesCommand(deps.context, deps.contextStackProvider)
+  registerAddFileCommand(deps.extensionContext, deps.contextStackProvider)
+  registerAddFileContextMenuCommand(deps.extensionContext, deps.contextStackProvider, deps.ignorePatternProvider)
+  registerAddFilePickerCommand(deps.extensionContext, deps.contextStackProvider, deps.ignorePatternProvider)
+  registerAddOpenFilesCommand(deps.extensionContext, deps.contextStackProvider)
 
-  registerTogglePinCommand(deps.context, deps.trackManager, deps.filesView)
+  registerTogglePinCommand(deps.extensionContext, deps.contextTrackManager, deps.filesView)
 
-  registerPreviewContextCommand(deps.context, deps.contextStackProvider)
+  registerPreviewContextCommand(deps.extensionContext, deps.contextStackProvider)
 
-  registerClearAllCommand(deps.context, deps.contextStackProvider)
-  registerCopyAllCommand(deps.context, deps.contextStackProvider)
-  registerCopyFileCommand(deps.context, deps.contextStackProvider, deps.filesView)
-  registerRemoveFileCommand(deps.context, deps.contextStackProvider, deps.filesView)
+  registerClearAllCommand(deps.extensionContext, deps.contextStackProvider)
+  registerCopyAllCommand(deps.extensionContext, deps.contextStackProvider)
+  registerCopyFileCommand(deps.extensionContext, deps.contextStackProvider, deps.filesView)
+  registerRemoveFileCommand(deps.extensionContext, deps.contextStackProvider, deps.filesView)
 
   // Track Operations
-  registerTrackCommands(deps.context, deps.trackManager, deps.tracksView)
+  registerTrackCommands(deps.extensionContext, deps.contextTrackManager, deps.tracksView)
 }

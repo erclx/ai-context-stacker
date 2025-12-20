@@ -6,10 +6,13 @@ import { Logger } from '../utils'
 /**
  * Registers the command to add all currently open, visible text files to the stack.
  *
- * @param context The extension context.
- * @param provider The ContextStackProvider instance.
+ * @param extensionContext The extension context.
+ * @param contextStackProvider The ContextStackProvider instance.
  */
-export function registerAddOpenFilesCommand(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
+export function registerAddOpenFilesCommand(
+  extensionContext: vscode.ExtensionContext,
+  contextStackProvider: ContextStackProvider,
+): void {
   const command = vscode.commands.registerCommand('aiContextStacker.addOpenFiles', () => {
     const uris: vscode.Uri[] = []
 
@@ -28,11 +31,11 @@ export function registerAddOpenFilesCommand(context: vscode.ExtensionContext, pr
       return
     }
 
-    provider.addFiles(uris)
+    contextStackProvider.addFiles(uris)
 
     Logger.info(`Added ${uris.length} open files to stack.`)
     vscode.window.showInformationMessage(`Added ${uris.length} open files to stack!`)
   })
 
-  context.subscriptions.push(command)
+  extensionContext.subscriptions.push(command)
 }

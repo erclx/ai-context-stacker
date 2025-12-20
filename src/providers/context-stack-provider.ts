@@ -30,7 +30,7 @@ export class ContextStackProvider
   private disposables: vscode.Disposable[] = []
 
   constructor(
-    private context: vscode.ExtensionContext,
+    private extensionContext: vscode.ExtensionContext,
     private ignorePatternProvider: IgnorePatternProvider,
     private trackManager: ContextTrackManager,
   ) {

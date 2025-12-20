@@ -6,10 +6,13 @@ import { PreviewWebview } from '../ui/preview-webview'
 /**
  * Opens a Webview Panel displaying the formatted context stack.
  */
-export function registerPreviewContextCommand(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
+export function registerPreviewContextCommand(
+  extensionContext: vscode.ExtensionContext,
+  contextStackProvider: ContextStackProvider,
+): void {
   const command = vscode.commands.registerCommand('aiContextStacker.previewContext', () => {
-    PreviewWebview.createOrShow(context.extensionUri, provider)
+    PreviewWebview.createOrShow(extensionContext.extensionUri, contextStackProvider)
   })
 
-  context.subscriptions.push(command)
+  extensionContext.subscriptions.push(command)
 }

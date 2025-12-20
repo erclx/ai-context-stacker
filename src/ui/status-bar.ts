@@ -11,8 +11,8 @@ export class StackerStatusBar implements vscode.Disposable {
   private provider: ContextStackProvider
   private _disposables: vscode.Disposable[] = []
 
-  constructor(context: vscode.ExtensionContext, provider: ContextStackProvider) {
-    this.provider = provider
+  constructor(extensionContext: vscode.ExtensionContext, contextStackProvider: ContextStackProvider) {
+    this.provider = contextStackProvider
 
     // Priority 100 ensures it stays near the right side
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
@@ -21,10 +21,10 @@ export class StackerStatusBar implements vscode.Disposable {
     this.item.command = 'aiContextStacker.copyAll'
     this.item.tooltip = 'Click to Copy Stack to Clipboard'
 
-    const changeListener = provider.onDidChangeTreeData(() => this.update())
+    const changeListener = contextStackProvider.onDidChangeTreeData(() => this.update())
 
     this._disposables.push(this.item, changeListener)
-    context.subscriptions.push(this.item)
+    extensionContext.subscriptions.push(this.item)
 
     this.update()
   }

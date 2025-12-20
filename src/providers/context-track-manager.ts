@@ -19,7 +19,7 @@ export class ContextTrackManager implements vscode.Disposable {
   private _onDidChangeTrack = new vscode.EventEmitter<ContextTrack>()
   readonly onDidChangeTrack = this._onDidChangeTrack.event
 
-  constructor(private context: vscode.ExtensionContext) {
+  constructor(private extensionContext: vscode.ExtensionContext) {
     this.loadState()
   }
 
@@ -190,11 +190,11 @@ export class ContextTrackManager implements vscode.Disposable {
       }
     })
 
-    this.context.workspaceState.update(ContextTrackManager.STORAGE_KEY, state)
+    this.extensionContext.workspaceState.update(ContextTrackManager.STORAGE_KEY, state)
   }
 
   private loadState(): void {
-    const state = this.context.workspaceState.get<SerializedState>(ContextTrackManager.STORAGE_KEY)
+    const state = this.extensionContext.workspaceState.get<SerializedState>(ContextTrackManager.STORAGE_KEY)
 
     if (!state || !state.tracks) {
       this.createDefaultTrack()

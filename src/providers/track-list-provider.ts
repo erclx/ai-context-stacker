@@ -14,9 +14,9 @@ export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>,
   private disposable: vscode.Disposable
   private stackProvider?: ContextStackProvider
 
-  constructor(private trackManager: ContextTrackManager) {
+  constructor(private contextTrackManager: ContextTrackManager) {
     // Listen for any track changes (renames, switches, deletions) to refresh the list
-    this.disposable = this.trackManager.onDidChangeTrack(() => {
+    this.disposable = this.contextTrackManager.onDidChangeTrack(() => {
       this.refresh()
     })
   }
@@ -35,7 +35,7 @@ export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>,
   }
 
   getTreeItem(element: ContextTrack): vscode.TreeItem {
-    const isActive = element.id === this.trackManager.getActiveTrack().id
+    const isActive = element.id === this.contextTrackManager.getActiveTrack().id
     const item = new vscode.TreeItem(element.name)
 
     item.contextValue = 'contextTrack'
@@ -64,7 +64,7 @@ export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>,
   getChildren(element?: ContextTrack): ContextTrack[] {
     // Flattened list; no nesting
     if (element) return []
-    return this.trackManager.allTracks
+    return this.contextTrackManager.allTracks
   }
 
   dispose() {

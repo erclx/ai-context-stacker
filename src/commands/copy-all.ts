@@ -7,12 +7,15 @@ import { ContentFormatter, Logger, TokenEstimator } from '../utils'
  * Registers the command to copy the entire context stack to the clipboard.
  * This is the main action triggered by the status bar item.
  *
- * @param context The extension context.
- * @param provider The ContextStackProvider instance.
+ * @param extensionContext The extension context.
+ * @param contextStackProvider The ContextStackProvider instance.
  */
-export function registerCopyAllCommand(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
+export function registerCopyAllCommand(
+  extensionContext: vscode.ExtensionContext,
+  contextStackProvider: ContextStackProvider,
+): void {
   const command = vscode.commands.registerCommand('aiContextStacker.copyAll', async () => {
-    const files = provider.getFiles()
+    const files = contextStackProvider.getFiles()
 
     if (files.length === 0) {
       vscode.window.showInformationMessage('Context stack is empty. Add files first.')
@@ -44,5 +47,5 @@ export function registerCopyAllCommand(context: vscode.ExtensionContext, provide
     )
   })
 
-  context.subscriptions.push(command)
+  extensionContext.subscriptions.push(command)
 }

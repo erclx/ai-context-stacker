@@ -6,14 +6,14 @@ import { ContextStackProvider } from '../providers'
 /**
  * Registers the command to remove one or more selected files from the context stack.
  *
- * @param context The extension context.
- * @param provider The ContextStackProvider instance.
- * @param treeView The TreeView instance to check for current selections.
+ * @param extensionContext The extension context.
+ * @param contextStackProvider The ContextStackProvider instance.
+ * @param filesView The TreeView instance to check for current selections.
  */
 export function registerRemoveFileCommand(
-  context: vscode.ExtensionContext,
-  provider: ContextStackProvider,
-  treeView: vscode.TreeView<StagedFile>,
+  extensionContext: vscode.ExtensionContext,
+  contextStackProvider: ContextStackProvider,
+  filesView: vscode.TreeView<StagedFile>,
 ): void {
   const command = vscode.commands.registerCommand(
     'aiContextStacker.removeFile',
@@ -31,7 +31,7 @@ export function registerRemoveFileCommand(
       }
       // 3. Fallback: TreeView Selection
       else {
-        filesToRemove = [...treeView.selection]
+        filesToRemove = [...filesView.selection]
       }
 
       if (filesToRemove.length === 0) {
@@ -40,7 +40,7 @@ export function registerRemoveFileCommand(
         return
       }
 
-      provider.removeFiles(filesToRemove)
+      contextStackProvider.removeFiles(filesToRemove)
 
       // Feedback for batch operations
       if (filesToRemove.length > 1) {
@@ -49,5 +49,5 @@ export function registerRemoveFileCommand(
     },
   )
 
-  context.subscriptions.push(command)
+  extensionContext.subscriptions.push(command)
 }

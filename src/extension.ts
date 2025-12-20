@@ -12,14 +12,14 @@ export function activate(context: vscode.ExtensionContext) {
   Logger.info('Extension is activating...')
 
   const ignorePatternProvider = new IgnorePatternProvider()
-  const trackManager = new ContextTrackManager(context)
+  const contextTrackManager = new ContextTrackManager(context)
 
   // Initialize File Watcher
-  const fileWatcher = new FileWatcherService(trackManager)
+  const fileWatcher = new FileWatcherService(contextTrackManager)
 
   // -- Providers --
-  const contextStackProvider = new ContextStackProvider(context, ignorePatternProvider, trackManager)
-  const trackListProvider = new TrackListProvider(trackManager)
+  const contextStackProvider = new ContextStackProvider(context, ignorePatternProvider, contextTrackManager)
+  const trackListProvider = new TrackListProvider(contextTrackManager)
 
   // Link providers for token stats display
   trackListProvider.setStackProvider(contextStackProvider)
@@ -37,8 +37,8 @@ export function activate(context: vscode.ExtensionContext) {
   })
 
   // Dynamic Title Updates
-  updateTitle(filesView, trackManager.getActiveTrack().name)
-  trackManager.onDidChangeTrack((track) => {
+  updateTitle(filesView, contextTrackManager.getActiveTrack().name)
+  contextTrackManager.onDidChangeTrack((track) => {
     updateTitle(filesView, track.name)
   })
 
@@ -60,17 +60,17 @@ export function activate(context: vscode.ExtensionContext) {
     contextStackProvider,
     trackListProvider,
     ignorePatternProvider,
-    trackManager,
+    contextTrackManager,
     statusBar,
     fileWatcher,
   )
 
   registerAllCommands({
-    context,
+    extensionContext: context,
     contextStackProvider,
     ignorePatternProvider,
     filesView,
-    trackManager,
+    contextTrackManager,
     tracksView,
   })
 
