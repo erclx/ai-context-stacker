@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { StagedFile } from '../models'
+import { ContextTrack, StagedFile } from '../models'
 import { ContextStackProvider, ContextTrackManager, IgnorePatternProvider } from '../providers'
 import { registerAddFileCommand } from './add-file'
 import { registerAddFileContextMenuCommand } from './add-file-context-menu'
@@ -16,8 +16,9 @@ interface Providers {
   context: vscode.ExtensionContext
   contextStackProvider: ContextStackProvider
   ignorePatternProvider: IgnorePatternProvider
-  treeView: vscode.TreeView<StagedFile>
+  filesView: vscode.TreeView<StagedFile>
   trackManager: ContextTrackManager
+  tracksView: vscode.TreeView<ContextTrack>
 }
 
 export function registerAllCommands(deps: Providers) {
@@ -29,9 +30,9 @@ export function registerAllCommands(deps: Providers) {
 
   registerClearAllCommand(deps.context, deps.contextStackProvider)
   registerCopyAllCommand(deps.context, deps.contextStackProvider)
-  registerCopyFileCommand(deps.context, deps.contextStackProvider, deps.treeView)
-  registerRemoveFileCommand(deps.context, deps.contextStackProvider, deps.treeView)
+  registerCopyFileCommand(deps.context, deps.contextStackProvider, deps.filesView)
+  registerRemoveFileCommand(deps.context, deps.contextStackProvider, deps.filesView)
 
   // Track Operations (New)
-  registerTrackCommands(deps.context, deps.trackManager)
+  registerTrackCommands(deps.context, deps.trackManager, deps.tracksView)
 }

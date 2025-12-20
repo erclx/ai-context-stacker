@@ -60,10 +60,11 @@ export class ContextTrackManager implements vscode.Disposable {
       return
     }
 
+    const wasActive = this.activeTrackId === id
     this.tracks.delete(id)
 
     // 2. If we deleted the active track, switch to the first available one
-    if (this.activeTrackId === id) {
+    if (wasActive) {
       const nextId = this.tracks.keys().next().value
 
       // FIX: Explicit check to satisfy TypeScript strictness
@@ -74,7 +75,9 @@ export class ContextTrackManager implements vscode.Disposable {
         this.createDefaultTrack()
       }
     } else {
+      // 3. If we deleted an inactive track, we still need to persist and notify listeners (UI Update)
       this.persistState()
+      this._onDidChangeTrack.fire(this.getActiveTrack())
     }
   }
 

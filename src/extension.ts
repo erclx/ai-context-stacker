@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 
 import { registerAllCommands } from './commands'
 import { ContextStackProvider, ContextTrackManager, IgnorePatternProvider } from './providers'
+import { TrackListProvider } from './providers/track-list-provider'
 import { FileWatcherService } from './services'
 import { StackerStatusBar } from './ui'
 import { Logger } from './utils'
@@ -16,26 +17,39 @@ export function activate(context: vscode.ExtensionContext) {
   // Initialize File Watcher
   const fileWatcher = new FileWatcherService(trackManager)
 
+  // -- Providers --
   const contextStackProvider = new ContextStackProvider(context, ignorePatternProvider, trackManager)
+  const trackListProvider = new TrackListProvider(trackManager)
 
-  const treeView = vscode.window.createTreeView('aiContextStackerView', {
+  // Link providers for token stats display
+  trackListProvider.setStackProvider(contextStackProvider)
+
+  // -- Views --
+  const filesView = vscode.window.createTreeView('aiContextStackerView', {
     treeDataProvider: contextStackProvider,
     dragAndDropController: contextStackProvider,
     canSelectMany: true,
   })
 
+  const tracksView = vscode.window.createTreeView('aiContextTracksView', {
+    treeDataProvider: trackListProvider,
+    canSelectMany: false,
+  })
+
   // Dynamic Title Updates
-  updateTitle(treeView, trackManager.getActiveTrack().name)
+  updateTitle(filesView, trackManager.getActiveTrack().name)
   trackManager.onDidChangeTrack((track) => {
-    updateTitle(treeView, track.name)
+    updateTitle(filesView, track.name)
   })
 
   const statusBar = new StackerStatusBar(context, contextStackProvider)
 
-  // Add all disposables (including the new watcher)
+  // Add all disposables
   context.subscriptions.push(
-    treeView,
+    filesView,
+    tracksView,
     contextStackProvider,
+    trackListProvider,
     ignorePatternProvider,
     trackManager,
     statusBar,
@@ -46,8 +60,9 @@ export function activate(context: vscode.ExtensionContext) {
     context,
     contextStackProvider,
     ignorePatternProvider,
-    treeView,
+    filesView,
     trackManager,
+    tracksView,
   })
 
   Logger.info('Extension is activated')
