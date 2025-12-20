@@ -1,11 +1,12 @@
 import * as vscode from 'vscode'
 
-import { isStagedFolder, StackTreeItem, type StagedFile } from '../models'
+import { StackTreeItem } from '../models'
 import { ContextStackProvider } from '../providers'
-import { ContentFormatter, Logger, TokenEstimator } from '../utils'
+import { ContentFormatter, Logger, SelectionResolver, TokenEstimator } from '../utils'
 
 /**
- * Registers the command to copy selected (or all) staged files.
+ * Command: aiContextStacker.copyFile
+ * Copies selected files (or all files) to clipboard with markdown formatting.
  */
 export function registerCopyFileCommand(
   extensionContext: vscode.ExtensionContext,
@@ -15,86 +16,56 @@ export function registerCopyFileCommand(
   const command = vscode.commands.registerCommand(
     'aiContextStacker.copyFile',
     async (item?: StackTreeItem, selectedItems?: StackTreeItem[]) => {
-      const filesToCopy = resolveTargetFiles(item, selectedItems, filesView, contextStackProvider)
+      // 1. Resolve Targets
+      const filesToCopy = SelectionResolver.resolve(item, selectedItems, filesView, contextStackProvider)
 
       if (filesToCopy.length === 0) {
         vscode.window.showInformationMessage('Context stack is empty.')
         return
       }
 
-      try {
-        const formattedContent = await ContentFormatter.format(filesToCopy)
+      // 2. Execute with Progress Feedback
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'Copying files...',
+          cancellable: false,
+        },
+        async () => {
+          try {
+            // 3. Format Content
+            const formattedContent = await ContentFormatter.format(filesToCopy)
 
-        if (!formattedContent) {
-          vscode.window.showWarningMessage('Selected content is empty or binary.')
-          return
-        }
+            if (!formattedContent) {
+              vscode.window.showWarningMessage('Selected content is empty or binary.')
+              return
+            }
 
-        await vscode.env.clipboard.writeText(formattedContent)
+            // 4. Write to Clipboard
+            await vscode.env.clipboard.writeText(formattedContent)
 
-        const stats = TokenEstimator.measure(formattedContent)
-        const label = getFeedbackLabel(filesToCopy, contextStackProvider.getFiles().length)
+            // 5. Notify User
+            const stats = TokenEstimator.measure(formattedContent)
+            const label = SelectionResolver.getFeedbackLabel(filesToCopy, contextStackProvider.getFiles().length)
 
-        Logger.info(`Copied: ${label}`)
-        vscode.window.showInformationMessage(`Copied ${label}! (${TokenEstimator.format(stats)})`)
+            Logger.info(`Copied: ${label}`)
+            vscode.window.showInformationMessage(`Copied ${label}! (${TokenEstimator.format(stats)})`)
 
-        // Feedback when implicitly copying everything
-        if (!item && (!selectedItems || selectedItems.length === 0) && filesView.selection.length === 0) {
-          vscode.window.setStatusBarMessage('Nothing selected. Copied entire stack.', 3000)
-        }
-      } catch (error) {
-        Logger.error('Copy failed', error)
-        vscode.window.showErrorMessage('Failed to copy files.')
-      }
+            // Implicit selection feedback (Status Bar)
+            const isImplicit =
+              !item && (!selectedItems || selectedItems.length === 0) && filesView.selection.length === 0
+
+            if (isImplicit) {
+              vscode.window.setStatusBarMessage('Nothing selected. Copied entire stack.', 3000)
+            }
+          } catch (error) {
+            Logger.error('Copy failed', error)
+            vscode.window.showErrorMessage('Failed to copy files.')
+          }
+        },
+      )
     },
   )
 
   extensionContext.subscriptions.push(command)
-}
-
-/**
- * Resolves selection logic, unpacking Folders into their leaf StagedFiles.
- */
-function resolveTargetFiles(
-  clickedItem: StackTreeItem | undefined,
-  multiSelect: StackTreeItem[] | undefined,
-  treeView: vscode.TreeView<StackTreeItem>,
-  provider: ContextStackProvider,
-): StagedFile[] {
-  let rawSelection: StackTreeItem[] = []
-
-  if (multiSelect && multiSelect.length > 0) {
-    rawSelection = multiSelect
-  } else if (clickedItem) {
-    rawSelection = [clickedItem]
-  } else if (treeView.selection.length > 0) {
-    rawSelection = [...treeView.selection]
-  } else {
-    // No selection = All files
-    return provider.getFiles()
-  }
-
-  // Flatten recursive structure
-  const distinctFiles = new Map<string, StagedFile>()
-
-  const collect = (item: StackTreeItem) => {
-    if (isStagedFolder(item)) {
-      item.containedFiles.forEach((f) => distinctFiles.set(f.uri.toString(), f))
-    } else {
-      distinctFiles.set(item.uri.toString(), item)
-    }
-  }
-
-  rawSelection.forEach(collect)
-  return Array.from(distinctFiles.values())
-}
-
-function getFeedbackLabel(files: StagedFile[], totalStagedCount: number): string {
-  if (files.length === totalStagedCount && files.length > 1) {
-    return 'All Staged Files'
-  }
-  if (files.length === 1) {
-    return files[0].label
-  }
-  return `${files.length} Files`
 }
