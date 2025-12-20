@@ -1,40 +1,43 @@
 import * as vscode from 'vscode'
 
 import { ContextStackProvider } from '../providers'
-import { ContentFormatter, Logger, TokenEstimator } from '../utils'
+import { ClipboardOps, ErrorHandler } from '../utils'
 
+/**
+ * Command: aiContextStacker.copyAll
+ * Copies all staged files in the current stack to the clipboard.
+ */
 export function registerCopyAllCommand(
   extensionContext: vscode.ExtensionContext,
   contextStackProvider: ContextStackProvider,
 ): void {
-  const command = vscode.commands.registerCommand('aiContextStacker.copyAll', async () => {
-    const files = contextStackProvider.getFiles()
-
-    if (files.length === 0) {
-      vscode.window.showInformationMessage('Context stack is empty. Add files first.')
-      return
-    }
-
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: 'Building AI Context...',
-        cancellable: false,
-      },
-      async () => {
-        const startTime = Date.now()
-
-        const formattedContent = await ContentFormatter.format(files)
-        await vscode.env.clipboard.writeText(formattedContent)
-
-        const duration = Date.now() - startTime
-        const stats = TokenEstimator.measure(formattedContent)
-
-        Logger.info(`Copied ${files.length} files. Stats: ${stats.tokenCount} tokens, ${duration}ms`)
-        vscode.window.showInformationMessage(`Copied ${files.length} files! (${TokenEstimator.format(stats)})`)
-      },
-    )
-  })
+  const command = vscode.commands.registerCommand(
+    'aiContextStacker.copyAll',
+    ErrorHandler.safeExecute('Copy All Files', async () => {
+      await handleCopyAll(contextStackProvider)
+    }),
+  )
 
   extensionContext.subscriptions.push(command)
+}
+
+async function handleCopyAll(provider: ContextStackProvider): Promise<void> {
+  const files = provider.getFiles()
+
+  if (files.length === 0) {
+    vscode.window.showInformationMessage('Context stack is empty. Add files first.')
+    return
+  }
+
+  // Use the shared ClipboardOps utility for consistent behavior
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'Building AI Context...',
+      cancellable: false,
+    },
+    async () => {
+      await ClipboardOps.copy(files, `${files.length} files`)
+    },
+  )
 }
