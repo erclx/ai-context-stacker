@@ -9,31 +9,32 @@ import { Logger } from './logger'
 export class ErrorHandler {
   /**
    * Wraps an async command function with a standard try-catch block.
-   * - Logs errors automatically.
-   * - Shows a user-friendly error message.
-   * - Ignores "Canceled" errors (e.g., user closing a QuickPick).
+   * @param commandName - Identifier for the command being executed
+   * @param action - The async operation to execute
    */
   public static safeExecute<T>(commandName: string, action: () => Promise<T>): () => Promise<T | void> {
     return async () => {
       try {
         return await action()
-      } catch (error: any) {
-        if (error instanceof vscode.CancellationError) {
-          Logger.info(`Command canceled: ${commandName}`)
-          return
-        }
-
-        const message = error.message || 'Unknown error occurred'
-        Logger.error(`Command failed: ${commandName}`, error, true)
+      } catch (error: unknown) {
+        this._handleError(commandName, error)
       }
     }
   }
 
   /**
-   * Helper to handle errors in "fire-and-forget" scenarios (e.g., event listeners).
+   * Helper to handle errors in "fire-and-forget" scenarios.
    */
-  public static handle(error: unknown, context: string) {
-    if (error instanceof vscode.CancellationError) return
-    Logger.error(`Error in ${context}`, error, true)
+  public static handle(error: unknown, context: string): void {
+    this._handleError(context, error)
+  }
+
+  private static _handleError(context: string, error: unknown): void {
+    if (error instanceof vscode.CancellationError) {
+      Logger.info(`Command canceled: ${context}`)
+      return
+    }
+
+    Logger.error(`Command failed: ${context}`, error, true)
   }
 }
