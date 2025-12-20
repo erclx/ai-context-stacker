@@ -3,26 +3,30 @@ import * as vscode from 'vscode'
 import { ContextStackProvider } from '../providers'
 
 /**
- * Registers the command to clear all files from the context stack, prompting for confirmation.
- *
- * @param context The extension context.
- * @param provider The ContextStackProvider instance.
+ * Registers the command to clear files, respecting pinned items.
  */
 export function registerClearAllCommand(context: vscode.ExtensionContext, provider: ContextStackProvider): void {
   const command = vscode.commands.registerCommand('aiContextStacker.clearAll', async () => {
     const files = provider.getFiles()
-
     if (files.length === 0) {
       vscode.window.showInformationMessage('Context stack is already empty')
       return
     }
 
-    // Use a modal warning to ensure the user confirms the destructive action
-    const answer = await vscode.window.showWarningMessage(
-      `Clear all ${files.length} file(s) from context stack?`,
-      { modal: true },
-      'Confirm',
-    )
+    const unpinnedCount = files.filter((f) => !f.isPinned).length
+    const pinnedCount = files.length - unpinnedCount
+
+    if (unpinnedCount === 0) {
+      vscode.window.showInformationMessage('All files are pinned. Unpin them to clear.')
+      return
+    }
+
+    const message =
+      pinnedCount > 0
+        ? `Clear ${unpinnedCount} unpinned file(s)? (${pinnedCount} pinned files will remain)`
+        : `Clear all ${files.length} file(s) from context stack?`
+
+    const answer = await vscode.window.showWarningMessage(message, { modal: true }, 'Confirm')
 
     if (answer === 'Confirm') {
       provider.clear()

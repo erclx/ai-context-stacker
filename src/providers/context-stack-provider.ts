@@ -25,7 +25,6 @@ export class ContextStackProvider
   private readonly HIGH_TOKEN_THRESHOLD = 5000
   private readonly DEBOUNCE_MS = 400
 
-  // Tracks filenames that appear >1 time to trigger smart labeling
   private nameCollisions = new Set<string>()
   private pendingUpdates = new Map<string, NodeJS.Timeout>()
   private disposables: vscode.Disposable[] = []
@@ -45,29 +44,22 @@ export class ContextStackProvider
     this.refreshState()
   }
 
-  /**
-   * Handles live document updates with debouncing to prevent excessive calculation.
-   */
   private handleDocChange(doc: vscode.TextDocument, immediate = false) {
-    // 1. Filter: Only process files currently in the active track
     const activeFiles = this.trackManager.getActiveTrack().files
     const targetFile = activeFiles.find((f) => f.uri.toString() === doc.uri.toString())
 
     if (!targetFile) return
 
-    // 2. Clear existing debounce timer for this file
     const key = doc.uri.toString()
     if (this.pendingUpdates.has(key)) {
       clearTimeout(this.pendingUpdates.get(key)!)
     }
 
-    // 3. Define the update logic
     const updateLogic = () => {
       this.updateFileStats(targetFile, doc.getText())
       this.pendingUpdates.delete(key)
     }
 
-    // 4. Execute immediately (on save) or debounce (on type)
     if (immediate) {
       updateLogic()
     } else {
@@ -76,9 +68,6 @@ export class ContextStackProvider
     }
   }
 
-  /**
-   * Updates stats in-memory and triggers a surgical tree update for a single node.
-   */
   private updateFileStats(file: StagedFile, content: string) {
     try {
       const measurements = TokenEstimator.measure(content)
@@ -86,16 +75,12 @@ export class ContextStackProvider
         tokenCount: measurements.tokenCount,
         charCount: content.length,
       }
-      // Fire with the specific element to update only that row
       this._onDidChangeTreeData.fire(file)
     } catch (error) {
       Logger.warn(`Failed to update live stats for ${file.label}`)
     }
   }
 
-  /**
-   * Centralized refresh: Recalculates collisions -> Fires View Update -> Enriches Stats.
-   */
   private refreshState(): void {
     const files = this.getFiles()
     this.calculateCollisions(files)
@@ -183,7 +168,6 @@ export class ContextStackProvider
     const item = new vscode.TreeItem(element.label)
     item.iconPath = new vscode.ThemeIcon('cloud-upload')
     item.contextValue = this.EMPTY_ID
-    // Actionable Empty State: Click to open file picker
     item.command = {
       command: 'aiContextStacker.addFilePicker',
       title: 'Add Files',
@@ -197,7 +181,8 @@ export class ContextStackProvider
     const item = new vscode.TreeItem(label)
 
     item.resourceUri = element.uri
-    item.contextValue = 'stagedFile'
+    // Allow distinguishing pinned files in package.json/menus
+    item.contextValue = element.isPinned ? 'stagedFile:pinned' : 'stagedFile'
     item.command = { command: 'vscode.open', title: 'Open File', arguments: [element.uri] }
 
     if (element.isBinary) {
@@ -206,16 +191,19 @@ export class ContextStackProvider
     }
 
     const tokenCount = element.stats?.tokenCount ?? 0
-    item.iconPath = new vscode.ThemeIcon('file', this.getIconColor(tokenCount))
+
+    // Priority Icon Logic: Pinned > Warning > Standard
+    if (element.isPinned) {
+      item.iconPath = new vscode.ThemeIcon('pin')
+    } else {
+      item.iconPath = new vscode.ThemeIcon('file', this.getIconColor(tokenCount))
+    }
+
     this.decorateStandardItem(item, element)
 
     return item
   }
 
-  /**
-   * Generates the label. If collision detected, appends (parentDir).
-   * Also appends dirty indicator '●'.
-   */
   private getSmartLabel(element: StagedFile): string {
     let label = element.label
 
@@ -247,13 +235,14 @@ export class ContextStackProvider
     if (element.stats) parts.push(`${this.formatTokenCount(element.stats.tokenCount)} tokens`)
     else parts.push('calculating...')
 
-    // Only show path in description if it wasn't added to the label via smart labeling
     if (folderPath && folderPath !== relativePath && !this.nameCollisions.has(element.label)) {
       parts.push(folderPath)
     }
 
+    if (element.isPinned) parts.push('(Pinned)')
+
     item.description = parts.join(' • ')
-    item.tooltip = `${element.uri.fsPath}\nTokens: ${element.stats?.tokenCount ?? '...'}`
+    item.tooltip = `${element.uri.fsPath}\nTokens: ${element.stats?.tokenCount ?? '...'}${element.isPinned ? '\n📌 Pinned' : ''}`
   }
 
   private getIconColor(tokenCount: number): vscode.ThemeColor | undefined {

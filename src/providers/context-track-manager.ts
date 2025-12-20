@@ -1,6 +1,12 @@
 import * as vscode from 'vscode'
 
-import { type ContextTrack, type SerializedState, type StagedFile } from '../models'
+import {
+  type ContextTrack,
+  type SerializedFile,
+  type SerializedState,
+  type SerializedTrack,
+  type StagedFile,
+} from '../models'
 
 /**
  * Manages multiple context tracks, handles persistence, and controls the active state.
@@ -25,9 +31,6 @@ export class ContextTrackManager implements vscode.Disposable {
     return Array.from(this.tracks.values())
   }
 
-  /**
-   * Switches the active context track.
-   */
   async switchToTrack(id: string): Promise<void> {
     if (!this.tracks.has(id)) return
     this.activeTrackId = id
@@ -40,7 +43,7 @@ export class ContextTrackManager implements vscode.Disposable {
     const newTrack: ContextTrack = { id, name, files: [] }
 
     this.tracks.set(id, newTrack)
-    this.switchToTrack(id) // Auto-switch to new track
+    this.switchToTrack(id)
     return id
   }
 
@@ -49,12 +52,11 @@ export class ContextTrackManager implements vscode.Disposable {
     if (track) {
       track.name = newName
       this.persistState()
-      this._onDidChangeTrack.fire(track) // Trigger refresh to update UI labels
+      this._onDidChangeTrack.fire(track)
     }
   }
 
   deleteTrack(id: string): void {
-    // 1. Prevent deleting the last track
     if (this.tracks.size <= 1) {
       vscode.window.showWarningMessage('Cannot delete the last remaining track.')
       return
@@ -63,28 +65,25 @@ export class ContextTrackManager implements vscode.Disposable {
     const wasActive = this.activeTrackId === id
     this.tracks.delete(id)
 
-    // 2. If we deleted the active track, switch to the first available one
     if (wasActive) {
       const nextId = this.tracks.keys().next().value
-
-      // FIX: Explicit check to satisfy TypeScript strictness
-      if (nextId) {
-        this.switchToTrack(nextId)
-      } else {
-        // Fallback (should be unreachable due to check #1)
-        this.createDefaultTrack()
-      }
+      if (nextId) this.switchToTrack(nextId)
+      else this.createDefaultTrack()
     } else {
-      // 3. If we deleted an inactive track, we still need to persist and notify listeners (UI Update)
       this.persistState()
       this._onDidChangeTrack.fire(this.getActiveTrack())
     }
   }
 
   /**
-   * Checks if a URI exists in ANY track.
-   * Used by the file watcher to determine if an event is relevant.
+   * Toggles the pinned state of a specific file.
    */
+  toggleFilePin(file: StagedFile): void {
+    file.isPinned = !file.isPinned
+    this.persistState()
+    this._onDidChangeTrack.fire(this.getActiveTrack())
+  }
+
   hasUri(uri: vscode.Uri): boolean {
     for (const track of this.tracks.values()) {
       if (track.files.some((f) => f.uri.toString() === uri.toString())) {
@@ -94,9 +93,6 @@ export class ContextTrackManager implements vscode.Disposable {
     return false
   }
 
-  /**
-   * Removes a file from ALL tracks (e.g., on deletion).
-   */
   removeUriEverywhere(uri: vscode.Uri): void {
     let changed = false
     const uriStr = uri.toString()
@@ -104,10 +100,7 @@ export class ContextTrackManager implements vscode.Disposable {
     for (const track of this.tracks.values()) {
       const initialLength = track.files.length
       track.files = track.files.filter((f) => f.uri.toString() !== uriStr)
-
-      if (track.files.length !== initialLength) {
-        changed = true
-      }
+      if (track.files.length !== initialLength) changed = true
     }
 
     if (changed) {
@@ -116,9 +109,6 @@ export class ContextTrackManager implements vscode.Disposable {
     }
   }
 
-  /**
-   * Updates a file's URI in ALL tracks (e.g., on rename).
-   */
   replaceUri(oldUri: vscode.Uri, newUri: vscode.Uri): void {
     let changed = false
     const oldStr = oldUri.toString()
@@ -129,7 +119,6 @@ export class ContextTrackManager implements vscode.Disposable {
       if (file) {
         file.uri = newUri
         file.label = newLabel
-        // We do NOT clear stats here; content is likely identical (rename/move)
         changed = true
       }
     }
@@ -140,10 +129,6 @@ export class ContextTrackManager implements vscode.Disposable {
     }
   }
 
-  /**
-   * Delegates file addition to the active track.
-   * Returns the newly created StagedFile objects for the provider to enrich.
-   */
   addFilesToActive(uris: vscode.Uri[]): StagedFile[] {
     const track = this.getActiveTrack()
     const existing = new Set(track.files.map((f) => f.uri.toString()))
@@ -153,6 +138,7 @@ export class ContextTrackManager implements vscode.Disposable {
       .map((uri) => ({
         uri,
         label: uri.path.split('/').pop() || 'unknown',
+        isPinned: false,
       }))
 
     track.files.push(...newFiles)
@@ -163,14 +149,16 @@ export class ContextTrackManager implements vscode.Disposable {
   removeFilesFromActive(filesToRemove: StagedFile[]): void {
     const track = this.getActiveTrack()
     const idsToRemove = new Set(filesToRemove.map((f) => f.uri.fsPath))
-
     track.files = track.files.filter((f) => !idsToRemove.has(f.uri.fsPath))
     this.persistState()
   }
 
+  /**
+   * Clears unpinned files. Pinned files remain.
+   */
   clearActive(): void {
     const track = this.getActiveTrack()
-    track.files = []
+    track.files = track.files.filter((f) => f.isPinned)
     this.persistState()
   }
 
@@ -191,7 +179,11 @@ export class ContextTrackManager implements vscode.Disposable {
       state.tracks[t.id] = {
         id: t.id,
         name: t.name,
-        uris: t.files.map((f) => f.uri.toString()),
+        // New storage format
+        items: t.files.map((f) => ({
+          uri: f.uri.toString(),
+          isPinned: !!f.isPinned,
+        })),
       }
     })
 
@@ -210,19 +202,39 @@ export class ContextTrackManager implements vscode.Disposable {
       this.tracks.set(t.id, {
         id: t.id,
         name: t.name,
-        files: t.uris.map((u) => ({
-          uri: vscode.Uri.parse(u),
-          label: vscode.Uri.parse(u).path.split('/').pop() || 'unknown',
-        })),
+        files: this.deserializeFiles(t),
       })
     })
 
     this.activeTrackId = state.activeTrackId || 'default'
-
-    // Fallback if active ID is corrupt
     if (!this.tracks.has(this.activeTrackId)) {
       this.activeTrackId = this.tracks.keys().next().value || 'default'
     }
+  }
+
+  /**
+   * Handles migration from legacy string arrays to object arrays.
+   */
+  private deserializeFiles(trackData: SerializedTrack): StagedFile[] {
+    // 1. New Format
+    if (trackData.items) {
+      return trackData.items.map((item) => ({
+        uri: vscode.Uri.parse(item.uri),
+        label: vscode.Uri.parse(item.uri).path.split('/').pop() || 'unknown',
+        isPinned: item.isPinned,
+      }))
+    }
+
+    // 2. Legacy Format (Migration)
+    if (trackData.uris) {
+      return trackData.uris.map((u) => ({
+        uri: vscode.Uri.parse(u),
+        label: vscode.Uri.parse(u).path.split('/').pop() || 'unknown',
+        isPinned: false,
+      }))
+    }
+
+    return []
   }
 
   dispose() {

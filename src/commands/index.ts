@@ -10,6 +10,7 @@ import { registerClearAllCommand } from './clear-all'
 import { registerCopyAllCommand } from './copy-all'
 import { registerCopyFileCommand } from './copy-file'
 import { registerRemoveFileCommand } from './remove-file'
+import { registerTogglePinCommand } from './toggle-pin'
 import { registerTrackCommands } from './track-ops'
 
 interface Providers {
@@ -27,12 +28,13 @@ export function registerAllCommands(deps: Providers) {
   registerAddFileContextMenuCommand(deps.context, deps.contextStackProvider, deps.ignorePatternProvider)
   registerAddFilePickerCommand(deps.context, deps.contextStackProvider, deps.ignorePatternProvider)
   registerAddOpenFilesCommand(deps.context, deps.contextStackProvider)
+  registerTogglePinCommand(deps.context, deps.trackManager)
 
   registerClearAllCommand(deps.context, deps.contextStackProvider)
   registerCopyAllCommand(deps.context, deps.contextStackProvider)
   registerCopyFileCommand(deps.context, deps.contextStackProvider, deps.filesView)
   registerRemoveFileCommand(deps.context, deps.contextStackProvider, deps.filesView)
 
-  // Track Operations (New)
+  // Track Operations
   registerTrackCommands(deps.context, deps.trackManager, deps.tracksView)
 }

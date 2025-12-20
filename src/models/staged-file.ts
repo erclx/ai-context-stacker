@@ -4,7 +4,7 @@ import * as vscode from 'vscode'
  * Holds calculated metrics for a specific file.
  */
 export interface ContentStats {
-  /** Estimated token count based on LLM heuristics (e.g., 4 chars/token). */
+  /** Estimated token count based on LLM heuristics. */
   tokenCount: number
   /** Raw character count of the file content. */
   charCount: number
@@ -28,7 +28,10 @@ export interface StagedFile {
   stats?: ContentStats
   /**
    * Indicates if the file contains binary data (detected via null-byte check).
-   * If true, this file is excluded from token calculations and copy operations.
    */
   isBinary?: boolean
+  /**
+   * If true, this file persists during "Clear All" operations.
+   */
+  isPinned?: boolean
 }

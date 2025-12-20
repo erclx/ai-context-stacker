@@ -10,12 +10,27 @@ export interface ContextTrack {
 }
 
 /**
- * The shape of a track when saved to storage (no stats).
+ * Represents a single file record in storage.
+ */
+export interface SerializedFile {
+  uri: string
+  isPinned: boolean
+}
+
+/**
+ * The shape of a track when saved to storage.
  */
 export interface SerializedTrack {
   id: string
   name: string
-  uris: string[]
+  /**
+   * @deprecated Legacy support for v0.0.1 (simple string arrays)
+   */
+  uris?: string[]
+  /**
+   * v0.0.2+ storage format including metadata
+   */
+  items?: SerializedFile[]
 }
 
 /**

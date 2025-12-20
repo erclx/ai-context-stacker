@@ -103,6 +103,12 @@
         "title": "Delete Track",
         "category": "AI Context Stacker",
         "icon": "$(trash)"
+      },
+      {
+        "command": "aiContextStacker.togglePin",
+        "title": "Toggle Pin",
+        "category": "AI Context Stacker",
+        "icon": "$(pin)"
       }
     ],
     "menus": {
@@ -209,6 +215,16 @@
           "command": "aiContextStacker.addOpenFiles",
           "when": "view == aiContextStackerView && viewItem == emptyState",
           "group": "1_add"
+        },
+        {
+          "command": "aiContextStacker.togglePin",
+          "when": "view == aiContextStackerView && viewItem =~ /stagedFile/",
+          "group": "inline@0"
+        },
+        {
+          "command": "aiContextStacker.togglePin",
+          "when": "view == aiContextStackerView && viewItem =~ /stagedFile/",
+          "group": "1_modification"
         }
       ]
     },
