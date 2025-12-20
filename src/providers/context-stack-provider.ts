@@ -156,7 +156,13 @@ export class ContextStackProvider
     if (files.length === 0) {
       return [{ uri: this.EMPTY_URI, label: 'Drag files here to start...', stats: undefined } as StagedFile]
     }
-    return files
+
+    return [...files].sort((a, b) => {
+      if (a.isPinned !== b.isPinned) {
+        return a.isPinned ? -1 : 1
+      }
+      return a.label.localeCompare(b.label)
+    })
   }
 
   getTreeItem(element: StagedFile): vscode.TreeItem {
@@ -274,9 +280,6 @@ export class ContextStackProvider
     this.refreshState()
   }
 
-  /**
-   * Reads file stats in parallel to update the UI efficiently.
-   */
   private async enrichFileStats(targets: StagedFile[]): Promise<void> {
     const decoder = new TextDecoder()
     const filesToProcess = targets.filter((f) => !f.stats)
@@ -305,7 +308,6 @@ export class ContextStackProvider
       }),
     )
 
-    // Fire one event to update the tree after all parallel reads complete
     this._onDidChangeTreeData.fire()
   }
 
