@@ -12,6 +12,7 @@ export async function categorizeTargets(targets: vscode.Uri[]) {
   const files: vscode.Uri[] = []
   const folders: vscode.Uri[] = []
 
+  // Keep UI feedback for potentially long stat operations
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Processing selection...' },
     async () => {
@@ -32,6 +33,7 @@ export async function categorizeTargets(targets: vscode.Uri[]) {
 
 /**
  * Orchestrates recursive scanning of multiple folders with cancellation support.
+ * Acts as the UI Controller for the scanning operation.
  */
 export async function handleFolderScanning(
   folders: vscode.Uri[],
@@ -47,13 +49,7 @@ export async function handleFolderScanning(
     async (_, token) => {
       const excludes = await ignoreProvider.getExcludePatterns()
 
-      for (const folder of folders) {
-        if (token.isCancellationRequested) break
-
-        const foundFiles = await scanFolder(folder, excludes, token)
-
-        if (foundFiles.length > 0) provider.addFiles(foundFiles)
-      }
+      await scanMultipleFolders(folders, excludes, (files) => provider.addFiles(files), token)
 
       if (!token.isCancellationRequested) {
         vscode.window.showInformationMessage('Finished adding files from folders.')
@@ -63,14 +59,34 @@ export async function handleFolderScanning(
 }
 
 /**
+ * Core Logic: Iterates through folders and performs glob matching.
+ * agnostic of UI/VSCode Windows.
+ */
+export async function scanMultipleFolders(
+  folders: vscode.Uri[],
+  excludes: string,
+  onFound: (files: vscode.Uri[]) => void,
+  token?: vscode.CancellationToken,
+): Promise<void> {
+  for (const folder of folders) {
+    if (token?.isCancellationRequested) break
+
+    const foundFiles = await scanFolder(folder, excludes, token)
+
+    if (foundFiles.length > 0) {
+      onFound(foundFiles)
+    }
+  }
+}
+
+/**
  * Performs glob search within a single directory root.
- * Uses RelativePattern to scope search strictly to the target folder,
- * preventing workspace-wide scans which would ignore the folder context.
+ * Uses RelativePattern to scope search strictly to the target folder.
  */
 async function scanFolder(
   folder: vscode.Uri,
   excludes: string,
-  token: vscode.CancellationToken,
+  token?: vscode.CancellationToken,
 ): Promise<vscode.Uri[]> {
   try {
     // RelativePattern is essential: it restricts glob to this folder only

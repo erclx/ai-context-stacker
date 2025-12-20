@@ -109,18 +109,24 @@ export class ContextStackProvider
       return item
     }
 
-    const tokenCount = file.stats?.tokenCount ?? 0
-    item.iconPath = file.isPinned
-      ? new vscode.ThemeIcon('pin')
-      : new vscode.ThemeIcon('file', this.getIconColor(tokenCount))
-
-    const parts = [
-      file.stats ? `${this.formatTokenCount(file.stats.tokenCount)}` : '...',
-      file.isPinned ? '(Pinned)' : '',
-    ]
-    item.description = parts.filter(Boolean).join(' • ')
+    item.iconPath = this.getFileIcon(file)
+    item.description = this.getFileDescription(file)
 
     return item
+  }
+
+  private getFileIcon(file: StagedFile): vscode.ThemeIcon {
+    if (file.isPinned) {
+      return new vscode.ThemeIcon('pin')
+    }
+    const tokenCount = file.stats?.tokenCount ?? 0
+    return new vscode.ThemeIcon('file', this.getIconColor(tokenCount))
+  }
+
+  private getFileDescription(file: StagedFile): string {
+    const tokenPart = file.stats ? `${this.formatTokenCount(file.stats.tokenCount)}` : '...'
+    const parts = [tokenPart, file.isPinned ? '(Pinned)' : '']
+    return parts.filter(Boolean).join(' • ')
   }
 
   private createEmptyTreeItem(element: StagedFile): vscode.TreeItem {
@@ -152,7 +158,7 @@ export class ContextStackProvider
     return tokenCount > this.HIGH_TOKEN_THRESHOLD ? new vscode.ThemeColor('charts.orange') : undefined
   }
 
-  formatTokenCount(count: number): string {
+  public formatTokenCount(count: number): string {
     return count >= 1000 ? `~${(count / 1000).toFixed(1)}k` : `~${count}`
   }
 
@@ -167,7 +173,6 @@ export class ContextStackProvider
     if (this.pendingUpdates.has(key)) clearTimeout(this.pendingUpdates.get(key)!)
 
     const updateLogic = () => {
-      // Use StatsProcessor for the calculation
       try {
         const stats = this.statsProcessor.measure(doc.getText())
         targetFile.stats = stats
@@ -184,8 +189,8 @@ export class ContextStackProvider
 
   private refreshState(): void {
     this._onDidChangeTreeData.fire()
-    // Delegate async enrichment to service
-    this.statsProcessor.enrichFileStats(this.getFiles()).then(() => {
+    // Fire-and-forget stat enrichment
+    void this.statsProcessor.enrichFileStats(this.getFiles()).then(() => {
       this._onDidChangeTreeData.fire()
     })
   }

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 
 import { isStagedFolder, StackTreeItem, StagedFile, StagedFolder } from '../models'
+
 /**
  * Service responsible for constructing the hierarchical view model from flat file lists.
  */
@@ -22,29 +23,32 @@ export class TreeBuilder {
   /**
    * Recursively places a single file into the directory hierarchy.
    */
-  private placeFileInTree(file: StagedFile, roots: StackTreeItem[], folderMap: Map<string, StagedFolder>) {
-    const relativePath = vscode.workspace.asRelativePath(file.uri)
-    const segments = relativePath.split('/')
-    const isRootFile = segments.length === 1
+  private placeFileInTree(file: StagedFile, roots: StackTreeItem[], folderMap: Map<string, StagedFolder>): void {
+    const segments = this.getPathSegments(file)
 
-    if (isRootFile) {
+    if (segments.length === 1) {
       roots.push(file)
       return
     }
 
+    this.traverseAndPlace(file, segments, roots, folderMap)
+  }
+
+  private traverseAndPlace(
+    file: StagedFile,
+    segments: string[],
+    roots: StackTreeItem[],
+    folderMap: Map<string, StagedFolder>,
+  ): void {
     let currentPath = ''
     let parentChildren = roots
 
+    // Iterate over folder segments only
     for (let i = 0; i < segments.length - 1; i++) {
       const segment = segments[i]
       currentPath = currentPath ? `${currentPath}/${segment}` : segment
 
-      let folder = folderMap.get(currentPath)
-      if (!folder) {
-        folder = this.createVirtualFolder(segment, currentPath, file.uri)
-        folderMap.set(currentPath, folder)
-        parentChildren.push(folder)
-      }
+      const folder = this.getOrCreateFolder(segment, currentPath, file.uri, folderMap, parentChildren)
 
       folder.containedFiles.push(file)
       parentChildren = folder.children
@@ -53,8 +57,32 @@ export class TreeBuilder {
     parentChildren.push(file)
   }
 
+  /**
+   * Retrieves an existing folder or creates/registers a new one.
+   */
+  private getOrCreateFolder(
+    name: string,
+    pathId: string,
+    uri: vscode.Uri,
+    map: Map<string, StagedFolder>,
+    parentList: StackTreeItem[],
+  ): StagedFolder {
+    let folder = map.get(pathId)
+
+    if (!folder) {
+      folder = this.createVirtualFolder(name, pathId, uri)
+      map.set(pathId, folder)
+      parentList.push(folder)
+    }
+
+    return folder
+  }
+
+  private getPathSegments(file: StagedFile): string[] {
+    return vscode.workspace.asRelativePath(file.uri).split('/')
+  }
+
   private createVirtualFolder(name: string, id: string, sampleUri: vscode.Uri): StagedFolder {
-    // Construct a URI for the folder based on the sample file's root
     const root = vscode.workspace.getWorkspaceFolder(sampleUri)
     const folderUri = root ? vscode.Uri.joinPath(root.uri, id) : sampleUri
 
@@ -70,12 +98,11 @@ export class TreeBuilder {
 
   private sortTree(items: StackTreeItem[]): StackTreeItem[] {
     return items.sort((a, b) => {
-      // Folders first
       const aIsFolder = isStagedFolder(a)
       const bIsFolder = isStagedFolder(b)
+
       if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1
 
-      // Then alphabetical
       return a.label.localeCompare(b.label)
     })
   }

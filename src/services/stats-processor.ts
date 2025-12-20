@@ -29,23 +29,26 @@ export class StatsProcessor {
 
     if (filesToProcess.length === 0) return
 
-    await Promise.all(
-      filesToProcess.map(async (file) => {
-        try {
-          const content = await this.readTextContent(file.uri)
+    await Promise.all(filesToProcess.map((file) => this.processFile(file)))
+  }
 
-          if (content === null) {
-            file.isBinary = true
-            file.stats = { tokenCount: 0, charCount: 0 }
-          } else {
-            file.isBinary = false
-            file.stats = this.measure(content)
-          }
-        } catch (error) {
-          Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
-        }
-      }),
-    )
+  /**
+   * Processes a single file: reads content, checks binary status, and assigns stats.
+   */
+  private async processFile(file: StagedFile): Promise<void> {
+    try {
+      const content = await this.readTextContent(file.uri)
+
+      if (content === null) {
+        file.isBinary = true
+        file.stats = { tokenCount: 0, charCount: 0 }
+      } else {
+        file.isBinary = false
+        file.stats = this.measure(content)
+      }
+    } catch (error) {
+      Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
+    }
   }
 
   /**
