@@ -11,7 +11,7 @@ export class StatsProcessor {
   private readonly decoder = new TextDecoder()
 
   /**
-   * measures content stats for a single file string.
+   * Measures content stats for a single file string.
    */
   public measure(content: string): ContentStats {
     const measurements = TokenEstimator.measure(content)
@@ -32,17 +32,13 @@ export class StatsProcessor {
     await Promise.all(
       filesToProcess.map(async (file) => {
         try {
-          const uint8Array = await vscode.workspace.fs.readFile(file.uri)
+          const content = await this.readTextContent(file.uri)
 
-          // Check first 512 bytes for null bytes (binary indicator)
-          const isBinary = uint8Array.slice(0, 512).some((b) => b === 0)
-
-          if (isBinary) {
+          if (content === null) {
             file.isBinary = true
             file.stats = { tokenCount: 0, charCount: 0 }
           } else {
             file.isBinary = false
-            const content = this.decoder.decode(uint8Array)
             file.stats = this.measure(content)
           }
         } catch (error) {
@@ -50,5 +46,22 @@ export class StatsProcessor {
         }
       }),
     )
+  }
+
+  /**
+   * Reads file content, handling binary detection.
+   * @returns The string content if text, or null if binary.
+   */
+  private async readTextContent(uri: vscode.Uri): Promise<string | null> {
+    const uint8Array = await vscode.workspace.fs.readFile(uri)
+
+    // Check first 512 bytes for null bytes (binary indicator)
+    const isBinary = uint8Array.slice(0, 512).some((b) => b === 0)
+
+    if (isBinary) {
+      return null
+    }
+
+    return this.decoder.decode(uint8Array)
   }
 }
