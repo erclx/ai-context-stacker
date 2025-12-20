@@ -1,0 +1,63 @@
+body {
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+  padding: 0;
+  margin: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 14px 24px;
+  background-color: var(--vscode-editor-background);
+  border-bottom: 1px solid var(--vscode-widget-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+h2 {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.3em;
+  color: var(--vscode-foreground);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+button {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 7px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9em;
+  border-radius: 2px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+button:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.content-wrapper {
+  padding: 16px 24px 24px 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+pre {
+  background-color: var(--vscode-textBlockQuote-background);
+  border: 1px solid var(--vscode-textBlockQuote-border);
+  padding: 15px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: var(--vscode-editor-font-family);
+  margin: 0;
+}
