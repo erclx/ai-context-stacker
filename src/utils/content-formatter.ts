@@ -8,10 +8,6 @@ import { Logger } from './logger'
  * string suitable for use as AI context (e.g., Markdown file blocks).
  */
 export class ContentFormatter {
-  private static readonly PREAMBLE =
-    'The following is a collection of source code files provided as context for our discussion.\n' +
-    'Please analyze the code structure and logic as needed.\n\n---'
-
   public static async readFileFromDisk(uri: vscode.Uri): Promise<Uint8Array> {
     return vscode.workspace.fs.readFile(uri)
   }
@@ -21,7 +17,7 @@ export class ContentFormatter {
    * a header and Markdown code block, and combines them into one string.
    */
   public static async format(files: StagedFile[]): Promise<string> {
-    const parts: string[] = [this.PREAMBLE]
+    const parts: string[] = []
 
     for (const file of files) {
       if (file.isBinary) {
