@@ -76,10 +76,17 @@ export class ContextTrackManager implements vscode.Disposable {
   }
 
   /**
-   * Toggles the pinned state of a specific file.
+   * Toggles the pinned state for one or more files.
+   * Efficiently persists state only once.
    */
-  toggleFilePin(file: StagedFile): void {
-    file.isPinned = !file.isPinned
+  toggleFilesPin(files: StagedFile[]): void {
+    if (!files || files.length === 0) return
+
+    // Flip the state for all targeted files
+    files.forEach((f) => {
+      f.isPinned = !f.isPinned
+    })
+
     this.persistState()
     this._onDidChangeTrack.fire(this.getActiveTrack())
   }
@@ -153,9 +160,6 @@ export class ContextTrackManager implements vscode.Disposable {
     this.persistState()
   }
 
-  /**
-   * Clears unpinned files. Pinned files remain.
-   */
   clearActive(): void {
     const track = this.getActiveTrack()
     track.files = track.files.filter((f) => f.isPinned)
@@ -179,7 +183,6 @@ export class ContextTrackManager implements vscode.Disposable {
       state.tracks[t.id] = {
         id: t.id,
         name: t.name,
-        // New storage format
         items: t.files.map((f) => ({
           uri: f.uri.toString(),
           isPinned: !!f.isPinned,
@@ -212,11 +215,7 @@ export class ContextTrackManager implements vscode.Disposable {
     }
   }
 
-  /**
-   * Handles migration from legacy string arrays to object arrays.
-   */
   private deserializeFiles(trackData: SerializedTrack): StagedFile[] {
-    // 1. New Format
     if (trackData.items) {
       return trackData.items.map((item) => ({
         uri: vscode.Uri.parse(item.uri),
@@ -225,7 +224,6 @@ export class ContextTrackManager implements vscode.Disposable {
       }))
     }
 
-    // 2. Legacy Format (Migration)
     if (trackData.uris) {
       return trackData.uris.map((u) => ({
         uri: vscode.Uri.parse(u),

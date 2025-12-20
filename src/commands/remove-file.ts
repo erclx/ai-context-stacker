@@ -21,25 +21,28 @@ export function registerRemoveFileCommand(
     (item?: StagedFile, selectedItems?: StagedFile[]) => {
       let filesToRemove: StagedFile[] = []
 
-      // Prioritize explicit multi-select args
+      // 1. Context Menu: Multi-Select
       if (selectedItems && selectedItems.length > 0) {
         filesToRemove = selectedItems
-        // Then, check single item arg
-      } else if (item) {
+      }
+      // 2. Context Menu: Single Item
+      else if (item) {
         filesToRemove = [item]
-        // Finally, fallback to whatever is selected in the TreeView
-      } else {
+      }
+      // 3. Fallback: TreeView Selection
+      else {
         filesToRemove = [...treeView.selection]
       }
 
       if (filesToRemove.length === 0) {
-        vscode.window.showWarningMessage('Please select files to remove.')
+        // Only warn if triggered via keybinding/palette with no selection
+        if (!item) vscode.window.showWarningMessage('Please select files to remove.')
         return
       }
 
       provider.removeFiles(filesToRemove)
 
-      // Provide status bar feedback for batch operations
+      // Feedback for batch operations
       if (filesToRemove.length > 1) {
         vscode.window.setStatusBarMessage(`Removed ${filesToRemove.length} files.`, 2000)
       }

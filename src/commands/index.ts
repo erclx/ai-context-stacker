@@ -29,7 +29,8 @@ export function registerAllCommands(deps: Providers) {
   registerAddFileContextMenuCommand(deps.context, deps.contextStackProvider, deps.ignorePatternProvider)
   registerAddFilePickerCommand(deps.context, deps.contextStackProvider, deps.ignorePatternProvider)
   registerAddOpenFilesCommand(deps.context, deps.contextStackProvider)
-  registerTogglePinCommand(deps.context, deps.trackManager)
+
+  registerTogglePinCommand(deps.context, deps.trackManager, deps.filesView)
 
   registerPreviewContextCommand(deps.context, deps.contextStackProvider)
 
