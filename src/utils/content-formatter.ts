@@ -13,17 +13,14 @@ export class ContentFormatter {
   }
 
   /**
-   * Reads the content of multiple staged files, formats each one with
-   * a header and Markdown code block, and combines them into one string.
+   * Reads the content of multiple staged files in parallel, formats each one,
+   * and combines them into one string.
    */
   public static async format(files: StagedFile[]): Promise<string> {
-    const parts: string[] = []
-
-    for (const file of files) {
+    const filePromises = files.map(async (file) => {
       if (file.isBinary) {
         Logger.warn(`Skipping binary file: ${file.uri.fsPath}`)
-        parts.push(`> Skipped binary file: ${vscode.workspace.asRelativePath(file.uri)}\n`)
-        continue
+        return `> Skipped binary file: ${vscode.workspace.asRelativePath(file.uri)}\n`
       }
 
       try {
@@ -31,23 +28,21 @@ export class ContentFormatter {
 
         if (content === null) {
           Logger.warn(`Skipping unreadable/binary file during read: ${file.uri.fsPath}`)
-          continue
+          return ''
         }
 
         const relativePath = vscode.workspace.asRelativePath(file.uri)
         const extension = file.uri.path.split('.').pop() || ''
 
-        parts.push(`File: ${relativePath}`)
-        parts.push('```' + extension)
-        parts.push(content)
-        parts.push('```\n')
+        return [`File: ${relativePath}`, '```' + extension, content, '```\n'].join('\n')
       } catch (err) {
         Logger.error(`Failed to read file ${file.uri.fsPath}`, err)
-        parts.push(`> Error reading file: ${vscode.workspace.asRelativePath(file.uri)}`)
+        return `> Error reading file: ${vscode.workspace.asRelativePath(file.uri)}`
       }
-    }
+    })
 
-    return parts.join('\n')
+    const parts = await Promise.all(filePromises)
+    return parts.filter((p) => p !== '').join('\n')
   }
 
   /**

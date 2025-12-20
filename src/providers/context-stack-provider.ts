@@ -181,7 +181,6 @@ export class ContextStackProvider
     const item = new vscode.TreeItem(label)
 
     item.resourceUri = element.uri
-    // Allow distinguishing pinned files in package.json/menus
     item.contextValue = element.isPinned ? 'stagedFile:pinned' : 'stagedFile'
     item.command = { command: 'vscode.open', title: 'Open File', arguments: [element.uri] }
 
@@ -192,7 +191,6 @@ export class ContextStackProvider
 
     const tokenCount = element.stats?.tokenCount ?? 0
 
-    // Priority Icon Logic: Pinned > Warning > Standard
     if (element.isPinned) {
       item.iconPath = new vscode.ThemeIcon('pin')
     } else {
@@ -276,32 +274,39 @@ export class ContextStackProvider
     this.refreshState()
   }
 
+  /**
+   * Reads file stats in parallel to update the UI efficiently.
+   */
   private async enrichFileStats(targets: StagedFile[]): Promise<void> {
     const decoder = new TextDecoder()
-    let changed = false
+    const filesToProcess = targets.filter((f) => !f.stats)
 
-    for (const file of targets) {
-      if (file.stats) continue
+    if (filesToProcess.length === 0) return
 
-      try {
-        const uint8Array = await vscode.workspace.fs.readFile(file.uri)
-        const isBinary = uint8Array.slice(0, 512).some((b) => b === 0)
+    // Optimization: Process all stats in parallel
+    await Promise.all(
+      filesToProcess.map(async (file) => {
+        try {
+          const uint8Array = await vscode.workspace.fs.readFile(file.uri)
+          const isBinary = uint8Array.slice(0, 512).some((b) => b === 0)
 
-        if (isBinary) {
-          file.isBinary = true
-          file.stats = { tokenCount: 0, charCount: 0 }
-        } else {
-          file.isBinary = false
-          const content = decoder.decode(uint8Array)
-          const measurements = TokenEstimator.measure(content)
-          file.stats = { tokenCount: measurements.tokenCount, charCount: content.length }
+          if (isBinary) {
+            file.isBinary = true
+            file.stats = { tokenCount: 0, charCount: 0 }
+          } else {
+            file.isBinary = false
+            const content = decoder.decode(uint8Array)
+            const measurements = TokenEstimator.measure(content)
+            file.stats = { tokenCount: measurements.tokenCount, charCount: content.length }
+          }
+        } catch (error) {
+          Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
         }
-        changed = true
-      } catch (error) {
-        Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
-      }
-    }
-    if (changed) this._onDidChangeTreeData.fire()
+      }),
+    )
+
+    // Fire one event to update the tree after all parallel reads complete
+    this._onDidChangeTreeData.fire()
   }
 
   dispose() {
