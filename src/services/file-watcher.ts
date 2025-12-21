@@ -10,27 +10,25 @@ import { Logger } from '../utils'
  */
 export class FileWatcherService implements vscode.Disposable {
   private watcher: vscode.FileSystemWatcher
-
-  // Batching buffers
   private pendingDeletes = new Set<string>()
   private pendingCreates = new Set<string>()
   private batchTimer: NodeJS.Timeout | undefined
+  private _isDisposed = false
 
-  // Configuration
   private readonly BATCH_DELAY_MS = 200
 
-  constructor(private contextTrackManager: ContextTrackManager) {
+  constructor(private readonly contextTrackManager: ContextTrackManager) {
     this.watcher = vscode.workspace.createFileSystemWatcher('**/*')
-
     this.watcher.onDidDelete((uri) => this.bufferEvent(uri, 'DELETE'))
     this.watcher.onDidCreate((uri) => this.bufferEvent(uri, 'CREATE'))
   }
 
   /**
    * Adds an event to the buffer and schedules a flush.
-   * Debounces execution to handle event storms efficiently.
+   * Uses string keys to minimize memory footprint during event storms.
    */
   private bufferEvent(uri: vscode.Uri, type: 'DELETE' | 'CREATE'): void {
+    if (this._isDisposed) return
     const key = uri.toString()
 
     if (type === 'DELETE') {
@@ -43,7 +41,7 @@ export class FileWatcherService implements vscode.Disposable {
   }
 
   private scheduleBatch(): void {
-    if (this.batchTimer) return
+    if (this._isDisposed || this.batchTimer) return
 
     this.batchTimer = setTimeout(() => {
       this.batchTimer = undefined
@@ -54,60 +52,80 @@ export class FileWatcherService implements vscode.Disposable {
   }
 
   /**
-   * Processes all buffered events in a single pass.
-   * Correlates Deletes and Creates to detect Renames.
+   * Processes all buffered events.
+   * Uses an Indexing Phase and Correlation Phase to achieve O(N+M) complexity.
    */
   private async flushBuffer(): Promise<void> {
+    if (this._isDisposed) return
     if (this.pendingDeletes.size === 0 && this.pendingCreates.size === 0) return
 
-    // Snapshot and clear buffers immediately to allow new events to queue
+    // Snapshot to unblock the event loop immediately
     const deletes = Array.from(this.pendingDeletes)
     const creates = new Set(this.pendingCreates)
 
     this.pendingDeletes.clear()
     this.pendingCreates.clear()
 
-    this.processSnapshot(deletes, creates)
+    const creationIndex = this.buildCreationIndex(creates)
+    this.processDeletions(deletes, creationIndex)
   }
 
   /**
-   * Analyzes the snapshot to distinguish between Deletes and Renames.
+   * Phase 2: Indexing
+   * Maps file base names to their full URI strings for O(1) lookup.
    */
-  private processSnapshot(deletes: string[], creates: Set<string>): void {
+  private buildCreationIndex(creates: Set<string>): Map<string, string> {
+    const map = new Map<string, string>()
+
+    for (const createStr of creates) {
+      const uri = vscode.Uri.parse(createStr)
+      const base = path.basename(uri.fsPath)
+      map.set(base, createStr)
+    }
+
+    return map
+  }
+
+  /**
+   * Phase 3: Correlation
+   * Iterates deletions and checks the index to distinguish Renames from Deletes.
+   */
+  private processDeletions(deletes: string[], creationIndex: Map<string, string>): void {
     for (const deleteStr of deletes) {
-      const deleteUri = vscode.Uri.parse(deleteStr)
-
-      if (!this.contextTrackManager.hasUri(deleteUri)) continue
-
-      this.handleTrackedFileChange(deleteUri, creates)
+      if (this._isDisposed) return
+      this.resolveFileChange(deleteStr, creationIndex)
     }
   }
 
-  /**
-   * Logic to determine if a tracked file was Deleted or Renamed.
-   */
-  private handleTrackedFileChange(oldUri: vscode.Uri, creates: Set<string>): void {
-    const oldBaseName = path.basename(oldUri.fsPath)
+  private resolveFileChange(deleteStr: string, creationIndex: Map<string, string>): void {
+    const deleteUri = vscode.Uri.parse(deleteStr)
 
-    // Heuristic: Check if any created file has the same basename (Move/Rename)
-    // We search the 'creates' batch for a match.
-    const matchStr = Array.from(creates).find((createStr) => {
-      const createUri = vscode.Uri.parse(createStr)
-      return path.basename(createUri.fsPath) === oldBaseName
-    })
+    // Optimization: Skip expensive logic if the file wasn't tracked anyway
+    if (!this.contextTrackManager.hasUri(deleteUri)) return
+
+    const baseName = path.basename(deleteUri.fsPath)
+    const matchStr = creationIndex.get(baseName)
 
     if (matchStr) {
-      const newUri = vscode.Uri.parse(matchStr)
-      this.contextTrackManager.replaceUri(oldUri, newUri)
-      Logger.info(`Auto-updated renamed file: ${oldUri.fsPath} -> ${newUri.fsPath}`)
+      this.executeRename(deleteUri, matchStr)
     } else {
-      // No matching creation found -> It's a genuine delete
-      this.contextTrackManager.removeUriEverywhere(oldUri)
-      Logger.info(`Auto-removed deleted file: ${oldUri.fsPath}`)
+      this.executeDelete(deleteUri)
     }
+  }
+
+  private executeRename(oldUri: vscode.Uri, newStr: string): void {
+    const newUri = vscode.Uri.parse(newStr)
+    this.contextTrackManager.replaceUri(oldUri, newUri)
+    Logger.info(`Auto-updated renamed file: ${oldUri.fsPath} -> ${newUri.fsPath}`)
+  }
+
+  private executeDelete(uri: vscode.Uri): void {
+    this.contextTrackManager.removeUriEverywhere(uri)
+    Logger.info(`Auto-removed deleted file: ${uri.fsPath}`)
   }
 
   dispose() {
+    this._isDisposed = true
     this.watcher.dispose()
     if (this.batchTimer) {
       clearTimeout(this.batchTimer)
