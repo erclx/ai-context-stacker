@@ -9,38 +9,61 @@ interface TreeNode {
 
 export interface FormatOptions {
   skipTree?: boolean
+  token?: vscode.CancellationToken
 }
 
+// Configurable safety limits
 const MAX_FILE_SIZE = 1024 * 1024 // 1MB
+const BINARY_CHECK_BYTES = 512
 
 /**
- * Formats staged files into Markdown code blocks and generates ASCII trees.
+ * Optimized formatter that processes files sequentially to minimize memory footprint.
  */
 export class ContentFormatter {
   /**
    * Reads/formats files and conditionally prepends the ASCII File Tree.
-   * @param options.skipTree - If true, forces the tree to be omitted regardless of user settings.
+   * Processes files sequentially to prevent GC pressure/OOM.
    */
   public static async format(files: StagedFile[], options: FormatOptions = {}): Promise<string> {
+    if (files.length === 0) return ''
+
+    // Fast configuration check
     const configIncludeTree = vscode.workspace
       .getConfiguration('aiContextStacker')
       .get<boolean>('includeFileTree', true)
 
-    // Logic: Include tree only if Config says YES AND override says don't skip.
     const shouldIncludeTree = configIncludeTree && !options.skipTree
 
-    const fileContent = await this.generateFileBlocks(files)
+    // Check cancellation before heavy lifting
+    if (options.token?.isCancellationRequested) return ''
 
-    if (shouldIncludeTree && files.length > 0) {
+    let output = ''
+    if (shouldIncludeTree) {
       const tree = this.generateAsciiTree(files)
-      return `# Context Map\n\`\`\`\n${tree}\`\`\`\n\n# File Contents\n\n${fileContent}`
+      output += `# Context Map\n\`\`\`\n${tree}\`\`\`\n\n# File Contents\n\n`
+    } else {
+      output += `# File Contents\n\n`
     }
 
-    return fileContent
+    // We append directly to the string to avoid holding an array of all file contents in memory
+    for (const file of files) {
+      if (options.token?.isCancellationRequested) {
+        Logger.info('Format operation cancelled by user.')
+        return ''
+      }
+
+      const block = await this.formatFileBlock(file)
+      if (block) {
+        output += block + '\n'
+      }
+    }
+
+    return output
   }
 
   /**
    * Generates a visual ASCII tree structure of the staged files.
+   * Pure synchronous operation - fast enough to run on main thread for <1000 files.
    */
   public static generateAsciiTree(files: StagedFile[]): string {
     const paths = files.map((f) => vscode.workspace.asRelativePath(f.uri)).sort()
@@ -51,16 +74,17 @@ export class ContentFormatter {
   }
 
   private static buildHierarchy(paths: string[], root: TreeNode) {
-    paths.forEach((path) => {
+    for (const path of paths) {
       let current = root
-      path.split(/[/\\]/).forEach((segment) => {
+      const segments = path.split(/[/\\]/)
+      for (const segment of segments) {
         if (!current[segment]) current[segment] = {}
         current = current[segment]
-      })
-    })
+      }
+    }
   }
 
-  private static renderHierarchy(node: TreeNode, prefix = '', isLast = true): string {
+  private static renderHierarchy(node: TreeNode, prefix = ''): string {
     const entries = Object.keys(node).sort((a, b) => {
       const aIsFolder = Object.keys(node[a]).length > 0
       const bIsFolder = Object.keys(node[b]).length > 0
@@ -68,57 +92,57 @@ export class ContentFormatter {
       return bIsFolder ? 1 : -1
     })
 
-    return entries
-      .map((key, index) => {
-        const childIsLast = index === entries.length - 1
-        const connector = childIsLast ? '└── ' : '├── '
-        const childPrefix = prefix + (childIsLast ? '    ' : '│   ')
+    let result = ''
+    const count = entries.length
 
-        const subtree = this.renderHierarchy(node[key], childPrefix, childIsLast)
-        return `${prefix}${connector}${key}\n${subtree}`
-      })
-      .join('')
+    for (let i = 0; i < count; i++) {
+      const key = entries[i]
+      const isLastChild = i === count - 1
+      const connector = isLastChild ? '└── ' : '├── '
+
+      result += `${prefix}${connector}${key}\n`
+
+      const newPrefix = prefix + (isLastChild ? '    ' : '│   ')
+      result += this.renderHierarchy(node[key], newPrefix)
+    }
+
+    return result
   }
 
-  private static async generateFileBlocks(files: StagedFile[]): Promise<string> {
-    const parts = await Promise.all(files.map((f) => this.formatFileBlock(f)))
-    return parts.filter((p) => p !== '').join('\n')
-  }
-
-  private static async formatFileBlock(file: StagedFile): Promise<string> {
+  private static async formatFileBlock(file: StagedFile): Promise<string | null> {
     if (file.isBinary) {
       return `> Skipped binary file: ${vscode.workspace.asRelativePath(file.uri)}\n`
     }
 
     try {
-      const sizeWarning = await this.validateFileSize(file.uri)
-      if (sizeWarning) return sizeWarning
+      // Check size metadata before reading content
+      const stats = await vscode.workspace.fs.stat(file.uri)
+      if (stats.size > MAX_FILE_SIZE) {
+        Logger.warn(`Skipping large file (${stats.size} bytes): ${file.uri.fsPath}`)
+        return `> Skipped large file (>1MB): ${vscode.workspace.asRelativePath(file.uri)}\n`
+      }
 
       const content = await this.readFileContent(file.uri)
-      if (content === null) return ''
+      if (content === null) return null
 
       const relativePath = vscode.workspace.asRelativePath(file.uri)
       const extension = file.uri.path.split('.').pop() || ''
-      return [`File: ${relativePath}`, '```' + extension, content, '```\n'].join('\n')
+
+      return `File: ${relativePath}\n\`\`\`${extension}\n${content}\n\`\`\``
     } catch (err) {
       Logger.error(`Failed to read file ${file.uri.fsPath}`, err)
       return `> Error reading file: ${vscode.workspace.asRelativePath(file.uri)}`
     }
   }
 
-  private static async validateFileSize(uri: vscode.Uri): Promise<string | null> {
-    const stats = await vscode.workspace.fs.stat(uri)
-    if (stats.size > MAX_FILE_SIZE) {
-      Logger.warn(`Skipping large file (${stats.size} bytes): ${uri.fsPath}`)
-      return `> Skipped large file (>1MB): ${vscode.workspace.asRelativePath(uri)}\n`
-    }
-    return null
-  }
-
   private static async readFileContent(uri: vscode.Uri): Promise<string | null> {
     const uint8Array = await vscode.workspace.fs.readFile(uri)
-    // Check for binary content (null bytes) in the first 512 bytes
-    if (uint8Array.slice(0, 512).some((b) => b === 0)) return null
+
+    const checkLength = Math.min(uint8Array.length, BINARY_CHECK_BYTES)
+    for (let i = 0; i < checkLength; i++) {
+      if (uint8Array[i] === 0) return null
+    }
+
     return Buffer.from(uint8Array).toString('utf-8')
   }
 }
