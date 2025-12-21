@@ -1,6 +1,7 @@
 {
   "name": "ai-context-stacker",
   "displayName": "AI Context Stacker",
+  "publisher": "erclx",
   "description": "A VS Code extension that acts as a staging area for AI prompts.",
   "version": "0.0.1",
   "engines": {
