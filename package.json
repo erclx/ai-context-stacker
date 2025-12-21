@@ -18,10 +18,15 @@
         "aiContextStacker.excludes": {
           "type": "array",
           "default": [],
-          "description": "Active exclusion patterns. Uncheck items in the Manager to disable them without deleting.",
+          "description": "Active exclusion patterns.",
           "items": {
             "type": "string"
           }
+        },
+        "aiContextStacker.includeFileTree": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, adds an ASCII file tree map to the top of the copied context."
         }
       }
     },
@@ -92,6 +97,21 @@
         "title": "Copy Content",
         "category": "AI Context Stacker",
         "icon": "$(copy)"
+      },
+      {
+        "command": "aiContextStacker.copyTree",
+        "title": "Copy Context Map Only",
+        "category": "AI Context Stacker"
+      },
+      {
+        "command": "aiContextStacker.copyContent",
+        "title": "Copy File Content Only",
+        "category": "AI Context Stacker"
+      },
+      {
+        "command": "aiContextStacker.toggleTree",
+        "title": "Include File Tree",
+        "category": "AI Context Stacker"
       },
       {
         "command": "aiContextStacker.previewContext",
@@ -170,20 +190,37 @@
           "group": "navigation@0"
         },
         {
-          "//": "--- Staged Files: Overflow Menu (...) ---",
-          "command": "aiContextStacker.manageExcludes",
-          "when": "view == aiContextStackerView"
-        },
-        {
-          "//": "--- Staged Files: Title ---",
           "command": "aiContextStacker.copyAll",
           "when": "view == aiContextStackerView",
-          "group": "navigation@2"
+          "group": "navigation@1"
         },
         {
           "command": "aiContextStacker.clearAll",
           "when": "view == aiContextStackerView",
-          "group": "navigation@3"
+          "group": "navigation@2"
+        },
+        {
+          "//": "--- Staged Files: OVERFLOW MENU (...) ---",
+          "command": "aiContextStacker.copyTree",
+          "when": "view == aiContextStackerView",
+          "group": "1_copy"
+        },
+        {
+          "command": "aiContextStacker.copyContent",
+          "when": "view == aiContextStackerView",
+          "group": "1_copy"
+        },
+        {
+          "command": "aiContextStacker.manageExcludes",
+          "when": "view == aiContextStackerView",
+          "group": "2_manage"
+        },
+        {
+          "//": "--- Divider will be rendered here ---",
+          "command": "aiContextStacker.toggleTree",
+          "when": "view == aiContextStackerView",
+          "group": "z_settings",
+          "toggled": "aiContextStacker.treeEnabled"
         },
         {
           "//": "--- Staged Files: Title (Overflow '...') ---",
@@ -250,6 +287,13 @@
           "command": "aiContextStacker.removeFile",
           "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
           "group": "2_modification"
+        },
+        {
+          "//": "--- Settings Divider for Right Click ---",
+          "command": "aiContextStacker.toggleTree",
+          "when": "view == aiContextStackerView",
+          "group": "z_settings",
+          "toggled": "aiContextStacker.treeEnabled"
         },
         {
           "//": "--- Empty State ---",

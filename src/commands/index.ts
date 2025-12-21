@@ -8,11 +8,14 @@ import { registerAddFilePickerCommand } from './add-file-picker'
 import { registerAddOpenFilesCommand } from './add-open-files'
 import { registerClearAllCommand } from './clear-all'
 import { registerCopyAllCommand } from './copy-all'
+import { registerCopyContentCommand } from './copy-content'
 import { registerCopyFileCommand } from './copy-file'
+import { registerCopyTreeCommand } from './copy-tree'
 import { registerManageExcludesCommand } from './manage-excludes'
 import { registerPreviewContextCommand } from './preview-context'
 import { registerRemoveFileCommand } from './remove-file'
 import { registerTogglePinCommand } from './toggle-pin'
+import { registerToggleTreeCommand } from './toggle-tree'
 import { registerTrackCommands } from './track-ops'
 
 export interface CommandDependencies {
@@ -23,7 +26,6 @@ export interface CommandDependencies {
 
 /**
  * Main entry point for command registration.
- * Delegates to specialized subgroups to keep the logic flat.
  */
 export function registerAllCommands(deps: CommandDependencies) {
   registerStackModifications(deps)
@@ -49,6 +51,8 @@ function registerStackModifications(deps: CommandDependencies) {
 function registerClipboardOperations(deps: CommandDependencies) {
   registerCopyAllCommand(deps.context, deps.services.contextStackProvider)
   registerCopyFileCommand(deps.context, deps.services.contextStackProvider, deps.views.filesView)
+  registerCopyTreeCommand(deps.context, deps.services.contextStackProvider)
+  registerCopyContentCommand(deps.context, deps.services.contextStackProvider)
 }
 
 function registerTrackOperations(deps: CommandDependencies) {
@@ -58,4 +62,5 @@ function registerTrackOperations(deps: CommandDependencies) {
 function registerViewOperations(deps: CommandDependencies) {
   registerPreviewContextCommand(deps.context, deps.services.contextStackProvider)
   registerManageExcludesCommand(deps.context)
+  registerToggleTreeCommand(deps.context)
 }
