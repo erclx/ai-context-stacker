@@ -12,6 +12,8 @@ export class ContextTrackManager implements vscode.Disposable {
   private tracks: Map<string, ContextTrack> = new Map()
   private activeTrackId = 'default'
 
+  private UriIndex = new Set<string>()
+
   private _onDidChangeTrack = new vscode.EventEmitter<ContextTrack>()
   readonly onDidChangeTrack = this._onDidChangeTrack.event
 
@@ -62,7 +64,6 @@ export class ContextTrackManager implements vscode.Disposable {
     this.tracks.delete(id)
 
     if (wasActive) {
-      // Fallback to first available track if active was deleted
       const nextId = this.tracks.keys().next().value
       if (nextId) this.switchToTrack(nextId)
       else this.createDefaultTrack()
@@ -79,10 +80,12 @@ export class ContextTrackManager implements vscode.Disposable {
     this._onDidChangeTrack.fire(this.getActiveTrack())
   }
 
+  /**
+   * Fast lookup to check if a URI is tracked in any context.
+   * Essential for performance during high-frequency file system events.
+   */
   hasUri(uri: vscode.Uri): boolean {
-    return Array.from(this.tracks.values()).some((track) =>
-      track.files.some((f) => f.uri.toString() === uri.toString()),
-    )
+    return this.UriIndex.has(uri.toString())
   }
 
   /**
@@ -163,6 +166,9 @@ export class ContextTrackManager implements vscode.Disposable {
   }
 
   private persistState(): void {
+    // Always rebuild index before saving/notifying to ensure consistency
+    this.rebuildIndex()
+
     const state = StateMapper.toSerialized(this.tracks, this.activeTrackId)
     this.extensionContext.workspaceState.update(ContextTrackManager.STORAGE_KEY, state)
   }
@@ -179,6 +185,20 @@ export class ContextTrackManager implements vscode.Disposable {
       this.createDefaultTrack()
     } else if (!this.tracks.has(this.activeTrackId)) {
       this.activeTrackId = this.tracks.keys().next().value || 'default'
+    }
+
+    this.rebuildIndex()
+  }
+
+  /**
+   * Called automatically during state mutations.
+   */
+  private rebuildIndex(): void {
+    this.UriIndex.clear()
+    for (const track of this.tracks.values()) {
+      for (const file of track.files) {
+        this.UriIndex.add(file.uri.toString())
+      }
     }
   }
 
