@@ -9,9 +9,11 @@
     "eslintrc",
     "l10n",
     "prettierrc",
+    "pycache",
     "quickpick",
     "sidebar",
     "treedata",
+    "venv",
     "vscode",
     "vsix",
     "webview"
