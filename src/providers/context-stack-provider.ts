@@ -9,23 +9,33 @@ import { ContextTrackManager } from './context-track-manager'
 import { IgnorePatternProvider } from './ignore-pattern-provider'
 
 /**
- * Acts as the ViewModel for the active track.
- * Orchestrates tree data flow, live stats updates, and drag-and-drop events.
+ * Orchestrates the TreeView for the active Context Track.
+ * * Features:
+ * - Structural Caching (O(1) read access)
+ * - Debounced Live Stats Updates
+ * - Drag and Drop File Processing
  */
 export class ContextStackProvider
   implements vscode.TreeDataProvider<StackTreeItem>, vscode.TreeDragAndDropController<StackTreeItem>, vscode.Disposable
 {
+  // --- Events ---
   private _onDidChangeTreeData = new vscode.EventEmitter<StackTreeItem | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
+  // --- DND Config ---
   public readonly dragMimeTypes: readonly string[] = ['text/uri-list']
   public readonly dropMimeTypes: readonly string[] = ['text/uri-list']
 
+  // --- Internal State ---
   private readonly DEBOUNCE_MS = 400
   private pendingUpdates = new Map<string, NodeJS.Timeout>()
   private disposables: vscode.Disposable[] = []
 
-  // Service Dependencies
+  // --- Caching ---
+  private _cachedTree: StackTreeItem[] | undefined
+  private _cachedTotalTokens: number = 0
+
+  // --- Dependencies ---
   private treeBuilder = new TreeBuilder()
   private statsProcessor = new StatsProcessor()
   private renderer = new StackItemRenderer()
@@ -35,32 +45,47 @@ export class ContextStackProvider
     private ignorePatternProvider: IgnorePatternProvider,
     private trackManager: ContextTrackManager,
   ) {
-    this.trackManager.onDidChangeTrack(() => this.refreshState())
+    this.registerListeners()
+    this.rebuildCacheAndRefresh()
+  }
 
+  private registerListeners(): void {
+    // Track changes
+    this.trackManager.onDidChangeTrack(() => this.rebuildCacheAndRefresh())
+
+    // Document changes
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument((e) => this.handleDocChange(e.document)),
       vscode.workspace.onDidSaveTextDocument((doc) => this.handleDocChange(doc, true)),
     )
-    this.refreshState()
   }
 
+  // --- Public API ---
+
   /**
-   * Retrieves the raw list of files from the active track.
+   * Retrieves the raw list of files in the current track.
    */
   public getFiles(): StagedFile[] {
     return this.trackManager.getActiveTrack().files
   }
 
+  /**
+   * Returns the user-facing name of the current track.
+   */
   public getActiveTrackName(): string {
     return this.trackManager.getActiveTrack().name
   }
 
+  /**
+   * Returns the cached total token count for the active track.
+   * Access is O(1).
+   */
   public getTotalTokens(): number {
-    return this.getFiles().reduce((sum, file) => sum + (file.stats?.tokenCount ?? 0), 0)
+    return this._cachedTotalTokens
   }
 
   /**
-   * Proxy for external consumers to format token counts consistently.
+   * Formats a raw number into a readable token string (e.g. "1.2k").
    */
   public formatTokenCount(count: number): string {
     return this.renderer.formatTokenCount(count)
@@ -69,16 +94,18 @@ export class ContextStackProvider
   // --- TreeDataProvider Implementation ---
 
   public getChildren(element?: StackTreeItem): StackTreeItem[] {
-    if (element) {
-      return isStagedFolder(element) ? element.children : []
+    // 1. Folder Children: Return directly from model
+    if (element && isStagedFolder(element)) {
+      return element.children
     }
 
-    const files = this.getFiles()
-    if (files.length === 0) {
-      return [this.renderer.createPlaceholderItem()]
+    // 2. Root: Return Cache
+    if (this._cachedTree) {
+      return this._cachedTree
     }
 
-    return this.treeBuilder.build(files)
+    // 3. Fallback: Rebuild (Rare)
+    return this.rebuildTreeCache()
   }
 
   public getTreeItem(element: StackTreeItem): vscode.TreeItem {
@@ -86,43 +113,103 @@ export class ContextStackProvider
   }
 
   public getParent(element: StackTreeItem): vscode.ProviderResult<StackTreeItem> {
-    return undefined
+    return undefined // View structure is flat enough to not require reverse traversal
   }
 
-  // --- Event Handling (Debouncing) ---
+  // --- State Management & Caching ---
 
   /**
-   * Updates file statistics when a document changes.
-   * Uses a debounce strategy to prevent performance hits during rapid typing.
+   * Full Rebuild: Reconstructs tree structure and triggers stat calculation.
+   * Use only when file list structure changes (Add/Remove).
+   */
+  private rebuildCacheAndRefresh(): void {
+    this.rebuildTreeCache()
+    this._onDidChangeTreeData.fire()
+
+    // Background enrichment
+    void this.enrichStatsInBackground()
+  }
+
+  /**
+   * Calculates stats for files that might be missing them.
+   * Runs in background to keep UI responsive.
+   */
+  private async enrichStatsInBackground(): Promise<void> {
+    try {
+      await this.statsProcessor.enrichFileStats(this.getFiles())
+      this.recalculateTotalTokens()
+      this._onDidChangeTreeData.fire()
+    } catch (error) {
+      Logger.error('Failed to enrich file stats', error as Error)
+    }
+  }
+
+  private rebuildTreeCache(): StackTreeItem[] {
+    const files = this.getFiles()
+
+    if (files.length === 0) {
+      this._cachedTree = [this.renderer.createPlaceholderItem()]
+    } else {
+      this._cachedTree = this.treeBuilder.build(files)
+    }
+
+    this.recalculateTotalTokens()
+    return this._cachedTree
+  }
+
+  private recalculateTotalTokens(): void {
+    this._cachedTotalTokens = this.getFiles().reduce((sum, f) => sum + (f.stats?.tokenCount ?? 0), 0)
+  }
+
+  // --- Event Handling (Incremental Updates) ---
+
+  /**
+   * Handles text document changes to update stats in real-time.
+   * Debounces the update to prevent CPU spikes.
    */
   private handleDocChange(doc: vscode.TextDocument, immediate = false): void {
     const targetFile = this.findStagedFile(doc.uri)
     if (!targetFile) return
 
+    this.scheduleStatsUpdate(doc, targetFile, immediate)
+  }
+
+  private scheduleStatsUpdate(doc: vscode.TextDocument, file: StagedFile, immediate: boolean): void {
     const key = doc.uri.toString()
 
-    // Clear existing timer to reset the debounce window
+    // Clear existing timer
     if (this.pendingUpdates.has(key)) {
       clearTimeout(this.pendingUpdates.get(key)!)
+      this.pendingUpdates.delete(key)
     }
 
     if (immediate) {
-      this.performStatsUpdate(doc, targetFile)
-    } else {
-      const timer = setTimeout(() => {
-        this.performStatsUpdate(doc, targetFile)
-        this.pendingUpdates.delete(key)
-      }, this.DEBOUNCE_MS)
-
-      this.pendingUpdates.set(key, timer)
+      this.performStatsUpdate(doc, file)
+      return
     }
+
+    // Schedule new timer
+    const timer = setTimeout(() => {
+      this.performStatsUpdate(doc, file)
+      this.pendingUpdates.delete(key)
+    }, this.DEBOUNCE_MS)
+
+    this.pendingUpdates.set(key, timer)
   }
 
   private performStatsUpdate(doc: vscode.TextDocument, file: StagedFile): void {
     try {
-      const stats = this.statsProcessor.measure(doc.getText())
-      file.stats = stats
-      this._onDidChangeTreeData.fire()
+      const oldTokens = file.stats?.tokenCount ?? 0
+      const newStats = this.statsProcessor.measure(doc.getText())
+
+      file.stats = newStats
+
+      // Incremental Global Update
+      const delta = newStats.tokenCount - oldTokens
+      this._cachedTotalTokens += delta
+
+      // Targeted UI Refresh
+      this._onDidChangeTreeData.fire(file)
     } catch (error) {
       Logger.warn(`Failed to update live stats for ${file.label}`)
     }
@@ -132,20 +219,16 @@ export class ContextStackProvider
     return this.trackManager.getActiveTrack().files.find((f) => f.uri.toString() === uri.toString())
   }
 
-  // --- State Management ---
+  // --- Actions ---
 
-  private refreshState(): void {
-    this._onDidChangeTreeData.fire()
-
-    // Fire-and-forget: Enrich stats in background to keep UI responsive
-    void this.statsProcessor.enrichFileStats(this.getFiles()).then(() => {
-      this._onDidChangeTreeData.fire()
-    })
-  }
-
+  /**
+   * Adds files to the current track and refreshes the view.
+   */
   public addFiles(uris: vscode.Uri[]): void {
     const newFiles = this.trackManager.addFilesToActive(uris)
-    if (newFiles.length > 0) this.refreshState()
+    if (newFiles.length > 0) {
+      this.rebuildCacheAndRefresh()
+    }
   }
 
   public addFile(uri: vscode.Uri): void {
@@ -154,40 +237,41 @@ export class ContextStackProvider
 
   public removeFiles(filesToRemove: StagedFile[]): void {
     this.trackManager.removeFilesFromActive(filesToRemove)
-    this.refreshState()
+    this.rebuildCacheAndRefresh()
   }
 
   public clear(): void {
     this.trackManager.clearActive()
-    this.refreshState()
+    this.rebuildCacheAndRefresh()
   }
 
   // --- Drag & Drop Controller ---
 
-  /**
-   * Handles files dropped onto the tree view.
-   * Filters external files and delegates folder scanning.
-   */
   public async handleDrop(target: StackTreeItem | undefined, dataTransfer: vscode.DataTransfer): Promise<void> {
-    const uris = await extractUrisFromTransfer(dataTransfer)
+    try {
+      const uris = await extractUrisFromTransfer(dataTransfer)
 
-    if (!this.validateDroppedUris(uris, dataTransfer)) return
+      if (!this.validateDroppedUris(uris, dataTransfer)) return
 
-    const { validUris, rejectedCount } = this.filterWorkspaceUris(uris)
+      const { validUris, rejectedCount } = this.filterWorkspaceUris(uris)
 
-    if (rejectedCount > 0) {
-      void vscode.window.showInformationMessage(`Ignored ${rejectedCount} file(s) outside the workspace.`)
-    }
+      if (rejectedCount > 0) {
+        void vscode.window.showInformationMessage(`Ignored ${rejectedCount} file(s) outside workspace.`)
+      }
 
-    if (validUris.length > 0) {
-      await this.processDroppedFiles(validUris)
+      if (validUris.length > 0) {
+        await this.processDroppedFiles(validUris)
+      }
+    } catch (error) {
+      Logger.error('Failed to handle drop event', error as Error)
+      void vscode.window.showErrorMessage('Failed to process dropped files.')
     }
   }
 
   private validateDroppedUris(uris: vscode.Uri[], dataTransfer: vscode.DataTransfer): boolean {
     if (uris.length > 0) return true
 
-    // Only warn if the user actually tried to drop text/plain that we can't parse
+    // Check if it was a text drop that resulted in no URIs
     if (dataTransfer.get('text/plain')) {
       void vscode.window.showWarningMessage('Drop ignored: No valid files detected.')
     }
@@ -221,5 +305,6 @@ export class ContextStackProvider
     this._onDidChangeTreeData.dispose()
     this.disposables.forEach((d) => d.dispose())
     this.pendingUpdates.forEach((timer) => clearTimeout(timer))
+    this.pendingUpdates.clear()
   }
 }
