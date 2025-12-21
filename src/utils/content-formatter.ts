@@ -11,6 +11,8 @@ export interface FormatOptions {
   skipTree?: boolean
 }
 
+const MAX_FILE_SIZE = 1024 * 1024 // 1MB
+
 /**
  * Formats staged files into Markdown code blocks and generates ASCII trees.
  */
@@ -89,6 +91,9 @@ export class ContentFormatter {
     }
 
     try {
+      const sizeWarning = await this.validateFileSize(file.uri)
+      if (sizeWarning) return sizeWarning
+
       const content = await this.readFileContent(file.uri)
       if (content === null) return ''
 
@@ -101,8 +106,18 @@ export class ContentFormatter {
     }
   }
 
+  private static async validateFileSize(uri: vscode.Uri): Promise<string | null> {
+    const stats = await vscode.workspace.fs.stat(uri)
+    if (stats.size > MAX_FILE_SIZE) {
+      Logger.warn(`Skipping large file (${stats.size} bytes): ${uri.fsPath}`)
+      return `> Skipped large file (>1MB): ${vscode.workspace.asRelativePath(uri)}\n`
+    }
+    return null
+  }
+
   private static async readFileContent(uri: vscode.Uri): Promise<string | null> {
     const uint8Array = await vscode.workspace.fs.readFile(uri)
+    // Check for binary content (null bytes) in the first 512 bytes
     if (uint8Array.slice(0, 512).some((b) => b === 0)) return null
     return Buffer.from(uint8Array).toString('utf-8')
   }
