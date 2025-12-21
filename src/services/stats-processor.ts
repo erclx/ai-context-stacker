@@ -6,7 +6,7 @@ import { Logger, TokenEstimator } from '../utils'
 
 /**
  * Service responsible for file I/O, binary detection, and token estimation.
- * Implements bounded concurrency to prevent EMFILE errors and memory exhaustion.
+ * Implements bounded concurrency and cooperative multitasking to prevent UI freeze.
  */
 export class StatsProcessor {
   private readonly decoder = new TextDecoder()
@@ -27,7 +27,10 @@ export class StatsProcessor {
     // Chunk processing allows GC to clean up buffers between batches
     for (let i = 0; i < queue.length; i += this.CONCURRENCY_LIMIT) {
       const chunk = queue.slice(i, i + this.CONCURRENCY_LIMIT)
+
       await Promise.all(chunk.map((file) => this.processFile(file)))
+
+      await this.yieldToEventLoop()
     }
   }
 
@@ -62,6 +65,9 @@ export class StatsProcessor {
    */
   private async analyzeSmallFile(file: StagedFile, size: number): Promise<void> {
     const content = await this.readTextContent(file.uri)
+
+    // Yield if read was fast (hot cache) to prevent CPU clumping before measure
+    await this.yieldToEventLoop()
 
     if (content === null) {
       file.isBinary = true
@@ -118,5 +124,20 @@ export class StatsProcessor {
 
     if (isBinary) return null
     return this.decoder.decode(uint8Array)
+  }
+
+  /**
+   * Forces a break in the execution chain to allow the event loop to process
+   * pending events (rendering, input, etc.).
+   */
+  private yieldToEventLoop(): Promise<void> {
+    return new Promise((resolve) => {
+      // setImmediate is preferred in Node.js environments (like VS Code)
+      if (typeof setImmediate === 'function') {
+        setImmediate(resolve)
+      } else {
+        setTimeout(resolve, 0)
+      }
+    })
   }
 }
