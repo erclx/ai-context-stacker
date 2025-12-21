@@ -9,6 +9,7 @@ import { registerAddOpenFilesCommand } from './add-open-files'
 import { registerClearAllCommand } from './clear-all'
 import { registerCopyAllCommand } from './copy-all'
 import { registerCopyFileCommand } from './copy-file'
+import { registerManageExcludesCommand } from './manage-excludes'
 import { registerPreviewContextCommand } from './preview-context'
 import { registerRemoveFileCommand } from './remove-file'
 import { registerTogglePinCommand } from './toggle-pin'
@@ -56,4 +57,5 @@ function registerTrackOperations(deps: CommandDependencies) {
 
 function registerViewOperations(deps: CommandDependencies) {
   registerPreviewContextCommand(deps.context, deps.services.contextStackProvider)
+  registerManageExcludesCommand(deps.context)
 }

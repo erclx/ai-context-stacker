@@ -12,6 +12,19 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "AI Context Stacker",
+      "properties": {
+        "aiContextStacker.excludes": {
+          "type": "array",
+          "default": [],
+          "description": "Active exclusion patterns. Uncheck items in the Manager to disable them without deleting.",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -115,6 +128,12 @@
         "title": "Delete Track",
         "category": "AI Context Stacker",
         "icon": "$(trash)"
+      },
+      {
+        "command": "aiContextStacker.manageExcludes",
+        "title": "Manage Excludes",
+        "category": "AI Context Stacker",
+        "icon": "$(filter)"
       }
     ],
     "menus": {
@@ -148,9 +167,15 @@
           "//": "--- Staged Files: Title ---",
           "command": "aiContextStacker.addFilePicker",
           "when": "view == aiContextStackerView",
-          "group": "navigation@1"
+          "group": "navigation@0"
         },
         {
+          "//": "--- Staged Files: Overflow Menu (...) ---",
+          "command": "aiContextStacker.manageExcludes",
+          "when": "view == aiContextStackerView"
+        },
+        {
+          "//": "--- Staged Files: Title ---",
           "command": "aiContextStacker.copyAll",
           "when": "view == aiContextStackerView",
           "group": "navigation@2"

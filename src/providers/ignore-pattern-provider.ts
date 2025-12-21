@@ -4,20 +4,19 @@ import { IgnoreParser } from '../services'
 import { Logger } from '../utils'
 
 /**
- * Manages file exclusion patterns by reading .gitignore and merging with defaults.
- * Caches results and watches for .gitignore changes.
+ * Manages file exclusion patterns by combining .gitignore, User Settings, and Defaults.
  */
 export class IgnorePatternProvider implements vscode.Disposable {
   private _cachedPatterns: string | undefined
-  private _watcher: vscode.FileSystemWatcher | undefined
+  private _fsWatcher: vscode.FileSystemWatcher | undefined
+  private _configListener: vscode.Disposable | undefined
 
   constructor() {
-    this.initWatcher()
+    this.initWatchers()
   }
 
   /**
    * Returns combined exclusion patterns for vscode.workspace.findFiles.
-   * Result is cached and invalidated on .gitignore changes.
    */
   public async getExcludePatterns(): Promise<string> {
     if (this._cachedPatterns) {
@@ -25,52 +24,56 @@ export class IgnorePatternProvider implements vscode.Disposable {
       return this._cachedPatterns
     }
 
-    Logger.info('Ignore patterns cache miss. Generating patterns from disk...')
-    this._cachedPatterns = await this.readGitIgnore()
-    return this._cachedPatterns
+    Logger.info('Ignore patterns cache miss. Regenerating...')
+    await this.refreshPatterns()
+    return this._cachedPatterns ?? IgnoreParser.DEFAULT_EXCLUDES
   }
 
-  private async readGitIgnore(): Promise<string> {
+  private async refreshPatterns(): Promise<void> {
     try {
-      const files = await vscode.workspace.findFiles('.gitignore', null, 1)
+      const gitIgnoreContent = await this.readGitIgnoreContent()
+      const userSettings = this.getUserSettings()
 
-      if (files.length === 0) {
-        Logger.info('.gitignore not found. Using fallback excludes.')
-        return IgnoreParser.DEFAULT_EXCLUDES
-      }
-
-      const uri = files[0]
-      const uint8Array = await vscode.workspace.fs.readFile(uri)
-      const content = Buffer.from(uint8Array).toString('utf-8')
-
-      const finalPatterns = IgnoreParser.generatePatternString(content)
-
-      Logger.info('.gitignore parsed; exclusion patterns generated.')
-      return finalPatterns
+      this._cachedPatterns = IgnoreParser.generatePatternString(gitIgnoreContent, userSettings)
+      Logger.info('Exclusion patterns generated successfully.')
     } catch (error) {
-      Logger.error('Error reading/parsing .gitignore. Reverting to fallback excludes.', error)
-      return IgnoreParser.DEFAULT_EXCLUDES
+      Logger.error('Error generating patterns. Reverting to defaults.', error)
+      this._cachedPatterns = IgnoreParser.DEFAULT_EXCLUDES
     }
   }
 
-  /**
-   * Watches .gitignore for changes and invalidates cache.
-   */
-  private initWatcher() {
-    this._watcher = vscode.workspace.createFileSystemWatcher('**/.gitignore')
+  private async readGitIgnoreContent(): Promise<string> {
+    const files = await vscode.workspace.findFiles('.gitignore', null, 1)
+    if (files.length === 0) return ''
 
-    const invalidate = () => {
-      Logger.info('Ignore patterns cache invalidated (due to .gitignore change).')
-      this._cachedPatterns = undefined
-    }
+    const uint8Array = await vscode.workspace.fs.readFile(files[0])
+    return Buffer.from(uint8Array).toString('utf-8')
+  }
 
-    this._watcher.onDidCreate(invalidate)
-    this._watcher.onDidChange(invalidate)
-    this._watcher.onDidDelete(invalidate)
+  private getUserSettings(): string[] {
+    const config = vscode.workspace.getConfiguration('aiContextStacker')
+    return config.get<string[]>('excludes', [])
+  }
+
+  private initWatchers() {
+    this._fsWatcher = vscode.workspace.createFileSystemWatcher('**/.gitignore')
+    const invalidate = () => (this._cachedPatterns = undefined)
+
+    this._fsWatcher.onDidCreate(invalidate)
+    this._fsWatcher.onDidChange(invalidate)
+    this._fsWatcher.onDidDelete(invalidate)
+
+    this._configListener = vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('aiContextStacker.excludes')) {
+        Logger.info('User settings changed. Invalidating cache.')
+        this._cachedPatterns = undefined
+      }
+    })
   }
 
   public dispose() {
-    this._watcher?.dispose()
-    Logger.info('IgnorePatternProvider disposed: FileSystemWatcher cleaned up.')
+    this._fsWatcher?.dispose()
+    this._configListener?.dispose()
+    Logger.info('IgnorePatternProvider disposed.')
   }
 }
