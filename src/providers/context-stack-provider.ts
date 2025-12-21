@@ -1,7 +1,8 @@
 import * as vscode from 'vscode'
 
-import { isStagedFolder, StackTreeItem, type StagedFile, StagedFolder } from '../models'
+import { isStagedFolder, StackTreeItem, type StagedFile } from '../models'
 import { StatsProcessor, TreeBuilder } from '../services'
+import { StackItemRenderer } from '../ui'
 import { categorizeTargets, handleFolderScanning, Logger } from '../utils'
 import { extractUrisFromTransfer } from '../utils/drag-drop'
 import { ContextTrackManager } from './context-track-manager'
@@ -9,7 +10,7 @@ import { IgnorePatternProvider } from './ignore-pattern-provider'
 
 /**
  * Acts as the ViewModel for the active track.
- * Orchestrates tree building, stats updates, and UI events.
+ * Orchestrates tree data flow, live stats updates, and drag-and-drop events.
  */
 export class ContextStackProvider
   implements vscode.TreeDataProvider<StackTreeItem>, vscode.TreeDragAndDropController<StackTreeItem>, vscode.Disposable
@@ -20,17 +21,14 @@ export class ContextStackProvider
   public readonly dragMimeTypes: readonly string[] = ['text/uri-list']
   public readonly dropMimeTypes: readonly string[] = ['text/uri-list']
 
-  private readonly EMPTY_URI = vscode.Uri.parse('ai-stack:empty-drop-target')
-  private readonly EMPTY_ID = 'emptyState'
-  private readonly HIGH_TOKEN_THRESHOLD = 5000
   private readonly DEBOUNCE_MS = 400
-
   private pendingUpdates = new Map<string, NodeJS.Timeout>()
   private disposables: vscode.Disposable[] = []
 
-  // Helpers
+  // Service Dependencies
   private treeBuilder = new TreeBuilder()
   private statsProcessor = new StatsProcessor()
+  private renderer = new StackItemRenderer()
 
   constructor(
     private extensionContext: vscode.ExtensionContext,
@@ -46,206 +44,182 @@ export class ContextStackProvider
     this.refreshState()
   }
 
-  getFiles(): StagedFile[] {
+  /**
+   * Retrieves the raw list of files from the active track.
+   */
+  public getFiles(): StagedFile[] {
     return this.trackManager.getActiveTrack().files
   }
 
-  getActiveTrackName(): string {
+  public getActiveTrackName(): string {
     return this.trackManager.getActiveTrack().name
   }
 
-  getTotalTokens(): number {
+  public getTotalTokens(): number {
     return this.getFiles().reduce((sum, file) => sum + (file.stats?.tokenCount ?? 0), 0)
   }
 
-  // --- Tree Data Provider ---
+  /**
+   * Proxy for external consumers to format token counts consistently.
+   */
+  public formatTokenCount(count: number): string {
+    return this.renderer.formatTokenCount(count)
+  }
 
-  getChildren(element?: StackTreeItem): StackTreeItem[] {
+  // --- TreeDataProvider Implementation ---
+
+  public getChildren(element?: StackTreeItem): StackTreeItem[] {
     if (element) {
       return isStagedFolder(element) ? element.children : []
     }
 
     const files = this.getFiles()
     if (files.length === 0) {
-      return [this.createPlaceholderItem()]
+      return [this.renderer.createPlaceholderItem()]
     }
 
     return this.treeBuilder.build(files)
   }
 
-  getTreeItem(element: StackTreeItem): vscode.TreeItem {
-    if (isStagedFolder(element)) return this.createFolderTreeItem(element)
-    if (element.uri.scheme === this.EMPTY_URI.scheme) return this.createEmptyTreeItem(element)
-    return this.createFileTreeItem(element)
+  public getTreeItem(element: StackTreeItem): vscode.TreeItem {
+    return this.renderer.render(element)
   }
 
-  getParent(element: StackTreeItem): vscode.ProviderResult<StackTreeItem> {
+  public getParent(element: StackTreeItem): vscode.ProviderResult<StackTreeItem> {
     return undefined
   }
 
-  // --- UI Rendering ---
+  // --- Event Handling (Debouncing) ---
 
-  private createFolderTreeItem(folder: StagedFolder): vscode.TreeItem {
-    const item = new vscode.TreeItem(folder.label, vscode.TreeItemCollapsibleState.Expanded)
-    item.contextValue = 'stagedFolder'
-    item.iconPath = vscode.ThemeIcon.Folder
-    item.resourceUri = folder.resourceUri
-
-    const totalTokens = folder.containedFiles.reduce((sum, f) => sum + (f.stats?.tokenCount ?? 0), 0)
-    item.description = this.formatTokenCount(totalTokens)
-    item.tooltip = `${folder.containedFiles.length} files inside`
-
-    return item
-  }
-
-  private createFileTreeItem(file: StagedFile): vscode.TreeItem {
-    const item = new vscode.TreeItem(file.label)
-    item.resourceUri = file.uri
-    item.contextValue = file.isPinned ? 'stagedFile:pinned' : 'stagedFile'
-    item.command = { command: 'vscode.open', title: 'Open File', arguments: [file.uri] }
-
-    if (file.isBinary) {
-      this.decorateBinaryItem(item, file)
-      return item
-    }
-
-    item.iconPath = this.getFileIcon(file)
-    item.description = this.getFileDescription(file)
-
-    return item
-  }
-
-  private getFileIcon(file: StagedFile): vscode.ThemeIcon {
-    if (file.isPinned) {
-      return new vscode.ThemeIcon('pin')
-    }
-    const tokenCount = file.stats?.tokenCount ?? 0
-    return new vscode.ThemeIcon('file', this.getIconColor(tokenCount))
-  }
-
-  private getFileDescription(file: StagedFile): string {
-    const tokenPart = file.stats ? `${this.formatTokenCount(file.stats.tokenCount)}` : '...'
-    const parts = [tokenPart, file.isPinned ? '(Pinned)' : '']
-    return parts.filter(Boolean).join(' • ')
-  }
-
-  private createEmptyTreeItem(element: StagedFile): vscode.TreeItem {
-    const item = new vscode.TreeItem(element.label)
-    item.iconPath = new vscode.ThemeIcon('cloud-upload')
-    item.contextValue = this.EMPTY_ID
-    item.command = {
-      command: 'aiContextStacker.addFilePicker',
-      title: 'Add Files',
-    }
-    return item
-  }
-
-  private createPlaceholderItem(): StagedFile {
-    return {
-      type: 'file',
-      uri: this.EMPTY_URI,
-      label: 'Drag files here to start...',
-    }
-  }
-
-  private decorateBinaryItem(item: vscode.TreeItem, element: StagedFile) {
-    item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
-    item.description = 'Binary'
-    item.tooltip = 'Binary file detected.'
-  }
-
-  private getIconColor(tokenCount: number): vscode.ThemeColor | undefined {
-    return tokenCount > this.HIGH_TOKEN_THRESHOLD ? new vscode.ThemeColor('charts.orange') : undefined
-  }
-
-  public formatTokenCount(count: number): string {
-    return count >= 1000 ? `~${(count / 1000).toFixed(1)}k` : `~${count}`
-  }
-
-  // --- Events & Updates ---
-
-  private handleDocChange(doc: vscode.TextDocument, immediate = false) {
-    const activeFiles = this.trackManager.getActiveTrack().files
-    const targetFile = activeFiles.find((f) => f.uri.toString() === doc.uri.toString())
+  /**
+   * Updates file statistics when a document changes.
+   * Uses a debounce strategy to prevent performance hits during rapid typing.
+   */
+  private handleDocChange(doc: vscode.TextDocument, immediate = false): void {
+    const targetFile = this.findStagedFile(doc.uri)
     if (!targetFile) return
 
     const key = doc.uri.toString()
-    if (this.pendingUpdates.has(key)) clearTimeout(this.pendingUpdates.get(key)!)
 
-    const updateLogic = () => {
-      try {
-        const stats = this.statsProcessor.measure(doc.getText())
-        targetFile.stats = stats
-        this._onDidChangeTreeData.fire()
-      } catch {
-        Logger.warn(`Failed to update live stats for ${targetFile.label}`)
-      }
-      this.pendingUpdates.delete(key)
+    // Clear existing timer to reset the debounce window
+    if (this.pendingUpdates.has(key)) {
+      clearTimeout(this.pendingUpdates.get(key)!)
     }
 
-    // Debounce updates during typing to avoid recalculating stats on every keystroke
-    if (immediate) updateLogic()
-    else this.pendingUpdates.set(key, setTimeout(updateLogic, this.DEBOUNCE_MS))
+    if (immediate) {
+      this.performStatsUpdate(doc, targetFile)
+    } else {
+      const timer = setTimeout(() => {
+        this.performStatsUpdate(doc, targetFile)
+        this.pendingUpdates.delete(key)
+      }, this.DEBOUNCE_MS)
+
+      this.pendingUpdates.set(key, timer)
+    }
   }
+
+  private performStatsUpdate(doc: vscode.TextDocument, file: StagedFile): void {
+    try {
+      const stats = this.statsProcessor.measure(doc.getText())
+      file.stats = stats
+      this._onDidChangeTreeData.fire()
+    } catch (error) {
+      Logger.warn(`Failed to update live stats for ${file.label}`)
+    }
+  }
+
+  private findStagedFile(uri: vscode.Uri): StagedFile | undefined {
+    return this.trackManager.getActiveTrack().files.find((f) => f.uri.toString() === uri.toString())
+  }
+
+  // --- State Management ---
 
   private refreshState(): void {
     this._onDidChangeTreeData.fire()
-    // Fire-and-forget stat enrichment
+
+    // Fire-and-forget: Enrich stats in background to keep UI responsive
     void this.statsProcessor.enrichFileStats(this.getFiles()).then(() => {
       this._onDidChangeTreeData.fire()
     })
   }
 
-  // --- CRUD & Drag/Drop ---
-
-  addFiles(uris: vscode.Uri[]): void {
+  public addFiles(uris: vscode.Uri[]): void {
     const newFiles = this.trackManager.addFilesToActive(uris)
     if (newFiles.length > 0) this.refreshState()
   }
 
-  addFile(uri: vscode.Uri): void {
+  public addFile(uri: vscode.Uri): void {
     this.addFiles([uri])
   }
 
-  removeFiles(filesToRemove: StagedFile[]): void {
+  public removeFiles(filesToRemove: StagedFile[]): void {
     this.trackManager.removeFilesFromActive(filesToRemove)
     this.refreshState()
   }
 
-  clear(): void {
+  public clear(): void {
     this.trackManager.clearActive()
     this.refreshState()
   }
 
-  async handleDrop(target: StackTreeItem | undefined, dataTransfer: vscode.DataTransfer): Promise<void> {
-    const extractedUris = await extractUrisFromTransfer(dataTransfer)
+  // --- Drag & Drop Controller ---
 
-    if (extractedUris.length === 0) {
-      if (dataTransfer.get('text/plain')) {
-        void vscode.window.showWarningMessage('Drop ignored: No valid files detected.')
-      }
-      return
-    }
+  /**
+   * Handles files dropped onto the tree view.
+   * Filters external files and delegates folder scanning.
+   */
+  public async handleDrop(target: StackTreeItem | undefined, dataTransfer: vscode.DataTransfer): Promise<void> {
+    const uris = await extractUrisFromTransfer(dataTransfer)
 
-    const allowedUris = extractedUris.filter((uri) => vscode.workspace.getWorkspaceFolder(uri))
-    const rejectedCount = extractedUris.length - allowedUris.length
+    if (!this.validateDroppedUris(uris, dataTransfer)) return
 
-    if (allowedUris.length === 0) {
-      void vscode.window.showWarningMessage('Drop ignored: Files must be within the current workspace.')
-      return
-    }
+    const { validUris, rejectedCount } = this.filterWorkspaceUris(uris)
 
     if (rejectedCount > 0) {
       void vscode.window.showInformationMessage(`Ignored ${rejectedCount} file(s) outside the workspace.`)
     }
 
-    const { files, folders } = await categorizeTargets(allowedUris)
-    if (files.length > 0) this.addFiles(files)
-    if (folders.length > 0) await handleFolderScanning(folders, this, this.ignorePatternProvider)
+    if (validUris.length > 0) {
+      await this.processDroppedFiles(validUris)
+    }
   }
 
-  dispose() {
+  private validateDroppedUris(uris: vscode.Uri[], dataTransfer: vscode.DataTransfer): boolean {
+    if (uris.length > 0) return true
+
+    // Only warn if the user actually tried to drop text/plain that we can't parse
+    if (dataTransfer.get('text/plain')) {
+      void vscode.window.showWarningMessage('Drop ignored: No valid files detected.')
+    }
+    return false
+  }
+
+  private filterWorkspaceUris(uris: vscode.Uri[]): { validUris: vscode.Uri[]; rejectedCount: number } {
+    const validUris = uris.filter((uri) => vscode.workspace.getWorkspaceFolder(uri))
+    const rejectedCount = uris.length - validUris.length
+
+    if (validUris.length === 0 && rejectedCount > 0) {
+      void vscode.window.showWarningMessage('Drop ignored: Files must be within the current workspace.')
+    }
+
+    return { validUris, rejectedCount }
+  }
+
+  private async processDroppedFiles(uris: vscode.Uri[]): Promise<void> {
+    const { files, folders } = await categorizeTargets(uris)
+
+    if (files.length > 0) {
+      this.addFiles(files)
+    }
+
+    if (folders.length > 0) {
+      await handleFolderScanning(folders, this, this.ignorePatternProvider)
+    }
+  }
+
+  public dispose(): void {
     this._onDidChangeTreeData.dispose()
     this.disposables.forEach((d) => d.dispose())
+    this.pendingUpdates.forEach((timer) => clearTimeout(timer))
   }
 }
