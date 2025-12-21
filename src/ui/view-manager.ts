@@ -1,8 +1,9 @@
 import * as vscode from 'vscode'
 
 import { ContextTrack, StackTreeItem } from '../models'
-import { ContextStackProvider, ContextTrackManager } from '../providers'
+import { ContextStackProvider, ContextTrackManager, IgnorePatternProvider } from '../providers'
 import { TrackListProvider } from '../providers/track-list-provider'
+import { StackDragDropController } from './stack-drag-drop'
 
 /**
  * Manages the creation, configuration, and state synchronization of VS Code TreeViews.
@@ -17,10 +18,14 @@ export class ViewManager implements vscode.Disposable {
     stackProvider: ContextStackProvider,
     trackListProvider: TrackListProvider,
     trackManager: ContextTrackManager,
+    ignoreProvider: IgnorePatternProvider,
   ) {
+    // Composition Root: Wire Controller to Provider
+    const dragDropController = new StackDragDropController(stackProvider, ignoreProvider)
+
     this.filesView = vscode.window.createTreeView('aiContextStackerView', {
       treeDataProvider: stackProvider,
-      dragAndDropController: stackProvider,
+      dragAndDropController: dragDropController,
       canSelectMany: true,
     })
 
@@ -39,7 +44,7 @@ export class ViewManager implements vscode.Disposable {
       this._disposables,
     )
 
-    this._disposables.push(this.filesView, this.tracksView)
+    this._disposables.push(this.filesView, this.tracksView, dragDropController)
   }
 
   private updateTitle(trackName: string) {

@@ -17,7 +17,12 @@ export function activate(context: vscode.ExtensionContext): ServiceRegistry {
   const services = new ServiceRegistry(context)
   services.register(context.subscriptions)
 
-  const views = new ViewManager(services.contextStackProvider, services.trackListProvider, services.contextTrackManager)
+  const views = new ViewManager(
+    services.contextStackProvider,
+    services.trackListProvider,
+    services.contextTrackManager,
+    services.ignorePatternProvider,
+  )
   context.subscriptions.push(views)
 
   const statusBar = new StackerStatusBar(context, services.contextStackProvider)
