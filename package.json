@@ -2,13 +2,24 @@
   "name": "ai-context-stacker",
   "displayName": "AI Context Stacker",
   "publisher": "erclx",
-  "description": "A VS Code extension that acts as a staging area for AI prompts.",
+  "description": "Stage and copy multiple files for AI prompts without context switching.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.107.0"
   },
   "categories": [
     "Other"
+  ],
+  "keywords": [
+    "ai",
+    "llm",
+    "chatgpt",
+    "claude",
+    "context",
+    "prompt",
+    "staging",
+    "copilot",
+    "assistant"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
