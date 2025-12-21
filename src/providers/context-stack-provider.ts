@@ -17,8 +17,8 @@ export class ContextStackProvider
   private _onDidChangeTreeData = new vscode.EventEmitter<StackTreeItem | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
-  public readonly dragMimeTypes: readonly string[] = ['text/uri-list', 'text/plain']
-  public readonly dropMimeTypes: readonly string[] = ['text/uri-list', 'text/plain']
+  public readonly dragMimeTypes: readonly string[] = ['text/uri-list']
+  public readonly dropMimeTypes: readonly string[] = ['text/uri-list']
 
   private readonly EMPTY_URI = vscode.Uri.parse('ai-stack:empty-drop-target')
   private readonly EMPTY_ID = 'emptyState'
@@ -218,10 +218,28 @@ export class ContextStackProvider
   }
 
   async handleDrop(target: StackTreeItem | undefined, dataTransfer: vscode.DataTransfer): Promise<void> {
-    const uris = await extractUrisFromTransfer(dataTransfer)
-    if (uris.length === 0) return
+    const extractedUris = await extractUrisFromTransfer(dataTransfer)
 
-    const { files, folders } = await categorizeTargets(uris)
+    if (extractedUris.length === 0) {
+      if (dataTransfer.get('text/plain')) {
+        void vscode.window.showWarningMessage('Drop ignored: No valid files detected.')
+      }
+      return
+    }
+
+    const allowedUris = extractedUris.filter((uri) => vscode.workspace.getWorkspaceFolder(uri))
+    const rejectedCount = extractedUris.length - allowedUris.length
+
+    if (allowedUris.length === 0) {
+      void vscode.window.showWarningMessage('Drop ignored: Files must be within the current workspace.')
+      return
+    }
+
+    if (rejectedCount > 0) {
+      void vscode.window.showInformationMessage(`Ignored ${rejectedCount} file(s) outside the workspace.`)
+    }
+
+    const { files, folders } = await categorizeTargets(allowedUris)
     if (files.length > 0) this.addFiles(files)
     if (folders.length > 0) await handleFolderScanning(folders, this, this.ignorePatternProvider)
   }
