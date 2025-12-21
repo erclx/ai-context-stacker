@@ -8,8 +8,9 @@ import { Logger } from './utils'
 /**
  * Extension entry point.
  * Initializes DI container, views, and command registration.
+ * @returns ServiceRegistry instance for integration testing.
  */
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext): ServiceRegistry {
   Logger.configure('AI Context Stacker')
   Logger.info('Extension is activating...')
 
@@ -37,6 +38,8 @@ export function activate(context: vscode.ExtensionContext) {
   })
 
   Logger.info('Extension is activated')
+
+  return services
 }
 
 export function deactivate() {
