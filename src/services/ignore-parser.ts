@@ -1,5 +1,4 @@
 const FALLBACK_EXCLUDE_PATTERNS = [
-  // Node / JS
   '**/.git/**',
   '**/node_modules/**',
   '**/build/**',
@@ -12,47 +11,49 @@ const FALLBACK_EXCLUDE_PATTERNS = [
   '**/pnpm-lock.yaml',
   '**/bun.lockb',
   '**/.bun/**',
-
-  // Python
   '**/__pycache__/**',
   '**/.venv/**',
   '**/venv/**',
   '**/.env',
   '**/*.pyc',
-
-  // System / VS Code
   '**/.vscode/**',
   '**/*.log',
   '**/.DS_Store',
 ]
 
+const RX_LEADING_SLASH = /^\//
+const RX_TRAILING_SLASH = /\/$/
+const RX_STARTS_WITH_STARS = /^\*\*/
+
 /**
  * Service responsible for parsing gitignore content into VS Code glob patterns.
+ * Optimized for startup speed.
  */
 export class IgnoreParser {
   public static readonly DEFAULT_EXCLUDES = `{${FALLBACK_EXCLUDE_PATTERNS.join(',')}}`
 
-  /**
-   * Parses .gitignore content, merges with User Settings and Default Fallbacks.
-   * @param content - Raw string content of .gitignore (can be empty string).
-   * @param userExcludes - Array of patterns from VS Code configuration.
-   */
   public static generatePatternString(content: string, userExcludes: string[] = []): string {
     const gitPatterns = this.parseRawLines(content)
     const userPatterns = this.formatUserPatterns(userExcludes)
 
-    // Merge User settings + GitIgnore patterns
-    const activePatterns = [...gitPatterns, ...userPatterns]
+    const patternSet = new Set([...gitPatterns, ...userPatterns])
 
-    // Add Fallbacks only if they are not already covered
-    const defaultsToAdd = FALLBACK_EXCLUDE_PATTERNS.filter((p) => !activePatterns.includes(p))
+    // Add defaults if missing
+    for (const def of FALLBACK_EXCLUDE_PATTERNS) {
+      if (!patternSet.has(def)) {
+        patternSet.add(def)
+      }
+    }
 
-    return `{${[...activePatterns, ...defaultsToAdd].join(',')}}`
+    return `{${Array.from(patternSet).join(',')}}`
   }
 
   private static parseRawLines(content: string): string[] {
+    if (!content) return []
+
+    // Split by newline regex handles \r\n and \n uniformly
     return content
-      .split('\n')
+      .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line && !line.startsWith('#') && !line.startsWith('!'))
       .map((line) => this.convertToGlob(line))
@@ -63,8 +64,11 @@ export class IgnoreParser {
   }
 
   private static convertToGlob(line: string): string {
-    // Clean leading/trailing slashes and ensure **/ prefix for robust matching
-    const cleanLine = line.replace(/^\//, '').replace(/\/$/, '')
-    return cleanLine.startsWith('**') ? cleanLine : `**/${cleanLine}`
+    let cleanLine = line
+
+    if (RX_LEADING_SLASH.test(cleanLine)) cleanLine = cleanLine.replace(RX_LEADING_SLASH, '')
+    if (RX_TRAILING_SLASH.test(cleanLine)) cleanLine = cleanLine.replace(RX_TRAILING_SLASH, '')
+
+    return RX_STARTS_WITH_STARS.test(cleanLine) ? cleanLine : `**/${cleanLine}`
   }
 }
