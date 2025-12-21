@@ -9,17 +9,8 @@ import { Logger, TokenEstimator } from '../utils'
  */
 export class StatsProcessor {
   private readonly decoder = new TextDecoder()
-
-  /**
-   * Measures content stats for a single file string.
-   */
-  public measure(content: string): ContentStats {
-    const measurements = TokenEstimator.measure(content)
-    return {
-      tokenCount: measurements.tokenCount,
-      charCount: content.length,
-    }
-  }
+  // Limit accurate token counting to 1MB to prevent OOM/Freezes
+  private readonly MAX_ANALYSIS_SIZE = 1024 * 1024
 
   /**
    * Enriches file metadata by reading content and calculating token estimates in parallel.
@@ -37,6 +28,18 @@ export class StatsProcessor {
    */
   private async processFile(file: StagedFile): Promise<void> {
     try {
+      const fileSize = await this.getFileSize(file.uri)
+
+      // optimization: Fast heuristic for large files without reading content
+      if (fileSize > this.MAX_ANALYSIS_SIZE) {
+        file.isBinary = false // Assume text if we can't check, or handle as special case
+        file.stats = {
+          tokenCount: Math.ceil(fileSize / 4), // Rough estimate
+          charCount: fileSize,
+        }
+        return
+      }
+
       const content = await this.readTextContent(file.uri)
 
       if (content === null) {
@@ -48,6 +51,28 @@ export class StatsProcessor {
       }
     } catch (error) {
       Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
+      // Set zero stats on error to prevent infinite retry loops
+      file.stats = { tokenCount: 0, charCount: 0 }
+    }
+  }
+
+  /**
+   * Measures content stats for a single file string.
+   */
+  public measure(content: string): ContentStats {
+    const measurements = TokenEstimator.measure(content)
+    return {
+      tokenCount: measurements.tokenCount,
+      charCount: content.length,
+    }
+  }
+
+  private async getFileSize(uri: vscode.Uri): Promise<number> {
+    try {
+      const stat = await vscode.workspace.fs.stat(uri)
+      return stat.size
+    } catch {
+      return 0
     }
   }
 
