@@ -4,6 +4,13 @@
   "publisher": "erclx",
   "description": "Stage and copy multiple files for AI prompts without context switching.",
   "version": "0.0.1",
+  "license": "MIT",
+  "icon": "assets/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/erclx/ai-context-stacker.git"
+  },
+  "homepage": "https://github.com/erclx/ai-context-stacker",
   "engines": {
     "vscode": "^1.107.0"
   },
