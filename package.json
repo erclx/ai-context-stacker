@@ -121,8 +121,8 @@
         "category": "AI Context Stacker"
       },
       {
-        "command": "aiContextStacker.toggleTree",
-        "title": "Include File Tree",
+        "command": "aiContextStacker.configureOutput",
+        "title": "Configure Output...",
         "category": "AI Context Stacker"
       },
       {
@@ -229,10 +229,9 @@
         },
         {
           "//": "--- Divider will be rendered here ---",
-          "command": "aiContextStacker.toggleTree",
+          "command": "aiContextStacker.configureOutput",
           "when": "view == aiContextStackerView",
-          "group": "z_settings",
-          "toggled": "aiContextStacker.treeEnabled"
+          "group": "z_settings"
         },
         {
           "//": "--- Staged Files: Title (Overflow '...') ---",
@@ -299,13 +298,6 @@
           "command": "aiContextStacker.removeFile",
           "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
           "group": "2_modification"
-        },
-        {
-          "//": "--- Settings Divider for Right Click ---",
-          "command": "aiContextStacker.toggleTree",
-          "when": "view == aiContextStackerView",
-          "group": "z_settings",
-          "toggled": "aiContextStacker.treeEnabled"
         },
         {
           "//": "--- Empty State ---",

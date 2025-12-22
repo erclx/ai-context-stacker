@@ -7,6 +7,7 @@ import { registerAddFileContextMenuCommand } from './add-file-context-menu'
 import { registerAddFilePickerCommand } from './add-file-picker'
 import { registerAddOpenFilesCommand } from './add-open-files'
 import { registerClearAllCommand } from './clear-all'
+import { registerConfigureOutputCommand } from './configure-output'
 import { registerCopyAllCommand } from './copy-all'
 import { registerCopyContentCommand } from './copy-content'
 import { registerCopyFileCommand } from './copy-file'
@@ -15,7 +16,6 @@ import { registerManageExcludesCommand } from './manage-excludes'
 import { registerPreviewContextCommand } from './preview-context'
 import { registerRemoveFileCommand } from './remove-file'
 import { registerTogglePinCommand } from './toggle-pin'
-import { registerToggleTreeCommand } from './toggle-tree'
 import { registerTrackCommands } from './track-ops'
 
 export interface CommandDependencies {
@@ -62,5 +62,5 @@ function registerTrackOperations(deps: CommandDependencies) {
 function registerViewOperations(deps: CommandDependencies) {
   registerPreviewContextCommand(deps.context, deps.services.contextStackProvider)
   registerManageExcludesCommand(deps.context)
-  registerToggleTreeCommand(deps.context)
+  registerConfigureOutputCommand(deps.context)
 }
