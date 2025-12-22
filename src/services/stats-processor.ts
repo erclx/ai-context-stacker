@@ -5,38 +5,41 @@ import { type ContentStats, type StagedFile } from '../models'
 import { Logger, TokenEstimator } from '../utils'
 
 /**
- * Service responsible for file I/O, binary detection, and token estimation.
- * Implements bounded concurrency and cooperative multitasking to prevent UI freeze.
+ * Handles bulk analysis of file metadata and token counts.
+ * Implements a tiered batching strategy to process large file sets without
+ * blocking the VS Code extension host or exhausting the V8 heap.
  */
 export class StatsProcessor {
   private readonly decoder = new TextDecoder()
-
-  // Prevent OS file handle exhaustion (EMFILE)
   private readonly CONCURRENCY_LIMIT = 5
-  // Limit accurate token counting to 1MB to prevent OOM/Freezes
   private readonly MAX_ANALYSIS_SIZE = 1024 * 1024
+  private readonly MAX_BATCH_SIZE = 100
 
   /**
-   * Enriches file metadata by reading content and calculating token estimates.
-   * Processes files in chunks to manage memory pressure.
+   * Primary entry point for calculating statistics for a list of staged files.
+   * Processes files in batches to allow for Garbage Collection between cycles.
+   * @param targets - Array of files requiring stats enrichment
    */
   public async enrichFileStats(targets: StagedFile[]): Promise<void> {
     const queue = targets.filter((f) => !f.stats)
     if (queue.length === 0) return
 
-    // Chunk processing allows GC to clean up buffers between batches
-    for (let i = 0; i < queue.length; i += this.CONCURRENCY_LIMIT) {
-      const chunk = queue.slice(i, i + this.CONCURRENCY_LIMIT)
+    for (let batchStart = 0; batchStart < queue.length; batchStart += this.MAX_BATCH_SIZE) {
+      const batch = queue.slice(batchStart, batchStart + this.MAX_BATCH_SIZE)
 
-      await Promise.all(chunk.map((file) => this.processFile(file)))
+      // Process batch using controlled concurrency to avoid OS file handle limits
+      for (let i = 0; i < batch.length; i += this.CONCURRENCY_LIMIT) {
+        const chunk = batch.slice(i, i + this.CONCURRENCY_LIMIT)
+        await Promise.all(chunk.map((file) => this.processFile(file)))
+      }
 
+      // Prevent event loop starvation during massive directory scans
       await this.yieldToEventLoop()
     }
   }
 
   /**
-   * Error boundary wrapper for individual file processing.
-   * Ensures one failure does not halt the entire batch.
+   * Orchestrates the analysis of a single file with error boundaries.
    */
   private async processFile(file: StagedFile): Promise<void> {
     try {
@@ -48,11 +51,12 @@ export class StatsProcessor {
   }
 
   /**
-   * Routes logic based on file size to avoid reading large files into memory.
+   * Determines analysis strategy based on file size.
    */
   private async dispatchAnalysis(file: StagedFile): Promise<void> {
     const size = await this.getFileSize(file.uri)
 
+    // Use fast heuristics for large files to avoid reading massive buffers into memory
     if (size > this.MAX_ANALYSIS_SIZE) {
       this.applyHeuristicStats(file, size)
     } else {
@@ -61,12 +65,12 @@ export class StatsProcessor {
   }
 
   /**
-   * Reads content, detects binary, and measures tokens for safe-sized files.
+   * Performs deep content analysis on files within the memory safety threshold.
    */
   private async analyzeSmallFile(file: StagedFile, size: number): Promise<void> {
     const content = await this.readTextContent(file.uri)
 
-    // Yield if read was fast (hot cache) to prevent CPU clumping before measure
+    // Release control to UI thread after I/O pressure
     await this.yieldToEventLoop()
 
     if (content === null) {
@@ -80,16 +84,20 @@ export class StatsProcessor {
   }
 
   /**
-   * Applies rough estimates for large files to avoid I/O blocking.
+   * Fallback estimation for large files where exact tokenization is expensive.
    */
   private applyHeuristicStats(file: StagedFile, size: number): void {
-    file.isBinary = false // Assume text if unchecked to allow context selection warning later
+    file.isBinary = false
     file.stats = {
-      tokenCount: Math.ceil(size / 4), // Rough estimate: 4 chars per token
+      // Standard heuristic: 1 token is roughly 4 characters
+      tokenCount: Math.ceil(size / 4),
       charCount: size,
     }
   }
 
+  /**
+   * Calculates token density and character count for a given string.
+   */
   public measure(content: string): ContentStats {
     const measurements = TokenEstimator.measure(content)
     return {
@@ -102,23 +110,27 @@ export class StatsProcessor {
     file.stats = { tokenCount: 0, charCount: 0 }
   }
 
+  /**
+   * Wraps VS Code FileSystem API with safety logging.
+   */
   private async getFileSize(uri: vscode.Uri): Promise<number> {
     try {
       const stat = await vscode.workspace.fs.stat(uri)
       return stat.size
-    } catch {
+    } catch (e) {
+      Logger.error(`FS Stat failed: ${uri.fsPath}`, e)
       return 0
     }
   }
 
   /**
-   * Reads file content, handling binary detection.
-   * @returns The string content if text, or null if binary.
+   * Reads file content with a null-byte check to identify binary files.
+   * @returns String content or null if the file appears to be binary.
    */
   private async readTextContent(uri: vscode.Uri): Promise<string | null> {
     const uint8Array = await vscode.workspace.fs.readFile(uri)
 
-    // Check first 512 bytes for null bytes (binary indicator)
+    // Check first 512 bytes for null characters (standard heuristic for binary detection)
     const checkLength = Math.min(uint8Array.length, 512)
     const isBinary = uint8Array.slice(0, checkLength).some((b) => b === 0)
 
@@ -127,12 +139,12 @@ export class StatsProcessor {
   }
 
   /**
-   * Forces a break in the execution chain to allow the event loop to process
-   * pending events (rendering, input, etc.).
+   * Manual yield to the Node.js event loop to keep the VS Code UI responsive
+   * during intensive CPU tasks (like token estimation).
    */
   private yieldToEventLoop(): Promise<void> {
     return new Promise((resolve) => {
-      // setImmediate is preferred in Node.js environments (like VS Code)
+      // setImmediate is preferred in Node for faster resumption than setTimeout
       if (typeof setImmediate === 'function') {
         setImmediate(resolve)
       } else {

@@ -7,7 +7,7 @@ import { StagedFile } from '../../models'
 import { StatsProcessor } from '../../services'
 import { TokenEstimator } from '../../utils'
 
-// Helper to create dummy staged files
+// Helper to create dummy staged files for test scenarios
 const createFile = (path: string): StagedFile => ({
   type: 'file',
   uri: vscode.Uri.file(path),
@@ -19,29 +19,26 @@ suite('StatsProcessor Performance & Logic Tests', () => {
   let processor: StatsProcessor
   let sandbox: sinon.SinonSandbox
 
-  // Stubs for our mock filesystem
+  // Stubs for the mock filesystem
   let fsStatStub: sinon.SinonStub
   let fsReadFileStub: sinon.SinonStub
   let measureSpy: sinon.SinonSpy
 
-  // Keep track of original FS to restore cleanup
+  // Reference to original FS to ensure clean teardown
   let originalFs: typeof vscode.workspace.fs
 
   setup(() => {
     sandbox = sinon.createSandbox()
     processor = new StatsProcessor()
 
-    // 1. Create a complete Mock FileSystem object
-    // We cannot stub individual methods on the real vscode.workspace.fs
-    // because they are read-only/non-configurable.
+    // Stub FS methods to avoid actual disk I/O dependencies
     fsStatStub = sandbox.stub()
     fsReadFileStub = sandbox.stub()
 
+    // Define mock filesystem structure matching VS Code API requirements
     const mockFs = {
       stat: fsStatStub,
       readFile: fsReadFileStub,
-      // Add other members of FileSystem if strictly required by types,
-      // but usually the runtime usage only hits these two.
       writeFile: sandbox.stub(),
       delete: sandbox.stub(),
       rename: sandbox.stub(),
@@ -51,7 +48,7 @@ suite('StatsProcessor Performance & Logic Tests', () => {
       isWritableFileSystem: () => true,
     }
 
-    // 2. Inject the Mock FS into vscode.workspace
+    // Inject mock FS via defineProperty since workspace.fs is readonly
     originalFs = vscode.workspace.fs
     Object.defineProperty(vscode.workspace, 'fs', {
       writable: true,
@@ -59,8 +56,7 @@ suite('StatsProcessor Performance & Logic Tests', () => {
       configurable: true,
     })
 
-    // 3. Mock TokenEstimator
-    // Avoid heavy computation during tests
+    // Mock computation to isolate I/O logic and speed up tests
     measureSpy = sandbox.stub(TokenEstimator, 'measure').returns({
       tokenCount: 100,
       charCount: 500,
@@ -68,7 +64,7 @@ suite('StatsProcessor Performance & Logic Tests', () => {
   })
 
   teardown(() => {
-    // Restore the original VS Code FileSystem
+    // Restore original VS Code FS to prevent global test pollution
     if (originalFs) {
       Object.defineProperty(vscode.workspace, 'fs', {
         writable: true,
@@ -80,8 +76,7 @@ suite('StatsProcessor Performance & Logic Tests', () => {
   })
 
   test('Should yield to event loop between batches (Anti-Freeze Check)', async () => {
-    // Scenario: Process 10 files. Batch size is 5.
-    // We expect a yield after the first 5.
+    // Setup file count exceeding the internal concurrency limit
     const files = Array.from({ length: 10 }, (_, i) => createFile(`/file_${i}.ts`))
 
     fsStatStub.resolves({ size: 500 })
@@ -89,17 +84,14 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     const executionLog: string[] = []
 
-    // A. Start Processing (Async)
+    // Initiate processing without awaiting immediately to allow event loop inspection
     const processingPromise = processor.enrichFileStats(files).then(() => {
       executionLog.push('Processing Complete')
     })
 
-    // B. Queue "UI Render" Task
-    // Using setImmediate simulates a macro task (like UI rendering).
-    // If the processor yields correctly using setImmediate/setTimeout(0),
-    // this task should have a chance to run before the entire batch completes.
+    // Schedule macro task to verify the processor yields to the event loop
     await new Promise<void>((resolve) => {
-      // Use setTimeout 0 as a cross-platform "next tick" equivalent for tests
+      // Use setTimeout 0 as a cross-platform "next tick" equivalent
       setTimeout(() => {
         executionLog.push('UI Render Event')
         resolve()
@@ -108,10 +100,7 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     await processingPromise
 
-    // C. Verify Order
-    // We expect the UI Event to appear in the log.
-    // Note: Exact ordering relative to 'Processing Complete' depends on the
-    // exact yield timing, but essential requirement is that it RAN.
+    // Verify UI/Event loop task executed amidst the processing batches
     assert.ok(executionLog.includes('UI Render Event'), 'UI Event should have executed during processing window')
   })
 
@@ -123,7 +112,7 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     await processor.enrichFileStats(files)
 
-    // Assert all files were processed
+    // Assert total throughput matches input despite batching
     assert.strictEqual(measureSpy.callCount, 12, 'Should measure all 12 files')
     assert.ok(
       files.every((f) => f.stats !== undefined),
@@ -135,7 +124,7 @@ suite('StatsProcessor Performance & Logic Tests', () => {
     const bigFile = createFile('/big.ts')
     const smallFile = createFile('/small.ts')
 
-    // Mock specific file sizes
+    // Mock distinct sizes to trigger different logic paths (Heuristic vs Deep Analysis)
     fsStatStub.withArgs(bigFile.uri).resolves({ size: 1024 * 1024 + 1 }) // 1MB + 1 byte
     fsStatStub.withArgs(smallFile.uri).resolves({ size: 500 })
 
@@ -143,10 +132,10 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     await processor.enrichFileStats([bigFile, smallFile])
 
-    // Expect measure to be called ONLY for the small file
+    // Ensure heavy tokenizer only runs on the small file
     assert.strictEqual(measureSpy.callCount, 1)
 
-    // Verify Heuristic Stats for big file
+    // Verify heuristic calculation was applied to the large file
     assert.deepStrictEqual(bigFile.stats, {
       tokenCount: Math.ceil((1024 * 1024 + 1) / 4),
       charCount: 1024 * 1024 + 1,
@@ -157,7 +146,7 @@ suite('StatsProcessor Performance & Logic Tests', () => {
     const binaryFile = createFile('/image.png')
     fsStatStub.resolves({ size: 500 })
 
-    // Mock binary content (null byte at start)
+    // Simulate binary signature with a leading null byte
     const binaryContent = new Uint8Array([0, 1, 2, 3])
     fsReadFileStub.resolves(binaryContent)
 
@@ -165,6 +154,7 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     assert.strictEqual(binaryFile.isBinary, true)
     assert.strictEqual(binaryFile.stats?.tokenCount, 0)
+    // Confirm tokenizer was bypassed for binary content
     assert.strictEqual(measureSpy.called, false, 'Should not measure binary content')
   })
 
@@ -174,16 +164,16 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     fsStatStub.resolves({ size: 100 })
 
-    // Use call-based stubbing for different returns
+    // Simulate permission error on a specific file
     fsReadFileStub.withArgs(goodFile.uri).resolves(new TextEncoder().encode('ok'))
     fsReadFileStub.withArgs(badFile.uri).rejects(new Error('EACCES'))
 
     await processor.enrichFileStats([badFile, goodFile])
 
-    // Bad file should have empty stats
+    // Verify failed file handled safely with empty stats
     assert.strictEqual(badFile.stats?.tokenCount, 0)
 
-    // Good file should still be processed
+    // Verify partial failure does not halt the entire batch
     assert.strictEqual(goodFile.stats?.tokenCount, 100)
   })
 })
