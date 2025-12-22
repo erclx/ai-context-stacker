@@ -5,16 +5,25 @@ import { ContextTrackManager } from '../providers'
 import { Logger } from '../utils'
 
 /**
- * Monitors file system events using a batched scheduler.
- * Handles high-frequency events (git checkout, npm install) safely.
+ * Monitors the workspace for file system events to keep tracked files in sync.
+ * * Responsibilities:
+ * - Auto-removes files from the stack when deleted from disk.
+ * - Detects file renames/moves by correlating quasi-simultaneous 'Delete' and 'Create' events.
+ * (VS Code's FileWatcher often emits renames as a split Delete+Create pair).
  */
 export class FileWatcherService implements vscode.Disposable {
   private watcher: vscode.FileSystemWatcher
   private pendingDeletes = new Set<string>()
   private pendingCreates = new Set<string>()
-  private batchTimer: NodeJS.Timeout | undefined
+
+  /** * Timer handle. Typed generally to support both Node.js (Electron) and Browser (Web) environments.
+   */
+  private batchTimer: ReturnType<typeof setTimeout> | undefined
   private _isDisposed = false
 
+  /** * The window of time (in ms) to wait for a matching 'Create' event after a 'Delete' is detected.
+   * This forms the heuristic transaction window for identifying renames.
+   */
   private readonly BATCH_DELAY_MS = 200
 
   constructor(private readonly contextTrackManager: ContextTrackManager) {
@@ -24,8 +33,8 @@ export class FileWatcherService implements vscode.Disposable {
   }
 
   /**
-   * Adds an event to the buffer and schedules a flush.
-   * Uses string keys to minimize memory footprint during event storms.
+   * buffers incoming FS events to be processed in a single batch.
+   * This allows us to analyze relationships between events (e.g. Delete + Create = Rename).
    */
   private bufferEvent(uri: vscode.Uri, type: 'DELETE' | 'CREATE'): void {
     if (this._isDisposed) return
@@ -53,13 +62,12 @@ export class FileWatcherService implements vscode.Disposable {
 
   /**
    * Processes all buffered events.
-   * Uses an Indexing Phase and Correlation Phase to achieve O(N+M) complexity.
+   * Attempts to match Deletions to Creations based on filenames to infer Renames.
    */
   private async flushBuffer(): Promise<void> {
     if (this._isDisposed) return
     if (this.pendingDeletes.size === 0 && this.pendingCreates.size === 0) return
 
-    // Snapshot to unblock the event loop immediately
     const deletes = Array.from(this.pendingDeletes)
     const creates = new Set(this.pendingCreates)
 
@@ -71,8 +79,8 @@ export class FileWatcherService implements vscode.Disposable {
   }
 
   /**
-   * Phase 2: Indexing
-   * Maps file base names to their full URI strings for O(1) lookup.
+   * Maps filenames (basename) to their full URI strings for quick lookup.
+   * Used to find if a deleted file has re-appeared elsewhere.
    */
   private buildCreationIndex(creates: Set<string>): Map<string, string> {
     const map = new Map<string, string>()
@@ -86,10 +94,6 @@ export class FileWatcherService implements vscode.Disposable {
     return map
   }
 
-  /**
-   * Phase 3: Correlation
-   * Iterates deletions and checks the index to distinguish Renames from Deletes.
-   */
   private processDeletions(deletes: string[], creationIndex: Map<string, string>): void {
     for (const deleteStr of deletes) {
       if (this._isDisposed) return
@@ -97,10 +101,14 @@ export class FileWatcherService implements vscode.Disposable {
     }
   }
 
+  /**
+   * Decides if a deletion is a simple removal or part of a rename operation.
+   * Heuristic: If a file with the same basename was created in the same batch, treat as Rename.
+   */
   private resolveFileChange(deleteStr: string, creationIndex: Map<string, string>): void {
     const deleteUri = vscode.Uri.parse(deleteStr)
 
-    // Optimization: Skip expensive logic if the file wasn't tracked anyway
+    // Optimization: Ignore events for files that aren't currently being tracked
     if (!this.contextTrackManager.hasUri(deleteUri)) return
 
     const baseName = path.basename(deleteUri.fsPath)
