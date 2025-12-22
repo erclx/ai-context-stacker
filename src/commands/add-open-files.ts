@@ -1,12 +1,9 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '../providers'
+import { StackProvider } from '../providers'
 import { Logger } from '../utils'
 
-export function registerAddOpenFilesCommand(
-  extensionContext: vscode.ExtensionContext,
-  contextStackProvider: ContextStackProvider,
-): void {
+export function registerAddOpenFilesCommand(context: vscode.ExtensionContext, stackProvider: StackProvider): void {
   const command = vscode.commands.registerCommand('aiContextStacker.addOpenFiles', () => {
     const uris: vscode.Uri[] = []
 
@@ -24,11 +21,11 @@ export function registerAddOpenFilesCommand(
       return
     }
 
-    contextStackProvider.addFiles(uris)
+    stackProvider.addFiles(uris)
 
     Logger.info(`Added ${uris.length} open files to stack.`)
     vscode.window.showInformationMessage(`Added ${uris.length} open files to stack!`)
   })
 
-  extensionContext.subscriptions.push(command)
+  context.subscriptions.push(command)
 }

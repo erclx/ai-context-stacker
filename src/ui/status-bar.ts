@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '../providers'
+import { StackProvider } from '../providers'
 
 /**
  * Manages the Status Bar Item.
@@ -8,10 +8,10 @@ import { ContextStackProvider } from '../providers'
  */
 export class StackerStatusBar implements vscode.Disposable {
   private item: vscode.StatusBarItem
-  private provider: ContextStackProvider
+  private provider: StackProvider
   private _disposables: vscode.Disposable[] = []
 
-  constructor(extensionContext: vscode.ExtensionContext, contextStackProvider: ContextStackProvider) {
+  constructor(extensionContext: vscode.ExtensionContext, contextStackProvider: StackProvider) {
     this.provider = contextStackProvider
 
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)

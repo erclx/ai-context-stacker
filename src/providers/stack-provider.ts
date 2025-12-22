@@ -1,11 +1,11 @@
 import * as vscode from 'vscode'
 
-import { isStagedFolder, StackTreeItem, type StagedFile } from '../models'
+import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
 import { StatsProcessor, TreeBuilder } from '../services'
 import { StackItemRenderer } from '../ui'
 import { Logger } from '../utils'
-import { ContextTrackManager } from './context-track-manager'
-import { IgnorePatternProvider } from './ignore-pattern-provider'
+import { IgnoreManager } from './ignore-manager'
+import { TrackManager } from './track-manager'
 
 /**
  * The primary data provider for the "Context Stack" view in VS Code.
@@ -14,7 +14,7 @@ import { IgnorePatternProvider } from './ignore-pattern-provider'
  * - Handles live updates when documents change (debounced token counting).
  * - Manages the lifecycle of UI refreshes and background statistics enrichment.
  */
-export class ContextStackProvider implements vscode.TreeDataProvider<StackTreeItem>, vscode.Disposable {
+export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vscode.Disposable {
   private _onDidChangeTreeData = new vscode.EventEmitter<StackTreeItem | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
@@ -38,8 +38,8 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StackTreeIt
 
   constructor(
     private extensionContext: vscode.ExtensionContext,
-    private ignorePatternProvider: IgnorePatternProvider,
-    private trackManager: ContextTrackManager,
+    private ignorePatternProvider: IgnoreManager,
+    private trackManager: TrackManager,
   ) {
     this.registerListeners()
     this.rebuildCacheAndRefresh()

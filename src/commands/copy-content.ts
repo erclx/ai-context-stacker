@@ -1,13 +1,13 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '../providers'
+import { StackProvider } from '../providers'
 import { ContentFormatter, Logger } from '../utils'
 
 /**
  * Registers the 'Copy File Content Only' command.
  * Copies all files but explicitly forces the ASCII Tree to be skipped.
  */
-export function registerCopyContentCommand(context: vscode.ExtensionContext, stackProvider: ContextStackProvider) {
+export function registerCopyContentCommand(context: vscode.ExtensionContext, stackProvider: StackProvider) {
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.copyContent', async () => {
       try {

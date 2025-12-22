@@ -1,20 +1,20 @@
 import * as vscode from 'vscode'
 
-import { type ContextTrack } from '../models'
-import { ContextStackProvider } from './context-stack-provider'
-import { ContextTrackManager } from './context-track-manager'
+import { ContextTrack } from '../models'
+import { StackProvider } from './stack-provider'
+import { TrackManager } from './track-manager'
 
 /**
  * Provides tree view for context tracks with live token stats.
  */
-export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>, vscode.Disposable {
+export class TrackProvider implements vscode.TreeDataProvider<ContextTrack>, vscode.Disposable {
   private _onDidChangeTreeData = new vscode.EventEmitter<ContextTrack | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
   private disposable: vscode.Disposable
-  private stackProvider?: ContextStackProvider
+  private stackProvider?: StackProvider
 
-  constructor(private contextTrackManager: ContextTrackManager) {
+  constructor(private contextTrackManager: TrackManager) {
     this.disposable = this.contextTrackManager.onDidChangeTrack(() => {
       this.refresh()
     })
@@ -23,7 +23,7 @@ export class TrackListProvider implements vscode.TreeDataProvider<ContextTrack>,
   /**
    * Injects stack provider for live token stats on active track.
    */
-  setStackProvider(provider: ContextStackProvider): void {
+  setStackProvider(provider: StackProvider): void {
     this.stackProvider = provider
     this.stackProvider.onDidChangeTreeData(() => this.refresh())
   }

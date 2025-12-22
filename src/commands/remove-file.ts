@@ -1,11 +1,11 @@
 import * as vscode from 'vscode'
 
-import { isStagedFolder, StackTreeItem, type StagedFile } from '../models'
-import { ContextStackProvider } from '../providers'
+import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
+import { StackProvider } from '../providers'
 
 export function registerRemoveFileCommand(
-  extensionContext: vscode.ExtensionContext,
-  contextStackProvider: ContextStackProvider,
+  context: vscode.ExtensionContext,
+  stackProvider: StackProvider,
   filesView: vscode.TreeView<StackTreeItem>,
 ): void {
   const command = vscode.commands.registerCommand(
@@ -28,7 +28,7 @@ export function registerRemoveFileCommand(
       }
 
       const filesToRemove = resolveFilesToRemove(targets)
-      contextStackProvider.removeFiles(filesToRemove)
+      stackProvider.removeFiles(filesToRemove)
 
       if (filesToRemove.length > 0) {
         vscode.window.setStatusBarMessage(`Removed ${filesToRemove.length} files.`, 2000)
@@ -36,7 +36,7 @@ export function registerRemoveFileCommand(
     },
   )
 
-  extensionContext.subscriptions.push(command)
+  context.subscriptions.push(command)
 }
 
 function resolveFilesToRemove(items: StackTreeItem[]): StagedFile[] {

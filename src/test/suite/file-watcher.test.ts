@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import * as sinon from 'sinon'
 import * as vscode from 'vscode'
 
-import { ContextTrackManager } from '../../providers'
+import { TrackManager } from '../../providers'
 import { FileWatcherService } from '../../services'
 
 // Mocks the VS Code FileSystemWatcher to allow manual event triggering
@@ -85,7 +85,7 @@ suite('FileWatcherService Integration Tests', () => {
 
     // Setup the mock manager dependency
     mockManager = new MockTrackManager()
-    service = new FileWatcherService(mockManager as unknown as ContextTrackManager)
+    service = new FileWatcherService(mockManager as unknown as TrackManager)
   })
 
   teardown(() => {

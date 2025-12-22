@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { type ContextStackProvider, type IgnorePatternProvider } from '../providers'
+import { IgnoreManager, StackProvider } from '../providers'
 import { Logger } from './logger'
 
 /**
@@ -37,8 +37,8 @@ export async function categorizeTargets(targets: vscode.Uri[]) {
  */
 export async function handleFolderScanning(
   folders: vscode.Uri[],
-  provider: ContextStackProvider,
-  ignoreProvider: IgnorePatternProvider,
+  provider: StackProvider,
+  ignoreProvider: IgnoreManager,
 ): Promise<void> {
   await vscode.window.withProgress(
     {

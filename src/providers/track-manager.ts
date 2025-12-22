@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { type ContextTrack, type StagedFile } from '../models'
+import { ContextTrack, StagedFile } from '../models'
 import { StateMapper } from '../services'
 import { generateId } from '../utils'
 
@@ -11,7 +11,7 @@ import { generateId } from '../utils'
  * - maintaining a high-performance O(1) lookup index for file existence checks.
  * - Handling track switching, creation, and deletion logic.
  */
-export class ContextTrackManager implements vscode.Disposable {
+export class TrackManager implements vscode.Disposable {
   private static readonly STORAGE_KEY = 'aiContextStacker.tracks.v1'
   private tracks: Map<string, ContextTrack> = new Map()
   private activeTrackId = 'default'
@@ -240,11 +240,11 @@ export class ContextTrackManager implements vscode.Disposable {
     }
 
     const state = StateMapper.toSerialized(this.tracks, this.activeTrackId)
-    this.extensionContext.workspaceState.update(ContextTrackManager.STORAGE_KEY, state)
+    this.extensionContext.workspaceState.update(TrackManager.STORAGE_KEY, state)
   }
 
   private loadState(): void {
-    const rawState = this.extensionContext.workspaceState.get<any>(ContextTrackManager.STORAGE_KEY)
+    const rawState = this.extensionContext.workspaceState.get<any>(TrackManager.STORAGE_KEY)
     const { tracks, activeTrackId } = StateMapper.fromSerialized(rawState)
 
     this.tracks = tracks

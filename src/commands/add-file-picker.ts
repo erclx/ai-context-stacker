@@ -1,18 +1,18 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider, IgnorePatternProvider } from '../providers'
+import { IgnoreManager, StackProvider } from '../providers'
 
 interface FileQuickPickItem extends vscode.QuickPickItem {
   uri: vscode.Uri
 }
 
 export function registerAddFilePickerCommand(
-  extensionContext: vscode.ExtensionContext,
-  contextStackProvider: ContextStackProvider,
-  ignorePatternProvider: IgnorePatternProvider,
+  context: vscode.ExtensionContext,
+  stackProvider: StackProvider,
+  ignoreManager: IgnoreManager,
 ): void {
   const command = vscode.commands.registerCommand('aiContextStacker.addFilePicker', async () => {
-    const newFiles = await findUnstagedFiles(contextStackProvider, ignorePatternProvider)
+    const newFiles = await findUnstagedFiles(stackProvider, ignoreManager)
 
     if (newFiles.length === 0) {
       vscode.window.showInformationMessage('All files in workspace are already staged!')
@@ -23,23 +23,20 @@ export function registerAddFilePickerCommand(
 
     if (selectedItems && selectedItems.length > 0) {
       const uris = selectedItems.map((item) => item.uri)
-      contextStackProvider.addFiles(uris)
+      stackProvider.addFiles(uris)
       vscode.window.showInformationMessage(`Added ${uris.length} file(s) to context stack`)
     }
   })
 
-  extensionContext.subscriptions.push(command)
+  context.subscriptions.push(command)
 }
 
-async function findUnstagedFiles(
-  contextStackProvider: ContextStackProvider,
-  ignorePatternProvider: IgnorePatternProvider,
-): Promise<vscode.Uri[]> {
-  const stagedFiles = contextStackProvider.getFiles()
+async function findUnstagedFiles(stackProvider: StackProvider, ignoreManager: IgnoreManager): Promise<vscode.Uri[]> {
+  const stagedFiles = stackProvider.getFiles()
   const stagedFileIds = new Set(stagedFiles.map((f) => f.uri.toString()))
 
   // Respect .gitignore to avoid cluttering picker with build artifacts
-  const excludePatterns = await ignorePatternProvider.getExcludePatterns()
+  const excludePatterns = await ignoreManager.getExcludePatterns()
   const allFiles = await vscode.workspace.findFiles('**/*', excludePatterns)
 
   return allFiles.filter((uri) => !stagedFileIds.has(uri.toString()))

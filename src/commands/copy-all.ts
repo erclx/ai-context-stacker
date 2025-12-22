@@ -1,27 +1,24 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '../providers'
+import { StackProvider } from '../providers'
 import { ClipboardOps, ErrorHandler } from '../utils'
 
 /**
  * Command: aiContextStacker.copyAll
  * Copies all staged files in the current stack to the clipboard.
  */
-export function registerCopyAllCommand(
-  extensionContext: vscode.ExtensionContext,
-  contextStackProvider: ContextStackProvider,
-): void {
+export function registerCopyAllCommand(context: vscode.ExtensionContext, stackProvider: StackProvider): void {
   const command = vscode.commands.registerCommand(
     'aiContextStacker.copyAll',
     ErrorHandler.safeExecute('Copy All Files', async () => {
-      await handleCopyAll(contextStackProvider)
+      await handleCopyAll(stackProvider)
     }),
   )
 
-  extensionContext.subscriptions.push(command)
+  context.subscriptions.push(command)
 }
 
-async function handleCopyAll(provider: ContextStackProvider): Promise<void> {
+async function handleCopyAll(provider: StackProvider): Promise<void> {
   const files = provider.getFiles()
 
   if (files.length === 0) {

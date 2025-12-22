@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '../providers'
+import { StackProvider } from '../providers'
 import { ContentFormatter, Logger } from '../utils'
 import { WebviewFactory } from './webview-factory'
 
@@ -23,7 +23,7 @@ export class PreviewWebview {
   private constructor(
     panel: vscode.WebviewPanel,
     private readonly _extensionUri: vscode.Uri,
-    private readonly _provider: ContextStackProvider,
+    private readonly _provider: StackProvider,
   ) {
     this._panel = panel
 
@@ -38,7 +38,7 @@ export class PreviewWebview {
     this.update()
   }
 
-  public static createOrShow(extensionUri: vscode.Uri, provider: ContextStackProvider): void {
+  public static createOrShow(extensionUri: vscode.Uri, provider: StackProvider): void {
     if (PreviewWebview.currentPanel) {
       PreviewWebview.currentPanel._panel.reveal(vscode.ViewColumn.Beside)
       return
@@ -52,7 +52,7 @@ export class PreviewWebview {
    * Revives webview after VS Code restart.
    * Called by VS Code serialization framework.
    */
-  public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, provider: ContextStackProvider): void {
+  public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, provider: StackProvider): void {
     PreviewWebview.currentPanel = new PreviewWebview(panel, extensionUri, provider)
   }
 
@@ -96,7 +96,7 @@ export class PreviewWebview {
 export class PreviewWebviewSerializer implements vscode.WebviewPanelSerializer {
   constructor(
     private readonly _extensionUri: vscode.Uri,
-    private readonly _provider: ContextStackProvider,
+    private readonly _provider: StackProvider,
   ) {}
 
   public async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, _state: unknown): Promise<void> {

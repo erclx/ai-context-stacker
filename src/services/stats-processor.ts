@@ -1,7 +1,7 @@
 import { TextDecoder } from 'util'
 import * as vscode from 'vscode'
 
-import { type ContentStats, type StagedFile } from '../models'
+import { ContentStats, StagedFile } from '../models'
 import { Logger, TokenEstimator } from '../utils'
 
 /**

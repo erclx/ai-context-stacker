@@ -1,11 +1,11 @@
 import * as vscode from 'vscode'
 
 import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
-import { ContextTrackManager } from '../providers'
+import { TrackManager } from '../providers'
 
 export function registerTogglePinCommand(
-  extensionContext: vscode.ExtensionContext,
-  contextTrackManager: ContextTrackManager,
+  context: vscode.ExtensionContext,
+  trackManager: TrackManager,
   filesView: vscode.TreeView<StackTreeItem>,
 ): void {
   const command = vscode.commands.registerCommand(
@@ -25,11 +25,11 @@ export function registerTogglePinCommand(
       if (targets.length === 0) return
 
       const filesToToggle = resolveFilesToToggle(targets)
-      contextTrackManager.toggleFilesPin(filesToToggle)
+      trackManager.toggleFilesPin(filesToToggle)
     },
   )
 
-  extensionContext.subscriptions.push(command)
+  context.subscriptions.push(command)
 }
 
 function resolveFilesToToggle(items: StackTreeItem[]): StagedFile[] {

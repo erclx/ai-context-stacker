@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
-import { ContextStackProvider } from '../providers'
+import { StackProvider } from '../providers'
 
 /**
  * Centralizes logic for determining operation targets from UI interactions.
@@ -21,7 +21,7 @@ export class SelectionResolver {
     clickedItem: StackTreeItem | undefined,
     selectedItems: StackTreeItem[] | undefined,
     treeView: vscode.TreeView<StackTreeItem>,
-    provider: ContextStackProvider,
+    stackProvider: StackProvider,
   ): StagedFile[] {
     let rawSelection: StackTreeItem[] = []
 
@@ -33,7 +33,7 @@ export class SelectionResolver {
       rawSelection = [...treeView.selection]
     } else {
       // Fallback: Act on the entire stack if nothing is specifically selected
-      return provider.getFiles()
+      return stackProvider.getFiles()
     }
 
     return this.flattenSelection(rawSelection)

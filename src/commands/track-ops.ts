@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
-import { type ContextTrack } from '../models'
-import { ContextTrackManager } from '../providers'
+import { ContextTrack } from '../models'
+import { TrackManager } from '../providers'
 import { ErrorHandler } from '../utils'
 
 interface TrackQuickPick extends vscode.QuickPickItem {
@@ -9,40 +9,40 @@ interface TrackQuickPick extends vscode.QuickPickItem {
 }
 
 export function registerTrackCommands(
-  extensionContext: vscode.ExtensionContext,
-  contextTrackManager: ContextTrackManager,
+  context: vscode.ExtensionContext,
+  trackManager: TrackManager,
   filesView: vscode.TreeView<ContextTrack>,
 ): void {
-  extensionContext.subscriptions.push(
+  context.subscriptions.push(
     vscode.commands.registerCommand(
       'aiContextStacker.newTrack',
-      ErrorHandler.safeExecute('New Track', () => handleNewTrack(contextTrackManager)),
+      ErrorHandler.safeExecute('New Track', () => handleNewTrack(trackManager)),
     ),
   )
 
-  extensionContext.subscriptions.push(
+  context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.switchTrack', (arg?: string | ContextTrack) => {
-      const action = () => handleSwitchTrack(contextTrackManager, arg)
+      const action = () => handleSwitchTrack(trackManager, arg)
       return ErrorHandler.safeExecute('Switch Track', action)()
     }),
   )
 
-  extensionContext.subscriptions.push(
+  context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.renameTrack', (item?: ContextTrack) => {
-      const action = () => handleRenameTrack(contextTrackManager, filesView, item)
+      const action = () => handleRenameTrack(trackManager, filesView, item)
       return ErrorHandler.safeExecute('Rename Track', action)()
     }),
   )
 
-  extensionContext.subscriptions.push(
+  context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.deleteTrack', (item?: ContextTrack) => {
-      const action = () => handleDeleteTrack(contextTrackManager, filesView, item)
+      const action = () => handleDeleteTrack(trackManager, filesView, item)
       return ErrorHandler.safeExecute('Delete Track', action)()
     }),
   )
 }
 
-async function handleNewTrack(manager: ContextTrackManager): Promise<void> {
+async function handleNewTrack(manager: TrackManager): Promise<void> {
   const name = await vscode.window.showInputBox({
     prompt: 'Enter name for new context track',
     placeHolder: 'e.g., "Refactoring Auth"',
@@ -53,7 +53,7 @@ async function handleNewTrack(manager: ContextTrackManager): Promise<void> {
   }
 }
 
-async function handleSwitchTrack(manager: ContextTrackManager, arg?: string | ContextTrack): Promise<void> {
+async function handleSwitchTrack(manager: TrackManager, arg?: string | ContextTrack): Promise<void> {
   const targetId = await resolveTrackId(manager, arg)
 
   if (!targetId) return
@@ -68,7 +68,7 @@ async function handleSwitchTrack(manager: ContextTrackManager, arg?: string | Co
 }
 
 async function handleRenameTrack(
-  manager: ContextTrackManager,
+  manager: TrackManager,
   view: vscode.TreeView<ContextTrack>,
   item?: ContextTrack,
 ): Promise<void> {
@@ -85,7 +85,7 @@ async function handleRenameTrack(
 }
 
 async function handleDeleteTrack(
-  manager: ContextTrackManager,
+  manager: TrackManager,
   view: vscode.TreeView<ContextTrack>,
   item?: ContextTrack,
 ): Promise<void> {
@@ -103,7 +103,7 @@ async function handleDeleteTrack(
 /**
  * Resolves the target track ID from an argument or prompts the user via QuickPick.
  */
-async function resolveTrackId(manager: ContextTrackManager, arg?: string | ContextTrack): Promise<string | undefined> {
+async function resolveTrackId(manager: TrackManager, arg?: string | ContextTrack): Promise<string | undefined> {
   if (arg) {
     return typeof arg === 'string' ? arg : arg.id
   }
@@ -114,7 +114,7 @@ async function resolveTrackId(manager: ContextTrackManager, arg?: string | Conte
  * Resolves the target track object based on direct selection, view selection, or active state.
  */
 function resolveTargetTrack(
-  manager: ContextTrackManager,
+  manager: TrackManager,
   view: vscode.TreeView<ContextTrack>,
   item?: ContextTrack,
 ): ContextTrack {
@@ -127,7 +127,7 @@ function resolveTargetTrack(
  * Displays a QuickPick for selecting a context track.
  * Handles the mapping of track data to UI items.
  */
-async function pickTrack(manager: ContextTrackManager): Promise<string | undefined> {
+async function pickTrack(manager: TrackManager): Promise<string | undefined> {
   const activeId = manager.getActiveTrack().id
 
   const items: TrackQuickPick[] = manager.allTracks.map((t) => ({

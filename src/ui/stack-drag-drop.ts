@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { StackTreeItem } from '../models'
-import { ContextStackProvider, IgnorePatternProvider } from '../providers'
+import { IgnoreManager, StackProvider } from '../providers'
 import { categorizeTargets, handleFolderScanning, Logger } from '../utils'
 import { extractUrisFromTransfer } from '../utils/drag-drop'
 
@@ -14,8 +14,8 @@ export class StackDragDropController implements vscode.TreeDragAndDropController
   public readonly dropMimeTypes: readonly string[] = ['text/uri-list']
 
   constructor(
-    private readonly provider: ContextStackProvider,
-    private readonly ignoreProvider: IgnorePatternProvider,
+    private readonly provider: StackProvider,
+    private readonly ignoreProvider: IgnoreManager,
   ) {}
 
   public async handleDrop(

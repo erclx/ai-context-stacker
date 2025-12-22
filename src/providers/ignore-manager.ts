@@ -6,7 +6,7 @@ import { Logger } from '../utils'
 /**
  * Manages file exclusion patterns by combining .gitignore, User Settings, and Defaults.
  */
-export class IgnorePatternProvider implements vscode.Disposable {
+export class IgnoreManager implements vscode.Disposable {
   private _cachedPatterns: string | undefined
   private _fsWatcher: vscode.FileSystemWatcher | undefined
   private _configListener: vscode.Disposable | undefined

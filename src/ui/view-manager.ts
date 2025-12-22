@@ -1,8 +1,8 @@
 import * as vscode from 'vscode'
 
 import { ContextTrack, StackTreeItem } from '../models'
-import { ContextStackProvider, ContextTrackManager, IgnorePatternProvider } from '../providers'
-import { TrackListProvider } from '../providers/track-list-provider'
+import { IgnoreManager, StackProvider, TrackManager } from '../providers'
+import { TrackProvider } from '../providers/track-provider'
 import { StackDragDropController } from './stack-drag-drop'
 
 /**
@@ -15,10 +15,10 @@ export class ViewManager implements vscode.Disposable {
   private _disposables: vscode.Disposable[] = []
 
   constructor(
-    stackProvider: ContextStackProvider,
-    trackListProvider: TrackListProvider,
-    trackManager: ContextTrackManager,
-    ignoreProvider: IgnorePatternProvider,
+    stackProvider: StackProvider,
+    trackListProvider: TrackProvider,
+    trackManager: TrackManager,
+    ignoreProvider: IgnoreManager,
   ) {
     // Composition Root: Wire Controller to Provider
     const dragDropController = new StackDragDropController(stackProvider, ignoreProvider)

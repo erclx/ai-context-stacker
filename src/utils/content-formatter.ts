@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { type StagedFile } from '../models'
+import { StagedFile } from '../models'
 import { Logger } from './logger'
 
 interface TreeNode {

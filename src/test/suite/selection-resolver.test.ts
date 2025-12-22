@@ -3,7 +3,7 @@ import * as sinon from 'sinon'
 import * as vscode from 'vscode'
 
 import { StagedFile, StagedFolder } from '../../models'
-import { ContextStackProvider } from '../../providers'
+import { StackProvider } from '../../providers'
 import { SelectionResolver } from '../../utils/selection-resolver'
 
 /**
@@ -12,7 +12,7 @@ import { SelectionResolver } from '../../utils/selection-resolver'
  */
 suite('SelectionResolver Suite', () => {
   let sandbox: sinon.SinonSandbox
-  let mockProvider: sinon.SinonStubbedInstance<ContextStackProvider>
+  let mockProvider: sinon.SinonStubbedInstance<StackProvider>
   let mockTreeView: any // Type as 'any' to easily stub read-only properties like 'selection'
 
   const fileA = createFile('a.ts', 'src/a.ts')
@@ -23,7 +23,7 @@ suite('SelectionResolver Suite', () => {
     sandbox = sinon.createSandbox()
 
     // Create a mock provider with the correct prototype
-    mockProvider = sandbox.createStubInstance(ContextStackProvider)
+    mockProvider = sandbox.createStubInstance(StackProvider)
     mockProvider.getFiles.returns([fileA, fileB, fileC])
 
     // Mock TreeView state

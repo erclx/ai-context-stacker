@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 
-import { ContextTrackManager } from '../providers'
+import { TrackManager } from '../providers'
 import { Logger } from '../utils'
 
 /**
@@ -26,7 +26,7 @@ export class FileWatcherService implements vscode.Disposable {
    */
   private readonly BATCH_DELAY_MS = 200
 
-  constructor(private readonly contextTrackManager: ContextTrackManager) {
+  constructor(private readonly contextTrackManager: TrackManager) {
     this.watcher = vscode.workspace.createFileSystemWatcher('**/*')
     this.watcher.onDidDelete((uri) => this.bufferEvent(uri, 'DELETE'))
     this.watcher.onDidCreate((uri) => this.bufferEvent(uri, 'CREATE'))

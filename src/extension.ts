@@ -18,21 +18,21 @@ export function activate(context: vscode.ExtensionContext): ServiceRegistry {
   services.register(context.subscriptions)
 
   const views = new ViewManager(
-    services.contextStackProvider,
-    services.trackListProvider,
-    services.contextTrackManager,
-    services.ignorePatternProvider,
+    services.stackProvider,
+    services.trackProvider,
+    services.trackManager,
+    services.ignoreManager,
   )
   context.subscriptions.push(views)
 
-  const statusBar = new StackerStatusBar(context, services.contextStackProvider)
+  const statusBar = new StackerStatusBar(context, services.stackProvider)
   context.subscriptions.push(statusBar)
 
   // Handle webview revival on restart
   context.subscriptions.push(
     vscode.window.registerWebviewPanelSerializer(
       PreviewWebview.viewType,
-      new PreviewWebviewSerializer(context.extensionUri, services.contextStackProvider),
+      new PreviewWebviewSerializer(context.extensionUri, services.stackProvider),
     ),
   )
 

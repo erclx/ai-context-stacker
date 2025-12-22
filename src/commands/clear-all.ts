@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { StagedFile } from '../models'
-import { ContextStackProvider } from '../providers'
+import { StackProvider } from '../providers'
 import { ErrorHandler } from '../utils'
 
 type ClearAction =
@@ -9,21 +9,18 @@ type ClearAction =
   | { type: 'allPinned'; message: string }
   | { type: 'confirm'; message: string }
 
-export function registerClearAllCommand(
-  extensionContext: vscode.ExtensionContext,
-  contextStackProvider: ContextStackProvider,
-): void {
+export function registerClearAllCommand(context: vscode.ExtensionContext, stackProvider: StackProvider): void {
   const command = vscode.commands.registerCommand(
     'aiContextStacker.clearAll',
     ErrorHandler.safeExecute('Clear All', async () => {
-      await handleClearAll(contextStackProvider)
+      await handleClearAll(stackProvider)
     }),
   )
 
-  extensionContext.subscriptions.push(command)
+  context.subscriptions.push(command)
 }
 
-async function handleClearAll(provider: ContextStackProvider): Promise<void> {
+async function handleClearAll(provider: StackProvider): Promise<void> {
   const files = provider.getFiles()
   const action = determineClearAction(files)
 

@@ -42,7 +42,7 @@ suite('Extension Test Suite', () => {
       await vscode.commands.executeCommand('aiContextStacker.addCurrentFile')
 
       // Query the internal provider to verify the file was added
-      const stagedFiles = services.contextStackProvider.getFiles()
+      const stagedFiles = services.stackProvider.getFiles()
       const isStaged = stagedFiles.some((f) => f.uri.fsPath === testFileUri.fsPath)
 
       // Assert that the file exists in the context stack

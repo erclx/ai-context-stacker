@@ -35,32 +35,28 @@ export function registerAllCommands(deps: CommandDependencies) {
 }
 
 function registerStackModifications(deps: CommandDependencies) {
-  registerAddFileCommand(deps.context, deps.services.contextStackProvider)
-  registerAddFileContextMenuCommand(
-    deps.context,
-    deps.services.contextStackProvider,
-    deps.services.ignorePatternProvider,
-  )
-  registerAddFilePickerCommand(deps.context, deps.services.contextStackProvider, deps.services.ignorePatternProvider)
-  registerAddOpenFilesCommand(deps.context, deps.services.contextStackProvider)
-  registerRemoveFileCommand(deps.context, deps.services.contextStackProvider, deps.views.filesView)
-  registerTogglePinCommand(deps.context, deps.services.contextTrackManager, deps.views.filesView)
-  registerClearAllCommand(deps.context, deps.services.contextStackProvider)
+  registerAddFileCommand(deps.context, deps.services.stackProvider)
+  registerAddFileContextMenuCommand(deps.context, deps.services.stackProvider, deps.services.ignoreManager)
+  registerAddFilePickerCommand(deps.context, deps.services.stackProvider, deps.services.ignoreManager)
+  registerAddOpenFilesCommand(deps.context, deps.services.stackProvider)
+  registerRemoveFileCommand(deps.context, deps.services.stackProvider, deps.views.filesView)
+  registerTogglePinCommand(deps.context, deps.services.trackManager, deps.views.filesView)
+  registerClearAllCommand(deps.context, deps.services.stackProvider)
 }
 
 function registerClipboardOperations(deps: CommandDependencies) {
-  registerCopyAllCommand(deps.context, deps.services.contextStackProvider)
-  registerCopyFileCommand(deps.context, deps.services.contextStackProvider, deps.views.filesView)
-  registerCopyTreeCommand(deps.context, deps.services.contextStackProvider)
-  registerCopyContentCommand(deps.context, deps.services.contextStackProvider)
+  registerCopyAllCommand(deps.context, deps.services.stackProvider)
+  registerCopyFileCommand(deps.context, deps.services.stackProvider, deps.views.filesView)
+  registerCopyTreeCommand(deps.context, deps.services.stackProvider)
+  registerCopyContentCommand(deps.context, deps.services.stackProvider)
 }
 
 function registerTrackOperations(deps: CommandDependencies) {
-  registerTrackCommands(deps.context, deps.services.contextTrackManager, deps.views.tracksView)
+  registerTrackCommands(deps.context, deps.services.trackManager, deps.views.tracksView)
 }
 
 function registerViewOperations(deps: CommandDependencies) {
-  registerPreviewContextCommand(deps.context, deps.services.contextStackProvider)
+  registerPreviewContextCommand(deps.context, deps.services.stackProvider)
   registerManageExcludesCommand(deps.context)
   registerConfigureOutputCommand(deps.context)
 }

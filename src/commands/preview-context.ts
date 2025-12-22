@@ -1,15 +1,12 @@
 import * as vscode from 'vscode'
 
-import { ContextStackProvider } from '../providers'
+import { StackProvider } from '../providers'
 import { PreviewWebview } from '../ui/preview-webview'
 
-export function registerPreviewContextCommand(
-  extensionContext: vscode.ExtensionContext,
-  contextStackProvider: ContextStackProvider,
-): void {
+export function registerPreviewContextCommand(context: vscode.ExtensionContext, stackProvider: StackProvider): void {
   const command = vscode.commands.registerCommand('aiContextStacker.previewContext', () => {
-    PreviewWebview.createOrShow(extensionContext.extensionUri, contextStackProvider)
+    PreviewWebview.createOrShow(context.extensionUri, stackProvider)
   })
 
-  extensionContext.subscriptions.push(command)
+  context.subscriptions.push(command)
 }
