@@ -54,7 +54,7 @@
         {
           "id": "aiContextStacker",
           "title": "AI Context Stacker",
-          "icon": "$(list-tree)"
+          "icon": "assets/activity-bar.svg"
         }
       ]
     },
