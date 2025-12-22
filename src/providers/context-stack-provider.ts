@@ -8,26 +8,30 @@ import { ContextTrackManager } from './context-track-manager'
 import { IgnorePatternProvider } from './ignore-pattern-provider'
 
 /**
- * Orchestrates the TreeView for the active Context Track.
- * Features:
- * - Structural Caching (O(1) read access)
- * - Debounced Live Stats Updates
+ * The primary data provider for the "Context Stack" view in VS Code.
+ * Responsibilities:
+ * - Adapts the flat list of StagedFiles into a hierarchical TreeView.
+ * - Handles live updates when documents change (debounced token counting).
+ * - Manages the lifecycle of UI refreshes and background statistics enrichment.
  */
 export class ContextStackProvider implements vscode.TreeDataProvider<StackTreeItem>, vscode.Disposable {
-  // --- Events ---
   private _onDidChangeTreeData = new vscode.EventEmitter<StackTreeItem | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
-  // --- Internal State ---
+  /** Delay in ms to wait after user typing stops before re-calculating tokens. */
   private readonly DEBOUNCE_MS = 400
-  private pendingUpdates = new Map<string, NodeJS.Timeout>()
+
+  private pendingUpdates = new Map<string, ReturnType<typeof setTimeout>>()
   private disposables: vscode.Disposable[] = []
 
-  // --- Caching ---
   private _cachedTree: StackTreeItem[] | undefined
   private _cachedTotalTokens: number = 0
 
-  // --- Dependencies ---
+  /** * Dirty flag for lazy reconstruction of the tree view.
+   * If false, getChildren returns the cached tree immediately.
+   */
+  private _treeDirty = true
+
   private treeBuilder = new TreeBuilder()
   private statsProcessor = new StatsProcessor()
   private renderer = new StackItemRenderer()
@@ -42,16 +46,22 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StackTreeIt
   }
 
   private registerListeners(): void {
-    this.trackManager.onDidChangeTrack(() => this.rebuildCacheAndRefresh())
+    // Rebuild UI when the underlying data track changes
+    this.trackManager.onDidChangeTrack(() => {
+      this._treeDirty = true
+      this.rebuildCacheAndRefresh()
+    })
 
+    // Listen for file edits to update token counts in real-time
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument((e) => this.handleDocChange(e.document)),
       vscode.workspace.onDidSaveTextDocument((doc) => this.handleDocChange(doc, true)),
     )
   }
 
-  // --- Public API ---
-
+  /**
+   * Returns the raw list of files in the current active track.
+   */
   public getFiles(): StagedFile[] {
     return this.trackManager.getActiveTrack().files
   }
@@ -60,6 +70,9 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StackTreeIt
     return this.trackManager.getActiveTrack().name
   }
 
+  /**
+   * Returns the cached sum of tokens across all staged files.
+   */
   public getTotalTokens(): number {
     return this._cachedTotalTokens
   }
@@ -68,15 +81,20 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StackTreeIt
     return this.renderer.formatTokenCount(count)
   }
 
-  // --- TreeDataProvider Implementation ---
-
+  /**
+   * VS Code TreeDataProvider implementation.
+   * Returns child elements for the given node, or the root elements if no element is passed.
+   */
   public getChildren(element?: StackTreeItem): StackTreeItem[] {
     if (element && isStagedFolder(element)) {
       return element.children
     }
-    if (this._cachedTree) {
+
+    // Return cached tree if no structural changes occurred (Performance Optimization)
+    if (this._cachedTree && !this._treeDirty) {
       return this._cachedTree
     }
+
     return this.rebuildTreeCache()
   }
 
@@ -88,14 +106,23 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StackTreeIt
     return undefined
   }
 
-  // --- State Management & Caching ---
-
+  /**
+   * Triggers a full UI refresh.
+   * 1. Rebuilds the internal tree structure.
+   * 2. Notifies VS Code to redraw the view.
+   * 3. Starts a background task to calculate accurate token stats.
+   */
   private rebuildCacheAndRefresh(): void {
     this.rebuildTreeCache()
+    this._treeDirty = false
     this._onDidChangeTreeData.fire()
     void this.enrichStatsInBackground()
   }
 
+  /**
+   * Calculates token counts for files that haven't been measured yet.
+   * This is done asynchronously to avoid blocking the UI thread during initial render.
+   */
   private async enrichStatsInBackground(): Promise<void> {
     try {
       await this.statsProcessor.enrichFileStats(this.getFiles())
@@ -121,14 +148,15 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StackTreeIt
     this._cachedTotalTokens = this.getFiles().reduce((sum, f) => sum + (f.stats?.tokenCount ?? 0), 0)
   }
 
-  // --- Event Handling ---
-
   private handleDocChange(doc: vscode.TextDocument, immediate = false): void {
     const targetFile = this.findStagedFile(doc.uri)
     if (!targetFile) return
     this.scheduleStatsUpdate(doc, targetFile, immediate)
   }
 
+  /**
+   * Debounces token calculation requests to prevent high CPU usage while typing.
+   */
   private scheduleStatsUpdate(doc: vscode.TextDocument, file: StagedFile, immediate: boolean): void {
     const key = doc.uri.toString()
 
@@ -157,6 +185,7 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StackTreeIt
 
       file.stats = newStats
 
+      // Incremental update of total tokens to avoid full array reduction
       const delta = newStats.tokenCount - oldTokens
       this._cachedTotalTokens += delta
 
@@ -170,11 +199,13 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StackTreeIt
     return this.trackManager.getActiveTrack().files.find((f) => f.uri.toString() === uri.toString())
   }
 
-  // --- Actions ---
-
+  /**
+   * Adds new files to the stack and refreshes the view.
+   */
   public addFiles(uris: vscode.Uri[]): void {
     const newFiles = this.trackManager.addFilesToActive(uris)
     if (newFiles.length > 0) {
+      this._treeDirty = true
       this.rebuildCacheAndRefresh()
     }
   }
@@ -183,20 +214,36 @@ export class ContextStackProvider implements vscode.TreeDataProvider<StackTreeIt
     this.addFiles([uri])
   }
 
+  /**
+   * Removes specific files from the stack.
+   */
   public removeFiles(filesToRemove: StagedFile[]): void {
     this.trackManager.removeFilesFromActive(filesToRemove)
+    this._treeDirty = true
     this.rebuildCacheAndRefresh()
   }
 
+  /**
+   * Clears all unpinned files from the current track.
+   */
   public clear(): void {
     this.trackManager.clearActive()
+    this._treeDirty = true
     this.rebuildCacheAndRefresh()
+  }
+
+  /**
+   * Cancels all pending debounce timers to prevent memory leaks or
+   * updates firing after the provider is disposed.
+   */
+  private clearAllPendingTimers(): void {
+    this.pendingUpdates.forEach((timer) => clearTimeout(timer))
+    this.pendingUpdates.clear()
   }
 
   public dispose(): void {
     this._onDidChangeTreeData.dispose()
     this.disposables.forEach((d) => d.dispose())
-    this.pendingUpdates.forEach((timer) => clearTimeout(timer))
-    this.pendingUpdates.clear()
+    this.clearAllPendingTimers()
   }
 }
