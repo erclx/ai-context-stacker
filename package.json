@@ -191,52 +191,51 @@
           "group": "navigation@0"
         },
         {
-          "command": "aiContextStacker.previewContext",
-          "when": "view == aiContextTracksView",
-          "group": "navigation@1"
-        },
-        {
-          "//": "--- Staged Files: Title ---",
+          "//": "--- Staged Files: Title (Primary Actions) ---",
           "command": "aiContextStacker.addFilePicker",
           "when": "view == aiContextStackerView",
-          "group": "navigation@0"
-        },
-        {
-          "command": "aiContextStacker.copyAll",
-          "when": "view == aiContextStackerView",
           "group": "navigation@1"
         },
         {
-          "command": "aiContextStacker.clearAll",
+          "command": "aiContextStacker.previewContext",
           "when": "view == aiContextStackerView",
           "group": "navigation@2"
         },
         {
-          "//": "--- Staged Files: OVERFLOW MENU (...) ---",
-          "command": "aiContextStacker.copyTree",
+          "command": "aiContextStacker.copyAll",
           "when": "view == aiContextStackerView",
-          "group": "1_copy"
+          "group": "navigation@3"
         },
         {
-          "command": "aiContextStacker.copyContent",
+          "command": "aiContextStacker.clearAll",
           "when": "view == aiContextStackerView",
-          "group": "1_copy"
-        },
-        {
-          "command": "aiContextStacker.manageExcludes",
-          "when": "view == aiContextStackerView",
-          "group": "2_manage"
-        },
-        {
-          "//": "--- Divider will be rendered here ---",
-          "command": "aiContextStacker.configureOutput",
-          "when": "view == aiContextStackerView",
-          "group": "z_settings"
+          "group": "navigation@4"
         },
         {
           "//": "--- Staged Files: Title (Overflow '...') ---",
           "command": "aiContextStacker.addOpenFiles",
-          "when": "view == aiContextStackerView"
+          "when": "view == aiContextStackerView",
+          "group": "1_add"
+        },
+        {
+          "command": "aiContextStacker.copyTree",
+          "when": "view == aiContextStackerView",
+          "group": "2_copy_variants"
+        },
+        {
+          "command": "aiContextStacker.copyContent",
+          "when": "view == aiContextStackerView",
+          "group": "2_copy_variants"
+        },
+        {
+          "command": "aiContextStacker.manageExcludes",
+          "when": "view == aiContextStackerView",
+          "group": "3_config"
+        },
+        {
+          "command": "aiContextStacker.configureOutput",
+          "when": "view == aiContextStackerView",
+          "group": "3_config"
         }
       ],
       "view/item/context": [
