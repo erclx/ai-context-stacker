@@ -46,6 +46,11 @@
           "type": "boolean",
           "default": true,
           "description": "If true, adds an ASCII file tree map to the top of the copied context."
+        },
+        "aiContextStacker.largeFileThreshold": {
+          "type": "integer",
+          "default": 5000,
+          "description": "Token count at which a file is flagged as 'Heavy' (Orange). At 2x this value, it is flagged as 'Critical' (Red)."
         }
       }
     },

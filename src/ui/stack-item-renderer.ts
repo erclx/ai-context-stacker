@@ -9,7 +9,6 @@ import { isStagedFolder, StackTreeItem, StagedFile, StagedFolder } from '../mode
 export class StackItemRenderer {
   private readonly EMPTY_URI_SCHEME = 'ai-stack'
   private readonly EMPTY_ID = 'emptyState'
-  private readonly HIGH_TOKEN_THRESHOLD = 5000
 
   /**
    * Primary entry point for the TreeDataProvider to resolve UI elements.
@@ -62,7 +61,6 @@ export class StackItemRenderer {
 
   /**
    * Aggregates tokens from children.
-   * Extracted to allow future memoization if folder depth increases.
    */
   private sumFolderTokens(folder: StagedFolder): number {
     return folder.containedFiles.reduce((sum, file) => {
@@ -104,28 +102,59 @@ export class StackItemRenderer {
    */
   private applyContextualDecorations(item: vscode.TreeItem, file: StagedFile): void {
     if (file.isBinary) {
-      item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
-      item.description = 'Binary'
-      item.tooltip = 'Binary file detected; content cannot be parsed for tokens.'
+      this.applyBinaryDecorations(item)
       return
     }
 
-    item.iconPath = this.resolveFileIcon(file)
+    const threshold = this.getThreshold()
+    const tokens = file.stats?.tokenCount ?? 0
+
+    item.iconPath = this.resolveFileIcon(file, tokens, threshold)
+    item.tooltip = this.resolveTooltip(file, tokens, threshold)
     item.description = this.buildFileDescription(file)
+  }
+
+  private applyBinaryDecorations(item: vscode.TreeItem): void {
+    item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
+    item.description = 'Binary'
+    item.tooltip = 'Binary file detected; content cannot be parsed for tokens.'
   }
 
   /**
    * Logic to visually warn users if a file is unusually large.
+   * Priority: Pinned > Critical (Red) > Warning (Orange).
    */
-  private resolveFileIcon(file: StagedFile): vscode.ThemeIcon {
-    if (file.isPinned) return new vscode.ThemeIcon('pin')
+  private resolveFileIcon(file: StagedFile, tokens: number, threshold: number): vscode.ThemeIcon {
+    const isCritical = tokens >= threshold * 2
+    const isWarning = tokens >= threshold
 
-    const tokenCount = file.stats?.tokenCount ?? 0
+    let iconId = 'file'
+    let color: vscode.ThemeColor | undefined
 
-    // Warn user via color if the file consumes a significant portion of context
-    const iconColor = tokenCount > this.HIGH_TOKEN_THRESHOLD ? new vscode.ThemeColor('charts.orange') : undefined
+    // Determine Icon Shape
+    if (file.isPinned) iconId = 'pin'
+    else if (isCritical) iconId = 'warning'
 
-    return new vscode.ThemeIcon('file', iconColor)
+    // Determine Color (Heatmap)
+    if (isCritical) color = new vscode.ThemeColor('charts.red')
+    else if (isWarning) color = new vscode.ThemeColor('charts.orange')
+
+    return new vscode.ThemeIcon(iconId, color)
+  }
+
+  private resolveTooltip(file: StagedFile, tokens: number, threshold: number): string {
+    const base = file.uri.fsPath
+    if (tokens >= threshold * 2) {
+      return `${base}\n\nCritical: Exceeds ${this.formatTokenCount(threshold * 2)} tokens`
+    }
+    if (tokens >= threshold) {
+      return `${base}\n\nHeavy: Exceeds ${this.formatTokenCount(threshold)} tokens`
+    }
+    return base
+  }
+
+  private getThreshold(): number {
+    return vscode.workspace.getConfiguration('aiContextStacker').get<number>('largeFileThreshold', 5000)
   }
 
   private buildFileDescription(file: StagedFile): string {
