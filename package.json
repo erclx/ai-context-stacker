@@ -190,6 +190,24 @@
         "title": "Manage Excludes",
         "category": "AI Context Stacker",
         "icon": "$(filter)"
+      },
+      {
+        "command": "aiContextStacker.removeFilePicker",
+        "title": "Remove Files...",
+        "category": "AI Context Stacker",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "aiContextStacker.showPinnedOnly",
+        "title": "Show Pinned Files Only",
+        "category": "AI Context Stacker",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "aiContextStacker.showAllFiles",
+        "title": "Show All Files",
+        "category": "AI Context Stacker",
+        "icon": "$(list-flat)"
       }
     ],
     "menus": {
@@ -260,6 +278,21 @@
           "command": "aiContextStacker.configureOutput",
           "when": "view == aiContextStackerView",
           "group": "3_config"
+        },
+        {
+          "command": "aiContextStacker.removeFilePicker",
+          "when": "view == aiContextStackerView",
+          "group": "4_filtering"
+        },
+        {
+          "command": "aiContextStacker.showPinnedOnly",
+          "when": "view == aiContextStackerView && !aiContextStacker.pinnedOnly",
+          "group": "4_filtering"
+        },
+        {
+          "command": "aiContextStacker.showAllFiles",
+          "when": "view == aiContextStackerView && aiContextStacker.pinnedOnly",
+          "group": "4_filtering"
         }
       ],
       "view/item/context": [

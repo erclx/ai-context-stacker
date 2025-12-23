@@ -12,9 +12,11 @@ import { registerCopyAllCommand } from './copy-all'
 import { registerCopyContentCommand } from './copy-content'
 import { registerCopyFileCommand } from './copy-file'
 import { registerCopyTreeCommand } from './copy-tree'
+import { registerFilterCommands } from './filter-commands'
 import { registerManageExcludesCommand } from './manage-excludes'
 import { registerPreviewContextCommand } from './preview-context'
 import { registerRemoveFileCommand } from './remove-file'
+import { registerRemoveFilePickerCommand } from './remove-file-picker'
 import { registerTogglePinCommand } from './toggle-pin'
 import { registerTrackCommands } from './track-ops'
 
@@ -40,6 +42,7 @@ function registerStackModifications(deps: CommandDependencies) {
   registerAddFilePickerCommand(deps.context, deps.services.stackProvider, deps.services.ignoreManager)
   registerAddOpenFilesCommand(deps.context, deps.services.stackProvider)
   registerRemoveFileCommand(deps.context, deps.services.stackProvider, deps.views.filesView)
+  registerRemoveFilePickerCommand(deps.context, deps.services.stackProvider)
   registerTogglePinCommand(deps.context, deps.services.trackManager, deps.views.filesView)
   registerClearAllCommand(deps.context, deps.services.stackProvider)
 }
@@ -59,4 +62,5 @@ function registerViewOperations(deps: CommandDependencies) {
   registerPreviewContextCommand(deps.context, deps.services.stackProvider)
   registerManageExcludesCommand(deps.context)
   registerConfigureOutputCommand(deps.context)
+  registerFilterCommands(deps.context, deps.services.stackProvider)
 }

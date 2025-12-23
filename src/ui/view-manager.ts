@@ -35,12 +35,14 @@ export class ViewManager implements vscode.Disposable {
       canSelectMany: false,
     })
 
-    this.updateTitle(trackManager.getActiveTrack().name)
+    this.updateTitle(trackManager.getActiveTrack().name, stackProvider)
 
-    trackManager.onDidChangeTrack(
-      (track) => {
-        this.updateTitle(track.name)
-      },
+    // Listen for Track Changes
+    trackManager.onDidChangeTrack((track) => this.updateTitle(track.name, stackProvider), null, this._disposables)
+
+    // Listen for Filter Changes (Provider emits on filter change)
+    stackProvider.onDidChangeTreeData(
+      () => this.updateTitle(trackManager.getActiveTrack().name, stackProvider),
       null,
       this._disposables,
     )
@@ -48,8 +50,14 @@ export class ViewManager implements vscode.Disposable {
     this._disposables.push(this.filesView, this.tracksView, dragDropController)
   }
 
-  private updateTitle(trackName: string) {
-    this.filesView.title = `Staged Files — ${trackName}`
+  private updateTitle(trackName: string, provider: StackProvider) {
+    const baseTitle = `Staged Files — ${trackName}`
+
+    if (provider.hasActiveFilters) {
+      this.filesView.title = `${baseTitle} (Pinned Only)`
+    } else {
+      this.filesView.title = baseTitle
+    }
   }
 
   public dispose() {
