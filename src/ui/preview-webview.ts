@@ -39,6 +39,11 @@ export class PreviewWebview {
   }
 
   public static createOrShow(extensionUri: vscode.Uri, provider: StackProvider): void {
+    if (provider.getFiles().length === 0) {
+      void vscode.window.showWarningMessage('No files in stack to preview.')
+      return
+    }
+
     if (PreviewWebview.currentPanel) {
       PreviewWebview.currentPanel._panel.reveal(vscode.ViewColumn.Beside)
       return
@@ -86,7 +91,7 @@ export class PreviewWebview {
     }
 
     vscode.env.clipboard.writeText(message.text)
-    vscode.window.showInformationMessage('Context copied to clipboard!')
+    void vscode.window.showInformationMessage('Context copied to clipboard!')
   }
 }
 
