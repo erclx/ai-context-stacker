@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { ContextTrack, StagedFile } from '../models'
+import { ContextTrack, SerializedState, StagedFile } from '../models'
 import { StateMapper } from '../services'
 import { generateId } from '../utils'
 
@@ -8,13 +8,14 @@ import { generateId } from '../utils'
  * Manages the lifecycle of Context Tracks (groups of staged files).
  * Responsibilities:
  * - State persistence via VS Code WorkspaceState.
- * - maintaining a high-performance O(1) lookup index for file existence checks.
- * - Handling track switching, creation, and deletion logic.
+ * - Maintaining a high-performance O(1) lookup index for file existence checks.
+ * - Handling track switching, creation, deletion, and reordering.
  */
 export class TrackManager implements vscode.Disposable {
   private static readonly STORAGE_KEY = 'aiContextStacker.tracks.v1'
   private tracks: Map<string, ContextTrack> = new Map()
   private activeTrackId = 'default'
+  private _trackOrder: string[] = []
 
   /** Global cache of all URIs across all tracks for fast existence checks. */
   private UriIndex = new Set<string>()
@@ -34,8 +35,11 @@ export class TrackManager implements vscode.Disposable {
     return this.tracks.get(this.activeTrackId) || this.createDefaultTrack()
   }
 
+  /**
+   * Returns all tracks sorted by the user's custom order.
+   */
   get allTracks(): ContextTrack[] {
-    return Array.from(this.tracks.values())
+    return this._trackOrder.map((id) => this.tracks.get(id)).filter((t): t is ContextTrack => t !== undefined)
   }
 
   /**
@@ -51,6 +55,58 @@ export class TrackManager implements vscode.Disposable {
   }
 
   /**
+   * Shifts a track up or down in the list.
+   * Used for Context Menu actions.
+   */
+  moveTrackRelative(id: string, direction: 'up' | 'down'): void {
+    const index = this._trackOrder.indexOf(id)
+    if (index === -1) return
+
+    const newIndex = direction === 'up' ? index - 1 : index + 1
+
+    // Guard: Boundary checks
+    if (newIndex < 0 || newIndex >= this._trackOrder.length) return
+
+    // Swap positions
+    const temp = this._trackOrder[newIndex]
+    this._trackOrder[newIndex] = id
+    this._trackOrder[index] = temp
+
+    this.persistState(false)
+    this._onDidChangeTrack.fire(this.getActiveTrack())
+  }
+
+  /**
+   * Moves a track to a new position in the list (Drag and Drop).
+   * @param sourceId - The ID of the track being moved.
+   * @param targetId - The ID of the track to insert before. If undefined, move to end.
+   */
+  reorderTracks(sourceId: string, targetId: string | undefined): void {
+    const fromIndex = this._trackOrder.indexOf(sourceId)
+    if (fromIndex === -1) return
+
+    // Remove from old position
+    this._trackOrder.splice(fromIndex, 1)
+
+    if (!targetId) {
+      // Move to end
+      this._trackOrder.push(sourceId)
+    } else {
+      // Insert before target
+      const toIndex = this._trackOrder.indexOf(targetId)
+      if (toIndex === -1) {
+        this._trackOrder.push(sourceId)
+      } else {
+        this._trackOrder.splice(toIndex, 0, sourceId)
+      }
+    }
+
+    this.persistState(false)
+    // Fire event to trigger UI refresh (active track might not change, but tree does)
+    this._onDidChangeTrack.fire(this.getActiveTrack())
+  }
+
+  /**
    * Creates a new empty track and switches to it.
    * @param name - Display name for the new track.
    * @returns The generated unique ID of the new track.
@@ -60,6 +116,7 @@ export class TrackManager implements vscode.Disposable {
     const newTrack: ContextTrack = { id, name, files: [] }
 
     this.tracks.set(id, newTrack)
+    this._trackOrder.push(id)
     this.switchToTrack(id)
     return id
   }
@@ -83,16 +140,17 @@ export class TrackManager implements vscode.Disposable {
    */
   deleteTrack(id: string): void {
     if (this.tracks.size <= 1) {
-      vscode.window.showWarningMessage('Cannot delete the last remaining track.')
+      void vscode.window.showWarningMessage('Cannot delete the last remaining track.')
       return
     }
 
     const wasActive = this.activeTrackId === id
     this.tracks.delete(id)
+    this._trackOrder = this._trackOrder.filter((tid) => tid !== id)
     this.rebuildIndex()
 
     if (wasActive) {
-      const nextId = this.tracks.keys().next().value
+      const nextId = this._trackOrder[0] || this.tracks.keys().next().value
       if (nextId) this.switchToTrack(nextId)
       else this.createDefaultTrack()
     } else {
@@ -225,6 +283,7 @@ export class TrackManager implements vscode.Disposable {
   private createDefaultTrack(): ContextTrack {
     const def: ContextTrack = { id: 'default', name: 'Main', files: [] }
     this.tracks.set(def.id, def)
+    this._trackOrder = [def.id]
     this.activeTrackId = def.id
     return def
   }
@@ -232,31 +291,56 @@ export class TrackManager implements vscode.Disposable {
   /**
    * Saves the current state to workspace storage.
    * @param rebuildIndexBeforeSave - If true, regenerates the global lookup index before saving.
-   * Set to false if the index was already updated by the caller.
    */
   private persistState(rebuildIndexBeforeSave = true): void {
     if (rebuildIndexBeforeSave) {
       this.rebuildIndex()
     }
 
-    const state = StateMapper.toSerialized(this.tracks, this.activeTrackId)
+    const state = StateMapper.toSerialized(this.tracks, this.activeTrackId, this._trackOrder)
     this.extensionContext.workspaceState.update(TrackManager.STORAGE_KEY, state)
   }
 
   private loadState(): void {
-    const rawState = this.extensionContext.workspaceState.get<any>(TrackManager.STORAGE_KEY)
-    const { tracks, activeTrackId } = StateMapper.fromSerialized(rawState)
+    const rawState = this.extensionContext.workspaceState.get<SerializedState>(TrackManager.STORAGE_KEY)
 
+    // Guard: First run or corrupted state
+    if (!rawState) {
+      this.createDefaultTrack()
+      this.rebuildIndex()
+      return
+    }
+
+    const { tracks, activeTrackId, trackOrder } = StateMapper.fromSerialized(rawState)
     this.tracks = tracks
     this.activeTrackId = activeTrackId
+    this._trackOrder = trackOrder
+
+    // Ensure integrity if order array is stale
+    this.syncOrderIntegrity()
 
     if (this.tracks.size === 0) {
       this.createDefaultTrack()
     } else if (!this.tracks.has(this.activeTrackId)) {
-      this.activeTrackId = this.tracks.keys().next().value || 'default'
+      this.activeTrackId = this._trackOrder[0] || 'default'
     }
 
     this.rebuildIndex()
+  }
+
+  private syncOrderIntegrity(): void {
+    const trackIds = new Set(this.tracks.keys())
+    const orderedIds = new Set(this._trackOrder)
+
+    // Remove deleted IDs
+    this._trackOrder = this._trackOrder.filter((id) => trackIds.has(id))
+
+    // Add missing IDs (rare edge case)
+    for (const id of trackIds) {
+      if (!orderedIds.has(id)) {
+        this._trackOrder.push(id)
+      }
+    }
   }
 
   /**

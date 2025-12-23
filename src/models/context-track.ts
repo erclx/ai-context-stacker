@@ -32,4 +32,5 @@ export interface SerializedTrack {
 export interface SerializedState {
   tracks: Record<string, SerializedTrack>
   activeTrackId: string
+  trackOrder: string[]
 }

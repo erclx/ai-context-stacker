@@ -13,6 +13,7 @@ export function registerTrackCommands(
   trackManager: TrackManager,
   filesView: vscode.TreeView<ContextTrack>,
 ): void {
+  // New Track
   context.subscriptions.push(
     vscode.commands.registerCommand(
       'aiContextStacker.newTrack',
@@ -20,6 +21,7 @@ export function registerTrackCommands(
     ),
   )
 
+  // Switch Track
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.switchTrack', (arg?: string | ContextTrack) => {
       const action = () => handleSwitchTrack(trackManager, arg)
@@ -27,6 +29,7 @@ export function registerTrackCommands(
     }),
   )
 
+  // Rename Track
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.renameTrack', (item?: ContextTrack) => {
       const action = () => handleRenameTrack(trackManager, filesView, item)
@@ -34,10 +37,27 @@ export function registerTrackCommands(
     }),
   )
 
+  // Delete Track
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.deleteTrack', (item?: ContextTrack) => {
       const action = () => handleDeleteTrack(trackManager, filesView, item)
       return ErrorHandler.safeExecute('Delete Track', action)()
+    }),
+  )
+
+  // Move Track Up
+  context.subscriptions.push(
+    vscode.commands.registerCommand('aiContextStacker.moveTrackUp', (item?: ContextTrack) => {
+      const action = () => handleMoveTrack(trackManager, item, 'up')
+      return ErrorHandler.safeExecute('Move Track Up', action)()
+    }),
+  )
+
+  // Move Track Down
+  context.subscriptions.push(
+    vscode.commands.registerCommand('aiContextStacker.moveTrackDown', (item?: ContextTrack) => {
+      const action = () => handleMoveTrack(trackManager, item, 'down')
+      return ErrorHandler.safeExecute('Move Track Down', action)()
     }),
   )
 }
@@ -60,7 +80,6 @@ async function handleSwitchTrack(manager: TrackManager, arg?: string | ContextTr
 
   // Prevent redundant context switching
   if (targetId === manager.getActiveTrack().id) {
-    vscode.window.showInformationMessage(`You are already on the "${manager.getActiveTrack().name}" track.`)
     return
   }
 
@@ -80,7 +99,7 @@ async function handleRenameTrack(
   })
 
   if (name) {
-    await manager.renameTrack(target.id, name)
+    manager.renameTrack(target.id, name)
   }
 }
 
@@ -94,8 +113,17 @@ async function handleDeleteTrack(
   const answer = await vscode.window.showWarningMessage(`Delete track "${target.name}"?`, { modal: true }, 'Delete')
 
   if (answer === 'Delete') {
-    await manager.deleteTrack(target.id)
+    manager.deleteTrack(target.id)
   }
+}
+
+async function handleMoveTrack(
+  manager: TrackManager,
+  item: ContextTrack | undefined,
+  direction: 'up' | 'down',
+): Promise<void> {
+  if (!item) return
+  manager.moveTrackRelative(item.id, direction)
 }
 
 // --- Helpers ---

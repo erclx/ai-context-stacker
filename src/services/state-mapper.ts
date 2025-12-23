@@ -10,9 +10,14 @@ export class StateMapper {
   /**
    * Maps memory Map of tracks to a serializable object for VS Code workspace storage.
    */
-  public static toSerialized(tracks: Map<string, ContextTrack>, activeTrackId: string): SerializedState {
+  public static toSerialized(
+    tracks: Map<string, ContextTrack>,
+    activeTrackId: string,
+    trackOrder: string[],
+  ): SerializedState {
     const state: SerializedState = {
       activeTrackId,
+      trackOrder,
       tracks: {},
     }
 
@@ -36,9 +41,11 @@ export class StateMapper {
   public static fromSerialized(state: SerializedState | undefined): {
     tracks: Map<string, ContextTrack>
     activeTrackId: string
+    trackOrder: string[]
   } {
     const tracks = new Map<string, ContextTrack>()
     let activeTrackId = 'default'
+    let trackOrder: string[] = []
 
     if (state && state.tracks) {
       Object.values(state.tracks).forEach((t) => {
@@ -49,9 +56,11 @@ export class StateMapper {
         })
       })
       activeTrackId = state.activeTrackId || 'default'
+
+      trackOrder = state.trackOrder || Array.from(tracks.keys())
     }
 
-    return { tracks, activeTrackId }
+    return { tracks, activeTrackId, trackOrder }
   }
 
   private static deserializeFiles(trackData: SerializedTrack): StagedFile[] {

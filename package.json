@@ -169,6 +169,18 @@
         "icon": "$(trash)"
       },
       {
+        "command": "aiContextStacker.moveTrackUp",
+        "title": "Move Up",
+        "category": "AI Context Stacker",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "aiContextStacker.moveTrackDown",
+        "title": "Move Down",
+        "category": "AI Context Stacker",
+        "icon": "$(arrow-down)"
+      },
+      {
         "command": "aiContextStacker.manageExcludes",
         "title": "Manage Excludes",
         "category": "AI Context Stacker",
@@ -260,7 +272,7 @@
         {
           "//": "--- Tracks: RIGHT CLICK MENU ---",
           "command": "aiContextStacker.switchTrack",
-          "when": "view == aiContextTracksView",
+          "when": "view == aiContextTracksView && !(viewItem =~ /active/)",
           "group": "1_modification"
         },
         {
@@ -271,7 +283,17 @@
         {
           "command": "aiContextStacker.deleteTrack",
           "when": "view == aiContextTracksView",
-          "group": "2_modification"
+          "group": "3_modification"
+        },
+        {
+          "command": "aiContextStacker.moveTrackUp",
+          "when": "view == aiContextTracksView && !(viewItem =~ /:first/)",
+          "group": "2_modification@1"
+        },
+        {
+          "command": "aiContextStacker.moveTrackDown",
+          "when": "view == aiContextTracksView && !(viewItem =~ /:last/)",
+          "group": "2_modification@2"
         },
         {
           "//": "--- Files: HOVER ICONS ---",

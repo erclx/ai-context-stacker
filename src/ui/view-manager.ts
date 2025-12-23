@@ -31,6 +31,7 @@ export class ViewManager implements vscode.Disposable {
 
     this.tracksView = vscode.window.createTreeView('aiContextTracksView', {
       treeDataProvider: trackListProvider,
+      dragAndDropController: trackListProvider,
       canSelectMany: false,
     })
 
