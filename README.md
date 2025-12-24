@@ -40,6 +40,13 @@ Instantly spot which files are consuming your context window.
 - **Red Icon**: File is "Critical" (exceeds 2x threshold).
 - **Pinned Files**: Retain their pin icon but adopt the warning color.
 
+### Seamless Navigation
+
+Jump between your code and your context stack effortlessly.
+
+- **Reveal in Stack**: Right-click any file in the VS Code Explorer to instantly find and focus it in the Staged Files view.
+- **Reveal in Explorer**: Right-click any staged file to locate it in your system's file manager.
+
 ### Advanced Context Tracks
 
 Organize your work into separate "tracks" (e.g., "Refactor Auth", "Bug Fix #123").
@@ -104,6 +111,7 @@ Example configuration:
 | `Remove Files...`    | Bulk uncheck files to remove them     |
 | `Add All Open Files` | Stage everything currently open       |
 | `Add Current File`   | Stage the active file                 |
+| `Reveal in AI Stack` | Locate the active file in the stack   |
 | `Clear Stack`        | Remove all files (except pinned ones) |
 | `Toggle Pin`         | Pin or unpin a file                   |
 
@@ -118,13 +126,14 @@ Example configuration:
 
 ### View & Filtering
 
-| Command                  | Description                             |
-| ------------------------ | --------------------------------------- |
-| `Collapse All`           | Instantly collapse all folders in view  |
-| `Show Pinned Files Only` | Filter the view to only pinned files    |
-| `Show All Files`         | Reset the view to show all staged files |
-| `Manage Excludes`        | Configure exclusion patterns            |
-| `Configure Output`       | Toggle output options                   |
+| Command                  | Description                                               |
+| ------------------------ | --------------------------------------------------------- |
+| `Reveal in Explorer`     | Open selected staged file in system file manager          |
+| `Collapse All`           | Instantly collapse all folders (auto-hides if no folders) |
+| `Show Pinned Files Only` | Filter the view to only pinned files                      |
+| `Show All Files`         | Reset the view to show all staged files                   |
+| `Manage Excludes`        | Configure exclusion patterns                              |
+| `Configure Output`       | Toggle output options                                     |
 
 ### Track Management
 

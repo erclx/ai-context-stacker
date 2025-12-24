@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+**Navigation & Usability**
+
+- **Reveal in AI Stack**: Right-click any file in the VS Code Explorer or Editor tab to instantly locate, highlight, and focus that file within the "Staged Files" view. Includes automatic handling for filtered items.
+- **Reveal in Explorer**: Right-click any file or folder in the "Staged Files" view to reveal it in the system's native file manager (Finder/Explorer) or the VS Code side bar.
+- **Smart Collapse Visibility**: The "Collapse All" button in the view title automatically hides itself when the stack contains only files (no folders), reducing visual clutter.
+
 **Visual Heatmap (Token Warnings)**
 
 - Added configurable token thresholds (`aiContextStacker.largeFileThreshold`) to flag heavy files.
