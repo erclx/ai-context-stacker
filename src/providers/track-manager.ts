@@ -160,6 +160,22 @@ export class TrackManager implements vscode.Disposable {
   }
 
   /**
+   * Nuke Option: Deletes ALL tracks and resets to a clean default state.
+   */
+  deleteAllTracks(): void {
+    this.tracks.clear()
+    this._trackOrder = []
+    this.UriIndex.clear()
+
+    // Re-initialize to a safe default state
+    this.createDefaultTrack()
+    this.persistState(true)
+
+    // Notify UI to refresh completely
+    this._onDidChangeTrack.fire(this.getActiveTrack())
+  }
+
+  /**
    * Toggles the pinned state of specific files.
    * Pinned files survive the "Clear Active" command.
    */

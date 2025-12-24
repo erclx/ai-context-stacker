@@ -45,6 +45,14 @@ export function registerTrackCommands(
     }),
   )
 
+  // Delete All Tracks (Reset)
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'aiContextStacker.deleteAllTracks',
+      ErrorHandler.safeExecute('Delete All Tracks', () => handleDeleteAllTracks(trackManager)),
+    ),
+  )
+
   // Move Track Up
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.moveTrackUp', (item?: ContextTrack) => {
@@ -114,6 +122,16 @@ async function handleDeleteTrack(
 
   if (answer === 'Delete') {
     manager.deleteTrack(target.id)
+  }
+}
+
+async function handleDeleteAllTracks(manager: TrackManager): Promise<void> {
+  const warning = 'Are you sure you want to delete ALL tracks? This cannot be undone.'
+  const answer = await vscode.window.showWarningMessage(warning, { modal: true }, 'Delete All')
+
+  if (answer === 'Delete All') {
+    manager.deleteAllTracks()
+    vscode.window.showInformationMessage('All context tracks deleted and workspace reset.')
   }
 }
 

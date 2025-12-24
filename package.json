@@ -180,6 +180,12 @@
         "icon": "$(trash)"
       },
       {
+        "command": "aiContextStacker.deleteAllTracks",
+        "title": "Delete All Tracks",
+        "category": "AI Context Stacker",
+        "icon": "$(trash)"
+      },
+      {
         "command": "aiContextStacker.moveTrackUp",
         "title": "Move Up",
         "category": "AI Context Stacker",
@@ -237,6 +243,11 @@
           "command": "aiContextStacker.newTrack",
           "when": "view == aiContextTracksView",
           "group": "navigation@0"
+        },
+        {
+          "command": "aiContextStacker.deleteAllTracks",
+          "when": "view == aiContextTracksView",
+          "group": "9_danger"
         },
         {
           "//": "--- Staged Files: Title (Primary Actions) ---",
