@@ -37,9 +37,7 @@ export class PreviewWebview {
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
 
-    this._provider.onDidChangeTreeData(() => this.scheduleUpdate(), null, this._disposables)
-
-    this._panel.webview.onDidReceiveMessage((msg: IWebviewMessage) => this.handleMessage(msg), null, this._disposables)
+    this.registerListeners()
 
     // Initial render
     this.scheduleUpdate()
@@ -79,6 +77,25 @@ export class PreviewWebview {
         x.dispose()
       }
     }
+  }
+
+  private registerListeners(): void {
+    // Listen for data changes from the provider
+    this._provider.onDidChangeTreeData(() => this.scheduleUpdate(), null, this._disposables)
+
+    // Listen for UI messages (e.g., "Copy to Clipboard")
+    this._panel.webview.onDidReceiveMessage((msg: IWebviewMessage) => this.handleMessage(msg), null, this._disposables)
+
+    // Listen for configuration changes (e.g., toggling tree view in output)
+    vscode.workspace.onDidChangeConfiguration(
+      (e) => {
+        if (e.affectsConfiguration('aiContextStacker')) {
+          this.scheduleUpdate()
+        }
+      },
+      null,
+      this._disposables,
+    )
   }
 
   /**

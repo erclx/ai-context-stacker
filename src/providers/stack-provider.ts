@@ -196,6 +196,15 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
       vscode.workspace.onDidChangeTextDocument((e) => this.handleDocChange(e.document)),
       vscode.workspace.onDidSaveTextDocument((doc) => this.handleDocChange(doc, true)),
     )
+
+    this.disposables.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration('aiContextStacker')) {
+          this._treeDirty = true
+          this.rebuildCacheAndRefresh()
+        }
+      }),
+    )
   }
 
   private handleDocChange(doc: vscode.TextDocument, immediate = false): void {
