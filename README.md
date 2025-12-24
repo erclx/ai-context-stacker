@@ -42,10 +42,10 @@ Instantly spot which files are consuming your context window.
 
 ### Seamless Navigation
 
-Jump between your code and your context stack effortlessly.
+Jump between your code and your context stack effortlessly with a Smart Context Menu:
 
-- **Reveal in Stack**: Right-click any file in the VS Code Explorer to instantly find and focus it in the Staged Files view.
-- **Reveal in Explorer**: Right-click any staged file to locate it in your system's file manager.
+- **Context-Aware Actions**: Right-clicking a file automatically shows "Add to AI Context Stack" if it's new, or "Reveal in AI Stack" if it's already staged.
+- **Reveal in Explorer**: Right-click any staged file in the sidebar to locate it immediately in your system's file manager.
 
 ### Advanced Context Tracks
 
