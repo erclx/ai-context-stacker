@@ -17,6 +17,7 @@ import { registerManageExcludesCommand } from './manage-excludes'
 import { registerPreviewContextCommand } from './preview-context'
 import { registerRemoveFileCommand } from './remove-file'
 import { registerRemoveFilePickerCommand } from './remove-file-picker'
+import { registerRevealInExplorerCommand } from './reveal-in-explorer'
 import { registerRevealInViewCommand } from './reveal-in-view'
 import { registerTogglePinCommand } from './toggle-pin'
 import { registerTrackCommands } from './track-ops'
@@ -65,4 +66,5 @@ function registerViewOperations(deps: CommandDependencies) {
   registerConfigureOutputCommand(deps.context)
   registerFilterCommands(deps.context, deps.services.stackProvider)
   registerRevealInViewCommand(deps.context, deps.services.stackProvider, deps.views.filesView)
+  registerRevealInExplorerCommand(deps.context)
 }

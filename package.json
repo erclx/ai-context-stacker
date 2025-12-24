@@ -92,6 +92,12 @@
         "category": "AI Context Stacker"
       },
       {
+        "command": "aiContextStacker.revealInExplorer",
+        "title": "Reveal in Explorer",
+        "category": "AI Context Stacker",
+        "icon": "$(folder-opened)"
+      },
+      {
         "command": "aiContextStacker.addFilePicker",
         "title": "Add Files",
         "category": "AI Context Stacker",
@@ -396,6 +402,11 @@
           "command": "aiContextStacker.removeFile",
           "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
           "group": "2_modification"
+        },
+        {
+          "command": "aiContextStacker.revealInExplorer",
+          "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
+          "group": "5_navigation"
         },
         {
           "//": "--- Empty State ---",
