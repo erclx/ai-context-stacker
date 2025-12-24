@@ -1,16 +1,14 @@
 # AI Context Stacker
 
-Stage files for AI prompts without leaving VS Code.
+**Stop context switching. Stage your prompts instantly.**
 
-When you need to send multiple files to ChatGPT or Claude, copying and pasting each one breaks your flow. This extension gives you a staging area where you can collect the files you need, preview the output, and copy everything at once.
+Build the perfect context for ChatGPT, Claude, or any LLM without leaving VS Code. Drag files, switch between tasks, and copy everything in one click.
 
-![Demo]()
-
----
+![Drag and Drop Demo](./demos/drag-and-drop.gif)
 
 ## The Problem
 
-Working with LLMs usually means:
+Working with language models typically means:
 
 1. Open a file, select all, copy
 2. Switch to browser, paste
@@ -18,96 +16,148 @@ Working with LLMs usually means:
 4. Repeat for every file
 5. Try to remember what you already copied
 
-This gets old fast when you're working with 3-4 files at once.
+This workflow becomes inefficient when working with multiple files simultaneously.
 
----
+## Quick Start
 
-## What It Does
+1. **Install the extension** from the VS Code Marketplace
+2. **Open the AI Context Stacker view** in the Activity Bar (left sidebar)
+3. **Right-click any file** → "Add to AI Context Stack"
+4. **Click the Copy Stack button** (📋 icon in the view title)
+5. **Paste into your language model** – you're done
 
-### File Staging
+![Preview Context Demo](./demos/preview-context.gif)
 
-Add files to a stack using the sidebar view, right-click menus, or commands. See exactly what you've staged before copying.
+## Key Features
 
-### Context Tracks
+### Instant Context Staging
 
-Create separate stacks for different tasks. Switch between "bug-fix" and "refactor" contexts without mixing files or losing your place.
+Stop copying files one by one. Drag files, folders, or use the right-click menu to build your context in seconds.
 
-### Tree View
+### Visual Token Heatmap
 
-Optionally include an ASCII directory tree so the LLM can see your project structure. Turn it off in settings if you don't need it.
+Instantly spot which files are consuming your context window.
 
-### Pinning
+- **Amber Icon**: File is "Heavy" (exceeds your configured threshold).
+- **Red Icon**: File is "Critical" (exceeds 2x threshold).
+- **Pinned Files**: Retain their pin icon but adopt the warning color.
 
-Mark certain files (like documentation or specs) to stay in the stack even when you clear everything else.
+### Advanced Context Tracks
 
----
+Organize your work into separate "tracks" (e.g., "Refactor Auth", "Bug Fix #123").
+
+- **Custom Order**: Drag and drop tracks to reorder them exactly how you work.
+- **Persistent**: Your tracks and file lists are saved automatically.
+
+### Smart Filtering & Pinning
+
+- **Pin Important Files**: Keep critical docs or configs safe from the "Clear Stack" command.
+- **Show Pinned Only**: Toggle the view to focus purely on your pinned context. "Copy Stack" respects this filter!
+
+### Visual Context Map
+
+Include an ASCII directory tree so the model understands your project structure at a glance.
+
+```
+Context Map
+├── components
+│   ├── Header.tsx
+│   ├── Sidebar.tsx
+│   └── Footer.tsx
+├── utils
+│   ├── api.ts
+│   └── helpers.ts
+└── README.md
+```
 
 ## Installation
 
 1. Open VS Code
-2. Extensions (`Ctrl+Shift+X`)
+2. Open Extensions (`Ctrl+Shift+X` or `Cmd+Shift+X`)
 3. Search "AI Context Stacker"
-4. Install
-
----
+4. Click Install
 
 ## Settings
 
-| Setting                            | Type      | Default | Description                                                      |
-| ---------------------------------- | --------- | ------- | ---------------------------------------------------------------- |
-| `aiContextStacker.excludes`        | `array`   | `[]`    | Glob patterns for files to skip (e.g., `["**/node_modules/**"]`) |
-| `aiContextStacker.includeFileTree` | `boolean` | `true`  | Include ASCII tree in copied output                              |
+| Setting                               | Type      | Default | Description                                                                                               |
+| :------------------------------------ | :-------- | :------ | :-------------------------------------------------------------------------------------------------------- |
+| `aiContextStacker.excludes`           | `array`   | `[]`    | Glob patterns for files to skip (e.g., `["**/node_modules/**"]`)                                          |
+| `aiContextStacker.includeFileTree`    | `boolean` | `true`  | Include ASCII tree in copied output                                                                       |
+| `aiContextStacker.largeFileThreshold` | `integer` | `5000`  | Token count at which a file is flagged as 'Heavy' (Amber). At 2x this value, it becomes 'Critical' (Red). |
 
-Example:
+Example configuration:
 
 ```json
 {
-  "aiContextStacker.excludes": ["**/node_modules/**", "**/.git/**"],
-  "aiContextStacker.includeFileTree": true
+  "aiContextStacker.excludes": ["**/node_modules/**", "**/.git/**", "**/dist/**"],
+  "aiContextStacker.includeFileTree": true,
+  "aiContextStacker.largeFileThreshold": 4000
 }
 ```
 
----
-
 ## Commands
 
-| Command              | Description                                |
-| -------------------- | ------------------------------------------ |
-| `Add Files`          | Pick files to add to the stack             |
-| `Add All Open Files` | Stage everything currently open            |
-| `Add Current File`   | Stage the active file                      |
-| `Copy Stack`         | Copy all staged content to clipboard       |
-| `Clear Stack`        | Remove all files (except pinned ones)      |
-| `Preview Context`    | See what will be copied before you copy it |
-| `Create New Track`   | Start a new context stack                  |
-| `Switch Track`       | Change to a different track                |
-| `Toggle Pin`         | Pin or unpin a file                        |
+### Stack Operations
 
-### Keyboard Shortcuts
+| Command              | Description                           |
+| -------------------- | ------------------------------------- |
+| `Add Files`          | Pick files to add to the stack        |
+| `Remove Files...`    | Bulk uncheck files to remove them     |
+| `Add All Open Files` | Stage everything currently open       |
+| `Add Current File`   | Stage the active file                 |
+| `Clear Stack`        | Remove all files (except pinned ones) |
+| `Toggle Pin`         | Pin or unpin a file                   |
 
-In the sidebar view:
+### Output & Clipboard
 
-- `F2` - Rename track
-- `Delete` - Remove track or file
-- `Ctrl/Cmd+C` - Copy single file content
+| Command                  | Description                                                   |
+| ------------------------ | ------------------------------------------------------------- |
+| `Copy Stack`             | Copy all staged content to clipboard (respects active filter) |
+| `Copy Context Map Only`  | Copy just the ASCII tree                                      |
+| `Copy File Content Only` | Copy files without the tree                                   |
+| `Preview Context`        | Open a webview showing exactly what will be copied            |
 
----
+### View & Filtering
 
-## Basic Workflow
+| Command                  | Description                             |
+| ------------------------ | --------------------------------------- |
+| `Show Pinned Files Only` | Filter the view to only pinned files    |
+| `Show All Files`         | Reset the view to show all staged files |
+| `Manage Excludes`        | Configure exclusion patterns            |
+| `Configure Output`       | Toggle output options                   |
 
-1. Right-click a file → "Add to AI Context Stack"
-2. Add more files as needed
-3. Run "Copy Stack" (or use the button in the sidebar)
-4. Paste into your LLM
+### Track Management
 
-For different tasks, create separate tracks so you're not constantly adding and removing the same files.
-
----
+| Command          | Description                            |
+| ---------------- | -------------------------------------- |
+| `New Track`      | Start a new context stack              |
+| `Switch Track`   | Change to a different track            |
+| `Rename Track`   | Rename the current track               |
+| `Delete Track`   | Remove a track                         |
+| `Move Up / Down` | Reorder tracks manually (context menu) |
 
 ## Tips
 
-**Multiple projects**: Each track keeps its own list of files. Name them by feature or bug number.
+**Heatmap Optimization**: Adjust `aiContextStacker.largeFileThreshold` based on the model you are using (e.g., lower it for models with smaller context windows).
 
-**Documentation files**: Pin your README or architecture docs so they're always included.
+**Filtered Copying**: If you only want to copy your pinned documentation for a specific query, toggle "Show Pinned Only" before hitting Copy. The extension copies exactly what you see.
 
-**Exclude patterns**: Set `aiContextStacker.excludes` to skip test files, build output, or dependencies.
+**Status Bar**: Click the status bar item (bottom right) to quickly copy your entire stack without opening the sidebar.
+
+## Known Limitations
+
+- Binary files are skipped automatically and marked with a warning icon
+- Files over 1MB are excluded from token counting for performance reasons
+- Token estimates are approximate (based on character count heuristics, not actual tokenizer output)
+- The extension respects VS Code's file scheme restrictions (works with local files and most remote schemes)
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/erclx/ai-context-stacker/issues)
+- **Changelog**: [CHANGELOG.md](CHANGELOG.md)
+
+## License
+
+MIT © 2025
+
+Made with ☕ for developers who are tired of context switching.
