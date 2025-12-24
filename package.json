@@ -278,30 +278,30 @@
           "group": "navigation@1"
         },
         {
-          "command": "aiContextStacker.addFolderPicker",
-          "when": "view == aiContextStackerView",
-          "group": "navigation@1"
-        },
-        {
           "command": "aiContextStacker.copyAll",
           "when": "view == aiContextStackerView",
           "group": "navigation@2"
         },
         {
-          "//": "--- Staged Files: Title (Overflow '...') ---",
-          "command": "aiContextStacker.previewContext",
-          "when": "view == aiContextStackerView",
-          "group": "1_view"
-        },
-        {
           "command": "aiContextStacker.collapseAll",
           "when": "view == aiContextStackerView && aiContextStacker.hasFolders",
-          "group": "1_view"
+          "group": "navigation@3"
+        },
+        {
+          "//": "--- Staged Files: Title (Overflow '...') ---",
+          "command": "aiContextStacker.addFolderPicker",
+          "when": "view == aiContextStackerView",
+          "group": "1_add@1"
         },
         {
           "command": "aiContextStacker.addOpenFiles",
           "when": "view == aiContextStackerView",
-          "group": "1_add"
+          "group": "1_add@2"
+        },
+        {
+          "command": "aiContextStacker.previewContext",
+          "when": "view == aiContextStackerView",
+          "group": "1_view"
         },
         {
           "command": "aiContextStacker.copyTree",
