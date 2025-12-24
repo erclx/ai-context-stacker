@@ -160,6 +160,27 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   private updateContextKeys(hasFolders: boolean): void {
     void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasFolders', hasFolders)
+
+    // Publish all staged paths (files & folders) to context for smart menu toggling
+    if (this._cachedTree) {
+      const allPaths = this.collectAllPaths(this._cachedTree)
+      void vscode.commands.executeCommand('setContext', 'aiContextStacker.stagedPaths', allPaths)
+    } else {
+      void vscode.commands.executeCommand('setContext', 'aiContextStacker.stagedPaths', [])
+    }
+  }
+
+  private collectAllPaths(nodes: StackTreeItem[]): string[] {
+    const paths: string[] = []
+    for (const node of nodes) {
+      if (isStagedFolder(node)) {
+        paths.push(node.resourceUri.fsPath)
+        paths.push(...this.collectAllPaths(node.children))
+      } else {
+        paths.push(node.uri.fsPath)
+      }
+    }
+    return paths
   }
 
   private createNoMatchItem(): StagedFile {

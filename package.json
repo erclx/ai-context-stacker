@@ -250,19 +250,24 @@
       "explorer/context": [
         {
           "command": "aiContextStacker.addFileToStack",
-          "when": "resourceScheme == file",
+          "when": "resourceScheme == file && resourcePath not in aiContextStacker.stagedPaths",
           "group": "7_modification"
         },
         {
           "command": "aiContextStacker.revealInView",
-          "when": "resourceScheme == file",
+          "when": "resourceScheme == file && resourcePath in aiContextStacker.stagedPaths",
           "group": "7_modification"
         }
       ],
       "editor/title/context": [
         {
           "command": "aiContextStacker.addFileToStack",
-          "when": "resourceScheme == file",
+          "when": "resourceScheme == file && resourcePath not in aiContextStacker.stagedPaths",
+          "group": "1_cutcopypaste"
+        },
+        {
+          "command": "aiContextStacker.revealInView",
+          "when": "resourceScheme == file && resourcePath in aiContextStacker.stagedPaths",
           "group": "1_cutcopypaste"
         }
       ],
