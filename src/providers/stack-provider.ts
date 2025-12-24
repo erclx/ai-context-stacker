@@ -134,13 +134,19 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     const files = this.getFiles()
 
     if (files.length === 0) {
+      this.updateContextKeys(false)
       this._cachedTree = [this.hasActiveFilters ? this.createNoMatchItem() : this.renderer.createPlaceholderItem()]
       return this._cachedTree
     }
 
     this._cachedTree = this.treeBuilder.build(files)
+    this.updateContextKeys(this._cachedTree.some((i) => isStagedFolder(i)))
     this.recalculateTotalTokens()
     return this._cachedTree
+  }
+
+  private updateContextKeys(hasFolders: boolean): void {
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasFolders', hasFolders)
   }
 
   private createNoMatchItem(): StagedFile {
