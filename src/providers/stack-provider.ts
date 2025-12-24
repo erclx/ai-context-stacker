@@ -15,6 +15,8 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
   private readonly DEBOUNCE_MS = 400
+  private readonly BATCH_WARNING_THRESHOLD = 200
+
   private pendingUpdates = new Map<string, ReturnType<typeof setTimeout>>()
   private disposables: vscode.Disposable[] = []
 
@@ -276,7 +278,19 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   // --- CRUD Proxies ---
 
-  public addFiles(uris: vscode.Uri[]): void {
+  public async addFiles(uris: vscode.Uri[]): Promise<void> {
+    // Safety Cap: Prevent extension hang on massive folder adds
+    if (uris.length > this.BATCH_WARNING_THRESHOLD) {
+      const result = await vscode.window.showWarningMessage(
+        `You are adding ${uris.length} files. This may affect performance.`,
+        'Proceed',
+        'Cancel',
+      )
+      if (result !== 'Proceed') {
+        return
+      }
+    }
+
     const newFiles = this.trackManager.addFilesToActive(uris)
     if (newFiles.length > 0) {
       this._treeDirty = true
@@ -285,7 +299,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   }
 
   public addFile(uri: vscode.Uri): void {
-    this.addFiles([uri])
+    void this.addFiles([uri])
   }
 
   public removeFiles(filesToRemove: StagedFile[]): void {
