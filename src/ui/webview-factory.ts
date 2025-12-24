@@ -32,23 +32,25 @@ export class WebviewFactory {
     const nonce = this.getNonce()
     const cspSource = webview.cspSource
 
-    // Optimization: Split template once instead of using Regex replace on potentially huge content
-    // This avoids the CPU overhead of scanning 10MB+ strings for a placeholder
-    const parts = templateString.split('{{content}}')
-    const head = parts[0]
-    const tail = parts[1] ?? ''
-
-    // Inject headers (Fast - small strings)
-    const filledHead = head
+    // Step 1: Replace variables in the template *before* splitting.
+    // This ensures that placeholders in the footer (like script nonces) are correctly substituted.
+    // The template is small, so this regex pass is negligible cost.
+    const filledTemplate = templateString
       .replace(/{{cspSource}}/g, cspSource)
       .replace(/{{nonce}}/g, nonce)
       .replace(/{{cssUri}}/g, cssUri.toString())
 
-    // Optimization: Single-pass escaping
+    // Step 2: Split by the content placeholder
+    const parts = filledTemplate.split('{{content}}')
+    const head = parts[0]
+    const tail = parts[1] ?? ''
+
+    // Step 3: Escape the huge content separately (single pass optimization)
+    // We avoid running regex replacement on the content to keep performance O(N)
     const escapedContent = this.escapeHtmlFast(content)
 
-    // Fast concatenation
-    return filledHead + escapedContent + tail
+    // Step 4: Concatenate (Fast)
+    return head + escapedContent + tail
   }
 
   private static async getTemplate(extensionUri: vscode.Uri): Promise<string> {

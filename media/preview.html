@@ -1,26 +1,66 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="{{cssUri}}" rel="stylesheet">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="{{cssUri}}" rel="stylesheet" />
     <title>AI Context Preview</title>
-</head>
-<body>
+  </head>
+
+  <body>
     <div class="header">
-        <h2>Context Payload Preview</h2>
-        <button id="copyBtn">Copy to Clipboard</button>
+      <h2>Context Payload Preview</h2>
+      <button id="copy-btn" type="button">Copy to Clipboard</button>
     </div>
     <div class="content-wrapper">
-        <pre id="content">{{content}}</pre>
+      <pre id="content">{{content}}</pre>
     </div>
+
     <script nonce="{{nonce}}">
-        const vscode = acquireVsCodeApi();
-        document.getElementById('copyBtn').addEventListener('click', () => {
-            const text = document.getElementById('content').innerText;
-            vscode.postMessage({ command: 'copy', text: text });
-        });
+      ;(function () {
+        let vscode
+        const btn = document.getElementById('copy-btn')
+        const pre = document.getElementById('content')
+
+        // Attempt to acquire API with silent UI-only fallback
+        try {
+          vscode = acquireVsCodeApi()
+        } catch (e) {
+          if (btn) {
+            btn.textContent = 'API Error'
+            btn.style.backgroundColor = 'var(--vscode-errorForeground)'
+          }
+          return
+        }
+
+        // Guard against missing DOM elements
+        if (!btn || !pre) {
+          return
+        }
+
+        btn.addEventListener('click', () => {
+          const text = pre.textContent
+
+          if (!text) return
+
+          // 1. Send message to extension
+          vscode.postMessage({ command: 'copy', text: text })
+
+          // 2. Optimistic UI Feedback
+          const originalText = btn.textContent
+          btn.textContent = 'Copied!'
+          btn.disabled = true
+
+          setTimeout(() => {
+            btn.textContent = originalText
+            btn.disabled = false
+          }, 2000)
+        })
+      })()
     </script>
-</body>
+  </body>
 </html>
