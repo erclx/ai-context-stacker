@@ -2,7 +2,7 @@
 
 **Stop context switching. Stage your prompts instantly.**
 
-Build the perfect context for ChatGPT, Claude, or any LLM without leaving VS Code. Drag files, switch between tasks, and copy everything in one click.
+Build the perfect context for ChatGPT, Claude, Gemini or any LLM without leaving VS Code. Drag files, switch between tasks, and copy everything in one click.
 
 ![Drag and Drop Demo](./demos/drag-and-drop.gif)
 
