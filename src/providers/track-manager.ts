@@ -20,6 +20,9 @@ export class TrackManager implements vscode.Disposable {
   /** Global cache of all URIs across all tracks for fast existence checks. */
   private UriIndex = new Set<string>()
 
+  // Ghost object for UI safety when no tracks exist
+  private readonly GHOST_TRACK: ContextTrack = { id: 'ghost', name: 'No Active Track', files: [] }
+
   private _onDidChangeTrack = new vscode.EventEmitter<ContextTrack>()
   readonly onDidChangeTrack = this._onDidChangeTrack.event
 
@@ -29,10 +32,10 @@ export class TrackManager implements vscode.Disposable {
 
   /**
    * Returns the currently selected track.
-   * Creates a default track if the state is corrupted or empty.
+   * If state is empty, returns a safe "Ghost" track to prevent UI crashes.
    */
   getActiveTrack(): ContextTrack {
-    return this.tracks.get(this.activeTrackId) || this.createDefaultTrack()
+    return this.tracks.get(this.activeTrackId) || this.GHOST_TRACK
   }
 
   /**
@@ -140,7 +143,7 @@ export class TrackManager implements vscode.Disposable {
    */
   deleteTrack(id: string): void {
     if (this.tracks.size <= 1) {
-      void vscode.window.showWarningMessage('Cannot delete the last remaining track.')
+      void vscode.window.showWarningMessage('Cannot delete the last remaining track. Use "Delete All" to reset.')
       return
     }
 
@@ -166,12 +169,12 @@ export class TrackManager implements vscode.Disposable {
     this.tracks.clear()
     this._trackOrder = []
     this.UriIndex.clear()
+    this.activeTrackId = '' // No active track state
 
-    // Re-initialize to a safe default state
-    this.createDefaultTrack()
+    // Persist the empty state so reload respects "clean slate"
     this.persistState(true)
 
-    // Notify UI to refresh completely
+    // Notify UI to refresh. Will return GHOST_TRACK.
     this._onDidChangeTrack.fire(this.getActiveTrack())
   }
 
@@ -244,7 +247,13 @@ export class TrackManager implements vscode.Disposable {
    * Automatically deduplicates files that are already present.
    */
   addFilesToActive(uris: vscode.Uri[]): StagedFile[] {
-    const track = this.getActiveTrack()
+    let track = this.tracks.get(this.activeTrackId)
+
+    // Recovery: If user adds files in "Clean Slate" mode, auto-create a track
+    if (!track) {
+      track = this.createDefaultTrack()
+    }
+
     const existing = new Set(track.files.map((f) => f.uri.toString()))
 
     const newFiles: StagedFile[] = uris
@@ -270,6 +279,8 @@ export class TrackManager implements vscode.Disposable {
    */
   removeFilesFromActive(filesToRemove: StagedFile[]): void {
     const track = this.getActiveTrack()
+    if (track === this.GHOST_TRACK) return
+
     const idsToRemove = new Set(filesToRemove.map((f) => f.uri.fsPath))
     const oldLength = track.files.length
 
@@ -286,6 +297,8 @@ export class TrackManager implements vscode.Disposable {
    */
   clearActive(): void {
     const track = this.getActiveTrack()
+    if (track === this.GHOST_TRACK) return
+
     const oldLength = track.files.length
 
     track.files = track.files.filter((f) => f.isPinned)
@@ -301,6 +314,7 @@ export class TrackManager implements vscode.Disposable {
     this.tracks.set(def.id, def)
     this._trackOrder = [def.id]
     this.activeTrackId = def.id
+    this.updateContextKeys()
     return def
   }
 
@@ -313,6 +327,7 @@ export class TrackManager implements vscode.Disposable {
       this.rebuildIndex()
     }
 
+    this.updateContextKeys()
     const state = StateMapper.toSerialized(this.tracks, this.activeTrackId, this._trackOrder)
     this.extensionContext.workspaceState.update(TrackManager.STORAGE_KEY, state)
   }
@@ -320,28 +335,28 @@ export class TrackManager implements vscode.Disposable {
   private loadState(): void {
     const rawState = this.extensionContext.workspaceState.get<SerializedState>(TrackManager.STORAGE_KEY)
 
-    // Guard: First run or corrupted state
-    if (!rawState) {
+    // Guard: First run (undefined state) -> Create Default
+    if (rawState === undefined) {
       this.createDefaultTrack()
       this.rebuildIndex()
       return
     }
 
+    // Existing state (possibly empty) -> Load as-is
     const { tracks, activeTrackId, trackOrder } = StateMapper.fromSerialized(rawState)
     this.tracks = tracks
     this.activeTrackId = activeTrackId
     this._trackOrder = trackOrder
 
-    // Ensure integrity if order array is stale
     this.syncOrderIntegrity()
 
-    if (this.tracks.size === 0) {
-      this.createDefaultTrack()
-    } else if (!this.tracks.has(this.activeTrackId)) {
+    // Integrity check: If we have tracks but activeId is bad, fix it.
+    if (this.tracks.size > 0 && !this.tracks.has(this.activeTrackId)) {
       this.activeTrackId = this._trackOrder[0] || 'default'
     }
 
     this.rebuildIndex()
+    this.updateContextKeys()
   }
 
   private syncOrderIntegrity(): void {
@@ -357,6 +372,14 @@ export class TrackManager implements vscode.Disposable {
         this._trackOrder.push(id)
       }
     }
+  }
+
+  /**
+   * Updates context keys for UI visibility logic.
+   * 'aiContextStacker.hasTracks': controls the visibility of 'Delete All' actions.
+   */
+  private updateContextKeys(): void {
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasTracks', this.tracks.size > 0)
   }
 
   /**

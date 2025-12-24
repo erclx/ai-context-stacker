@@ -75,6 +75,12 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "aiContextTracksView",
+        "contents": "No context tracks active.\n[$(add) Create New Track](command:aiContextStacker.newTrack)"
+      }
+    ],
     "commands": [
       {
         "command": "aiContextStacker.addCurrentFile",
@@ -268,7 +274,7 @@
         },
         {
           "command": "aiContextStacker.deleteAllTracks",
-          "when": "view == aiContextTracksView",
+          "when": "view == aiContextTracksView && aiContextStacker.hasTracks",
           "group": "9_danger"
         },
         {
