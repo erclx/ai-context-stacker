@@ -87,6 +87,11 @@
         "category": "AI Context Stacker"
       },
       {
+        "command": "aiContextStacker.revealInView",
+        "title": "Reveal in AI Stack",
+        "category": "AI Context Stacker"
+      },
+      {
         "command": "aiContextStacker.addFilePicker",
         "title": "Add Files",
         "category": "AI Context Stacker",
@@ -226,6 +231,11 @@
       "explorer/context": [
         {
           "command": "aiContextStacker.addFileToStack",
+          "when": "resourceScheme == file",
+          "group": "7_modification"
+        },
+        {
+          "command": "aiContextStacker.revealInView",
           "when": "resourceScheme == file",
           "group": "7_modification"
         }

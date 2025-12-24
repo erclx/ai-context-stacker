@@ -9,26 +9,18 @@ import { TrackManager } from './track-manager'
 
 /**
  * The primary data provider for the "Context Stack" view in VS Code.
- * Responsibilities:
- * - Adapts the flat list of StagedFiles into a hierarchical TreeView.
- * - Handles live updates and filtering (Pinned Only).
- * - Manages the lifecycle of UI refreshes and background statistics enrichment.
  */
 export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vscode.Disposable {
   private _onDidChangeTreeData = new vscode.EventEmitter<StackTreeItem | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
-  /** Delay in ms to wait after user typing stops before re-calculating tokens. */
   private readonly DEBOUNCE_MS = 400
-
   private pendingUpdates = new Map<string, ReturnType<typeof setTimeout>>()
   private disposables: vscode.Disposable[] = []
 
   private _cachedTree: StackTreeItem[] | undefined
   private _cachedTotalTokens: number = 0
   private _treeDirty = true
-
-  // Filtering State
   private _showPinnedOnly = false
 
   private treeBuilder = new TreeBuilder()
@@ -59,18 +51,44 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   // --- Data Access ---
 
-  /**
-   * Returns the filtered list of files.
-   * "Copy All" and "Preview" rely on this, effectively respecting the user's view.
-   */
   public getFiles(): StagedFile[] {
     const rawFiles = this.trackManager.getActiveTrack().files
-
-    if (!this.hasActiveFilters) {
-      return rawFiles
-    }
-
+    if (!this.hasActiveFilters) return rawFiles
     return rawFiles.filter((f) => !this._showPinnedOnly || f.isPinned)
+  }
+
+  public getStackItem(uri: vscode.Uri): StackTreeItem | undefined {
+    if (!this._cachedTree) return undefined
+    return this.findRecursive(this._cachedTree, uri.toString())
+  }
+
+  public hasTrackedPath(uri: vscode.Uri): boolean {
+    const targetStr = uri.toString()
+    const rawFiles = this.trackManager.getActiveTrack().files
+
+    return rawFiles.some((f) => {
+      const fileStr = f.uri.toString()
+      return fileStr === targetStr || fileStr.startsWith(targetStr + '/')
+    })
+  }
+
+  private findRecursive(nodes: StackTreeItem[], targetKey: string): StackTreeItem | undefined {
+    for (const node of nodes) {
+      if (this.nodeMatches(node, targetKey)) {
+        return node
+      }
+
+      if (isStagedFolder(node)) {
+        const found = this.findRecursive(node.children, targetKey)
+        if (found) return found
+      }
+    }
+    return undefined
+  }
+
+  private nodeMatches(node: StackTreeItem, targetKey: string): boolean {
+    const uri = isStagedFolder(node) ? node.resourceUri : node.uri
+    return uri.toString() === targetKey
   }
 
   public getActiveTrackName(): string {
@@ -91,11 +109,9 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     if (element && isStagedFolder(element)) {
       return element.children
     }
-
     if (this._cachedTree && !this._treeDirty) {
       return this._cachedTree
     }
-
     return this.rebuildTreeCache()
   }
 
@@ -117,19 +133,11 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   private rebuildTreeCache(): StackTreeItem[] {
     const files = this.getFiles()
 
-    // Scenario 1: No files at all (Drag & Drop placeholder)
-    if (files.length === 0 && !this.hasActiveFilters) {
-      this._cachedTree = [this.renderer.createPlaceholderItem()]
+    if (files.length === 0) {
+      this._cachedTree = [this.hasActiveFilters ? this.createNoMatchItem() : this.renderer.createPlaceholderItem()]
       return this._cachedTree
     }
 
-    // Scenario 2: Filters active, but no matches (Info placeholder)
-    if (files.length === 0 && this.hasActiveFilters) {
-      this._cachedTree = [this.createNoMatchItem()]
-      return this._cachedTree
-    }
-
-    // Scenario 3: Standard tree
     this._cachedTree = this.treeBuilder.build(files)
     this.recalculateTotalTokens()
     return this._cachedTree
