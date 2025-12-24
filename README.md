@@ -26,8 +26,6 @@ This workflow becomes inefficient when working with multiple files simultaneousl
 4. **Click the Copy Stack button** (📋 icon in the view title)
 5. **Paste into your language model** – you're done
 
-![Preview Context Demo](./demos/preview-context.gif)
-
 ## Key Features
 
 ### Instant Context Staging
@@ -48,6 +46,7 @@ Organize your work into separate "tracks" (e.g., "Refactor Auth", "Bug Fix #123"
 
 - **Custom Order**: Drag and drop tracks to reorder them exactly how you work.
 - **Persistent**: Your tracks and file lists are saved automatically.
+- **Reset**: Easily wipe all tracks to start fresh with a clean workspace.
 
 ### Smart Filtering & Pinning
 
@@ -121,6 +120,7 @@ Example configuration:
 
 | Command                  | Description                             |
 | ------------------------ | --------------------------------------- |
+| `Collapse All`           | Instantly collapse all folders in view  |
 | `Show Pinned Files Only` | Filter the view to only pinned files    |
 | `Show All Files`         | Reset the view to show all staged files |
 | `Manage Excludes`        | Configure exclusion patterns            |
@@ -128,13 +128,14 @@ Example configuration:
 
 ### Track Management
 
-| Command          | Description                            |
-| ---------------- | -------------------------------------- |
-| `New Track`      | Start a new context stack              |
-| `Switch Track`   | Change to a different track            |
-| `Rename Track`   | Rename the current track               |
-| `Delete Track`   | Remove a track                         |
-| `Move Up / Down` | Reorder tracks manually (context menu) |
+| Command             | Description                            |
+| ------------------- | -------------------------------------- |
+| `New Track`         | Start a new context stack              |
+| `Switch Track`      | Change to a different track            |
+| `Rename Track`      | Rename the current track               |
+| `Delete Track`      | Remove a track                         |
+| `Delete All Tracks` | Reset workspace (delete all tracks)    |
+| `Move Up / Down`    | Reorder tracks manually (context menu) |
 
 ## Tips
 

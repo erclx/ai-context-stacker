@@ -28,10 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Track Management**
 
+- **Delete All Tracks**: Added a "Nuclear Option" to delete all context tracks and reset the workspace to a clean state (requires confirmation).
 - **Drag-and-Drop Reordering**: Context Tracks can now be reordered via drag-and-drop.
 - **Manual Reordering**: Added "Move Up" and "Move Down" context menu actions for tracks.
 - **Smart Menu Visibility**: Move commands are automatically hidden when invalid (e.g., "Move Up" hidden on the first track).
 - **Persisted Order**: Custom track order is saved and restored across VS Code sessions.
+
+**User Interface**
+
+- **Collapse All**: Added a "Collapse All" button to the Staged Files view title bar to instantly fold all directories.
+- **Refined Action Layout**: Optimized the title bar hierarchy by moving secondary actions (Preview, Clear Stack) to the overflow menu (`...`) and prioritizing high-frequency actions (Add, Copy).
 
 **Core Functionality**
 
@@ -105,6 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stack Preview**: Added a guard clause to prevent opening the preview webview when the stack is empty.
 - **Context Switching**: "Switch Track" context menu option is now hidden for the currently active track to prevent redundant actions.
 - **UI Refinements**: Moved filter and remove commands to a dedicated `filtering` group in the View Title menu (`...`).
+- **Layout**: "Clear Stack" moved to the `danger` group at the bottom of the overflow menu to prevent accidental clicks.
 
 ### Configuration
 
