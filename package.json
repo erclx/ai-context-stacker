@@ -126,7 +126,7 @@
         "command": "aiContextStacker.removeFile",
         "title": "Remove from Stack",
         "category": "AI Context Stacker",
-        "icon": "$(close)"
+        "icon": "$(trash)"
       },
       {
         "command": "aiContextStacker.clearAll",
@@ -399,11 +399,6 @@
           "command": "aiContextStacker.togglePin",
           "when": "view == aiContextStackerView && viewItem =~ /stagedFile/",
           "group": "inline@0"
-        },
-        {
-          "command": "aiContextStacker.copyFile",
-          "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
-          "group": "inline@1"
         },
         {
           "command": "aiContextStacker.removeFile",
