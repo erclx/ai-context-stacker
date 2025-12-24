@@ -239,22 +239,17 @@
           "group": "navigation@1"
         },
         {
-          "command": "aiContextStacker.previewContext",
+          "command": "aiContextStacker.copyAll",
           "when": "view == aiContextStackerView",
           "group": "navigation@2"
         },
         {
-          "command": "aiContextStacker.copyAll",
-          "when": "view == aiContextStackerView",
-          "group": "navigation@3"
-        },
-        {
-          "command": "aiContextStacker.clearAll",
-          "when": "view == aiContextStackerView",
-          "group": "navigation@4"
-        },
-        {
           "//": "--- Staged Files: Title (Overflow '...') ---",
+          "command": "aiContextStacker.previewContext",
+          "when": "view == aiContextStackerView",
+          "group": "1_view"
+        },
+        {
           "command": "aiContextStacker.addOpenFiles",
           "when": "view == aiContextStackerView",
           "group": "1_add"
@@ -293,6 +288,11 @@
           "command": "aiContextStacker.showAllFiles",
           "when": "view == aiContextStackerView && aiContextStacker.pinnedOnly",
           "group": "4_filtering"
+        },
+        {
+          "command": "aiContextStacker.clearAll",
+          "when": "view == aiContextStackerView",
+          "group": "9_danger"
         }
       ],
       "view/item/context": [
