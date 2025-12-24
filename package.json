@@ -285,7 +285,7 @@
         },
         {
           "command": "aiContextStacker.copyAll",
-          "when": "view == aiContextStackerView",
+          "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
           "group": "navigation@2"
         },
         {
@@ -306,17 +306,17 @@
         },
         {
           "command": "aiContextStacker.previewContext",
-          "when": "view == aiContextStackerView",
+          "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
           "group": "1_view"
         },
         {
           "command": "aiContextStacker.copyTree",
-          "when": "view == aiContextStackerView",
+          "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
           "group": "2_copy_variants"
         },
         {
           "command": "aiContextStacker.copyContent",
-          "when": "view == aiContextStackerView",
+          "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
           "group": "2_copy_variants"
         },
         {
@@ -331,12 +331,12 @@
         },
         {
           "command": "aiContextStacker.removeFilePicker",
-          "when": "view == aiContextStackerView",
+          "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
           "group": "4_filtering"
         },
         {
           "command": "aiContextStacker.showPinnedOnly",
-          "when": "view == aiContextStackerView && !aiContextStacker.pinnedOnly",
+          "when": "view == aiContextStackerView && !aiContextStacker.pinnedOnly && aiContextStacker.hasPinnedFiles",
           "group": "4_filtering"
         },
         {
@@ -346,7 +346,7 @@
         },
         {
           "command": "aiContextStacker.clearAll",
-          "when": "view == aiContextStackerView",
+          "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
           "group": "9_danger"
         }
       ],

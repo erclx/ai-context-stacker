@@ -44,6 +44,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   public togglePinnedOnly(): boolean {
     this._showPinnedOnly = !this._showPinnedOnly
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.pinnedOnly', this._showPinnedOnly)
     this._treeDirty = true
     this.rebuildCacheAndRefresh()
     return this._showPinnedOnly
@@ -131,6 +132,18 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   }
 
   private rebuildTreeCache(): StackTreeItem[] {
+    const rawFiles = this.trackManager.getActiveTrack().files
+    const hasPinnedFiles = rawFiles.some((f) => f.isPinned)
+    const hasFiles = rawFiles.length > 0
+
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasPinnedFiles', hasPinnedFiles)
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasFiles', hasFiles)
+
+    if (this._showPinnedOnly && !hasPinnedFiles) {
+      this._showPinnedOnly = false
+      void vscode.commands.executeCommand('setContext', 'aiContextStacker.pinnedOnly', false)
+    }
+
     const files = this.getFiles()
 
     if (files.length === 0) {
