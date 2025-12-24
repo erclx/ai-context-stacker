@@ -43,14 +43,15 @@ class ExclusionManager {
       },
     ]
 
+    this.bindListeners()
+  }
+
+  private bindListeners() {
     this.picker.onDidAccept(() => this.handleAccept())
-
     this.picker.onDidTriggerButton((btn) => this.handleAddButton(btn))
-
+    this.picker.onDidTriggerItemButton((e) => this.handleDeleteItem(e))
     this.picker.onDidHide(() => {
-      if (!this.isSwitchingInput) {
-        this.picker.dispose()
-      }
+      if (!this.isSwitchingInput) this.picker.dispose()
     })
   }
 
@@ -75,8 +76,20 @@ class ExclusionManager {
     const allKnown = this.picker.items.map((i) => i.label)
 
     await this.state.save(active, allKnown)
-
     this.picker.dispose()
+  }
+
+  private async handleDeleteItem(e: vscode.QuickPickItemButtonEvent<vscode.QuickPickItem>) {
+    // Preserve UI responsiveness by optimistic update or await save
+    const itemToRemove = e.item.label
+
+    // Calculate new state without the deleted item
+    const newActive = this.picker.selectedItems.filter((i) => i.label !== itemToRemove).map((i) => i.label)
+
+    const newHistory = this.picker.items.filter((i) => i.label !== itemToRemove).map((i) => i.label)
+
+    await this.state.save(newActive, newHistory)
+    this.refreshItems()
   }
 
   private async handleAddButton(btn: vscode.QuickInputButton) {
@@ -103,7 +116,6 @@ class ExclusionManager {
       if (input?.trim()) {
         const pattern = SmartPattern.generate(input.trim())
         await this.state.addToHistory(pattern)
-
         this.refreshItems()
       }
     } finally {
