@@ -3,7 +3,8 @@ import * as vscode from 'vscode'
 import { IgnoreManager, StackProvider } from '../providers'
 
 interface FileQuickPickItem extends vscode.QuickPickItem {
-  uri: vscode.Uri
+  uri?: vscode.Uri
+  id: 'file' | 'action'
 }
 
 export function registerAddFilePickerCommand(
@@ -20,9 +21,19 @@ export function registerAddFilePickerCommand(
     }
 
     const selectedItems = await showFilePicker(newFiles)
+    if (!selectedItems || selectedItems.length === 0) return
 
-    if (selectedItems && selectedItems.length > 0) {
-      const uris = selectedItems.map((item) => item.uri)
+    // If "Add All" is selected, ignore specific choices and add everything
+    if (selectedItems.some((i) => i.id === 'action')) {
+      stackProvider.addFiles(newFiles)
+      vscode.window.showInformationMessage(`Added all ${newFiles.length} file(s) to context stack`)
+      return
+    }
+
+    // Otherwise, add only the specifically selected files
+    const uris = selectedItems.filter((i) => i.id === 'file' && i.uri).map((i) => i.uri!)
+
+    if (uris.length > 0) {
       stackProvider.addFiles(uris)
       vscode.window.showInformationMessage(`Added ${uris.length} file(s) to context stack`)
     }
@@ -35,7 +46,6 @@ async function findUnstagedFiles(stackProvider: StackProvider, ignoreManager: Ig
   const stagedFiles = stackProvider.getFiles()
   const stagedFileIds = new Set(stagedFiles.map((f) => f.uri.toString()))
 
-  // Respect .gitignore to avoid cluttering picker with build artifacts
   const excludePatterns = await ignoreManager.getExcludePatterns()
   const allFiles = await vscode.workspace.findFiles('**/*', excludePatterns)
 
@@ -43,13 +53,21 @@ async function findUnstagedFiles(stackProvider: StackProvider, ignoreManager: Ig
 }
 
 async function showFilePicker(files: vscode.Uri[]): Promise<FileQuickPickItem[] | undefined> {
-  const items: FileQuickPickItem[] = files.map((uri) => ({
+  const fileItems: FileQuickPickItem[] = files.map((uri) => ({
     label: vscode.workspace.asRelativePath(uri),
     uri: uri,
+    id: 'file',
     iconPath: new vscode.ThemeIcon('file'),
   }))
 
-  return vscode.window.showQuickPick(items, {
+  const addAllItem: FileQuickPickItem = {
+    label: '$(check-all) Add All Unstaged Files',
+    description: `(${files.length} files)`,
+    id: 'action',
+    alwaysShow: true,
+  }
+
+  return vscode.window.showQuickPick([addAllItem, ...fileItems], {
     canPickMany: true,
     placeHolder: 'Search and select files to add...',
     title: 'Add Files to Context Stack',
