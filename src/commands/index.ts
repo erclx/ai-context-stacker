@@ -5,6 +5,7 @@ import { ViewManager } from '../ui'
 import { registerAddFileCommand } from './add-file'
 import { registerAddFileContextMenuCommand } from './add-file-context-menu'
 import { registerAddFilePickerCommand } from './add-file-picker'
+import { registerAddFolderPickerCommand } from './add-folder-picker'
 import { registerAddOpenFilesCommand } from './add-open-files'
 import { registerClearAllCommand } from './clear-all'
 import { registerConfigureOutputCommand } from './configure-output'
@@ -42,6 +43,7 @@ function registerStackModifications(deps: CommandDependencies) {
   registerAddFileCommand(deps.context, deps.services.stackProvider)
   registerAddFileContextMenuCommand(deps.context, deps.services.stackProvider, deps.services.ignoreManager)
   registerAddFilePickerCommand(deps.context, deps.services.stackProvider, deps.services.ignoreManager)
+  registerAddFolderPickerCommand(deps.context, deps.services.stackProvider, deps.services.ignoreManager)
   registerAddOpenFilesCommand(deps.context, deps.services.stackProvider)
   registerRemoveFileCommand(deps.context, deps.services.stackProvider, deps.views.filesView)
   registerRemoveFilePickerCommand(deps.context, deps.services.stackProvider)

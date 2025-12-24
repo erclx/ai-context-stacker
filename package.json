@@ -101,7 +101,13 @@
         "command": "aiContextStacker.addFilePicker",
         "title": "Add Files",
         "category": "AI Context Stacker",
-        "icon": "$(add)"
+        "icon": "$(file-add)"
+      },
+      {
+        "command": "aiContextStacker.addFolderPicker",
+        "title": "Add Folder...",
+        "category": "AI Context Stacker",
+        "icon": "$(new-folder)"
       },
       {
         "command": "aiContextStacker.addOpenFiles",
@@ -268,6 +274,11 @@
         {
           "//": "--- Staged Files: Title (Primary Actions) ---",
           "command": "aiContextStacker.addFilePicker",
+          "when": "view == aiContextStackerView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "aiContextStacker.addFolderPicker",
           "when": "view == aiContextStackerView",
           "group": "navigation@1"
         },

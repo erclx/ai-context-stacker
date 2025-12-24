@@ -46,6 +46,7 @@ async function showFilePicker(files: vscode.Uri[]): Promise<FileQuickPickItem[] 
   const items: FileQuickPickItem[] = files.map((uri) => ({
     label: vscode.workspace.asRelativePath(uri),
     uri: uri,
+    iconPath: new vscode.ThemeIcon('file'),
   }))
 
   return vscode.window.showQuickPick(items, {
