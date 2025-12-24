@@ -78,7 +78,8 @@
     "viewsWelcome": [
       {
         "view": "aiContextTracksView",
-        "contents": "No context tracks active.\n[$(add) Create New Track](command:aiContextStacker.newTrack)"
+        "contents": "No context tracks active.\n[$(add) Create New Track](command:aiContextStacker.newTrack)",
+        "when": "aiContextStacker.showWelcome"
       }
     ],
     "commands": [

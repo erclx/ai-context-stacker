@@ -19,6 +19,7 @@ export class TrackManager implements vscode.Disposable {
 
   /** Global cache of all URIs across all tracks for fast existence checks. */
   private UriIndex = new Set<string>()
+  private _isInitialized = false
 
   // Ghost object for UI safety when no tracks exist
   private readonly GHOST_TRACK: ContextTrack = { id: 'ghost', name: 'No Active Track', files: [] }
@@ -28,6 +29,10 @@ export class TrackManager implements vscode.Disposable {
 
   constructor(private extensionContext: vscode.ExtensionContext) {
     this.loadState()
+  }
+
+  get isInitialized(): boolean {
+    return this._isInitialized
   }
 
   /**
@@ -338,24 +343,25 @@ export class TrackManager implements vscode.Disposable {
     // Guard: First run (undefined state) -> Create Default
     if (rawState === undefined) {
       this.createDefaultTrack()
-      this.rebuildIndex()
-      return
-    }
+    } else {
+      // Existing state (possibly empty) -> Load as-is
+      const { tracks, activeTrackId, trackOrder } = StateMapper.fromSerialized(rawState)
+      this.tracks = tracks
+      this.activeTrackId = activeTrackId
+      this._trackOrder = trackOrder
 
-    // Existing state (possibly empty) -> Load as-is
-    const { tracks, activeTrackId, trackOrder } = StateMapper.fromSerialized(rawState)
-    this.tracks = tracks
-    this.activeTrackId = activeTrackId
-    this._trackOrder = trackOrder
+      this.syncOrderIntegrity()
 
-    this.syncOrderIntegrity()
-
-    // Integrity check: If we have tracks but activeId is bad, fix it.
-    if (this.tracks.size > 0 && !this.tracks.has(this.activeTrackId)) {
-      this.activeTrackId = this._trackOrder[0] || 'default'
+      // Integrity check: If we have tracks but activeId is bad, fix it.
+      if (this.tracks.size > 0 && !this.tracks.has(this.activeTrackId)) {
+        this.activeTrackId = this._trackOrder[0] || 'default'
+      }
     }
 
     this.rebuildIndex()
+
+    // Mark initialization complete and propagate context keys
+    this._isInitialized = true
     this.updateContextKeys()
   }
 
@@ -376,10 +382,17 @@ export class TrackManager implements vscode.Disposable {
 
   /**
    * Updates context keys for UI visibility logic.
-   * 'aiContextStacker.hasTracks': controls the visibility of 'Delete All' actions.
+   * 'aiContextStacker.hasTracks': controls the visibility of menus/actions.
+   * 'aiContextStacker.showWelcome': ATOMIC key for Welcome View visibility to prevent race conditions.
    */
   private updateContextKeys(): void {
-    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasTracks', this.tracks.size > 0)
+    const hasTracks = this.tracks.size > 0
+    // Strictly only show welcome if we are initialized AND have 0 tracks.
+    // Defaults to false (undefined) during startup, preventing flickering.
+    const showWelcome = this._isInitialized && !hasTracks
+
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasTracks', hasTracks)
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.showWelcome', showWelcome)
   }
 
   /**

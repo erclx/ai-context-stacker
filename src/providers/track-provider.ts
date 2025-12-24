@@ -101,6 +101,9 @@ export class TrackProvider
   }
 
   getChildren(element?: ContextTrack): ContextTrack[] {
+    // Gate: Prevent rendering partial state during startup
+    if (!this.contextTrackManager.isInitialized) return []
+
     if (element) return []
     return this.contextTrackManager.allTracks
   }
