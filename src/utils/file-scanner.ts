@@ -3,8 +3,13 @@ import * as vscode from 'vscode'
 import { IgnoreManager, StackProvider } from '../providers'
 import { Logger } from './logger'
 
+// Concurrency limits to balance speed vs. Extension Host load
+const BATCH_SIZE_STAT = 50 // High throughput for lightweight fs.stat calls
+const BATCH_SIZE_GLOB = 5 // Lower limit for heavy findFiles operations
+
 /**
  * Separates a mixed list of URIs into plain files and directories.
+ * Uses batched parallelism to minimize file system latency.
  * @param targets - Raw selection of URIs
  * @returns Tuple-like object separating files and folders
  */
@@ -12,19 +17,25 @@ export async function categorizeTargets(targets: vscode.Uri[]) {
   const files: vscode.Uri[] = []
   const folders: vscode.Uri[] = []
 
-  // Keep UI feedback for potentially long stat operations
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Processing selection...' },
     async () => {
-      for (const target of targets) {
-        try {
-          const stat = await vscode.workspace.fs.stat(target)
-          if (stat.type === vscode.FileType.File) files.push(target)
-          if (stat.type === vscode.FileType.Directory) folders.push(target)
-        } catch (error) {
-          // Gracefully skip items we lack permissions for (e.g. system folders)
-          Logger.warn(`Skipping unreadable item: ${target.fsPath}`)
-        }
+      // Process in chunks to prevent "Too Many Open Files" (EMFILE) on huge selections
+      for (let i = 0; i < targets.length; i += BATCH_SIZE_STAT) {
+        const batch = targets.slice(i, i + BATCH_SIZE_STAT)
+
+        await Promise.all(
+          batch.map(async (target) => {
+            try {
+              const stat = await vscode.workspace.fs.stat(target)
+              if (stat.type === vscode.FileType.File) files.push(target)
+              if (stat.type === vscode.FileType.Directory) folders.push(target)
+            } catch (error) {
+              // Gracefully skip items we lack permissions for
+              Logger.warn(`Skipping unreadable item: ${target.fsPath}`)
+            }
+          }),
+        )
       }
     },
   )
@@ -33,7 +44,6 @@ export async function categorizeTargets(targets: vscode.Uri[]) {
 
 /**
  * Orchestrates recursive scanning of multiple folders with cancellation support.
- * Acts as the UI Controller for the scanning operation.
  */
 export async function handleFolderScanning(
   folders: vscode.Uri[],
@@ -60,7 +70,7 @@ export async function handleFolderScanning(
 
 /**
  * Core Logic: Iterates through folders and performs glob matching.
- * Agnostic of UI/VSCode Windows.
+ * Parallelized to maximize I/O throughput.
  */
 export async function scanMultipleFolders(
   folders: vscode.Uri[],
@@ -68,20 +78,29 @@ export async function scanMultipleFolders(
   onFound: (files: vscode.Uri[]) => void,
   token?: vscode.CancellationToken,
 ): Promise<void> {
-  for (const folder of folders) {
+  // Process folders in small batches to avoid overloading the Search Service
+  for (let i = 0; i < folders.length; i += BATCH_SIZE_GLOB) {
     if (token?.isCancellationRequested) break
 
-    const foundFiles = await scanFolder(folder, excludes, token)
+    const batch = folders.slice(i, i + BATCH_SIZE_GLOB)
 
-    if (foundFiles.length > 0) {
-      onFound(foundFiles)
-    }
+    await Promise.all(
+      batch.map(async (folder) => {
+        if (token?.isCancellationRequested) return
+
+        const foundFiles = await scanFolder(folder, excludes, token)
+
+        // Critical: Guard against empty results to prevent unnecessary UI updates
+        if (foundFiles.length > 0) {
+          onFound(foundFiles)
+        }
+      }),
+    )
   }
 }
 
 /**
  * Performs glob search within a single directory root.
- * Uses RelativePattern to scope search strictly to the target folder.
  */
 async function scanFolder(
   folder: vscode.Uri,
@@ -89,7 +108,6 @@ async function scanFolder(
   token?: vscode.CancellationToken,
 ): Promise<vscode.Uri[]> {
   try {
-    // RelativePattern is essential: it restricts glob to this folder only
     const searchPattern = new vscode.RelativePattern(folder, '**/*')
     return await vscode.workspace.findFiles(searchPattern, excludes, undefined, token)
   } catch (err) {
