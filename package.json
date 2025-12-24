@@ -111,6 +111,12 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "aiContextStacker.collapseAll",
+        "title": "Collapse All",
+        "category": "AI Context Stacker",
+        "icon": "$(collapse-all)"
+      },
+      {
         "command": "aiContextStacker.copyAll",
         "title": "Copy Stack",
         "category": "AI Context Stacker",
@@ -246,6 +252,11 @@
         {
           "//": "--- Staged Files: Title (Overflow '...') ---",
           "command": "aiContextStacker.previewContext",
+          "when": "view == aiContextStackerView",
+          "group": "1_view"
+        },
+        {
+          "command": "aiContextStacker.collapseAll",
           "when": "view == aiContextStackerView",
           "group": "1_view"
         },

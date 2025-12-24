@@ -35,6 +35,7 @@ export class ViewManager implements vscode.Disposable {
       canSelectMany: false,
     })
 
+    this.registerViewCommands()
     this.updateTitle(trackManager.getActiveTrack().name, stackProvider)
 
     // Listen for Track Changes
@@ -48,6 +49,18 @@ export class ViewManager implements vscode.Disposable {
     )
 
     this._disposables.push(this.filesView, this.tracksView, dragDropController)
+  }
+
+  /**
+   * Registers view-specific commands that proxy to internal Workbench actions.
+   */
+  private registerViewCommands(): void {
+    const collapseCmd = vscode.commands.registerCommand('aiContextStacker.collapseAll', () =>
+      // Proxy to the internal VS Code command to handle recursive collapsing
+      vscode.commands.executeCommand('workbench.actions.treeView.aiContextStackerView.collapseAll'),
+    )
+
+    this._disposables.push(collapseCmd)
   }
 
   private updateTitle(trackName: string, provider: StackProvider) {
