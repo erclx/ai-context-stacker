@@ -10,38 +10,91 @@ interface TreeNode {
 export interface FormatOptions {
   skipTree?: boolean
   token?: vscode.CancellationToken
+  maxTotalBytes?: number
 }
 
 // Configurable safety limits
 const MAX_FILE_SIZE = 1024 * 1024 // 1MB
 const BINARY_CHECK_BYTES = 512
 
+// Hard safety cap to prevent V8 OOM crashes (100MB)
+const DEFAULT_MAX_TOTAL_BYTES = 100 * 1024 * 1024
+
 /**
- * Optimized formatter that processes files sequentially to minimize memory footprint.
- * Uses Array Builder pattern to prevent V8 heap fragmentation.
+ * Optimized formatter that uses Async Generators to stream content.
+ * Prevents memory spikes by avoiding massive array concatenations.
  */
 export class ContentFormatter {
   /**
-   * Reads/formats files and conditionally prepends the ASCII File Tree.
+   * Generates the context string as an async stream of chunks.
+   * Best for large datasets or streaming to Webviews.
    */
-  public static async format(files: StagedFile[], options: FormatOptions = {}): Promise<string> {
-    if (files.length === 0 || options.token?.isCancellationRequested) return ''
+  public static async *formatStream(
+    files: StagedFile[],
+    options: FormatOptions = {},
+  ): AsyncGenerator<string, void, unknown> {
+    if (files.length === 0 || options.token?.isCancellationRequested) return
 
-    const parts: string[] = []
     const includeTree = this.shouldIncludeTree(options)
+    let currentTotalSize = 0
+    const maxBytes = options.maxTotalBytes ?? DEFAULT_MAX_TOTAL_BYTES
 
+    // 1. Yield Context Map (Fast, metadata only)
     if (includeTree) {
-      parts.push('# Context Map\n```\n', this.generateAsciiTree(files), '```\n\n')
-    }
-    parts.push('# File Contents\n\n')
+      const tree = this.generateAsciiTree(files)
+      const treeBlock = `# Context Map\n\`\`\`\n${tree}\`\`\`\n\n`
 
+      currentTotalSize += treeBlock.length
+      yield treeBlock
+    }
+
+    yield '# File Contents\n\n'
+
+    // 2. Yield Files sequentially (Streaming IO)
     for (const file of files) {
       if (options.token?.isCancellationRequested) {
         Logger.info('Format operation cancelled by user.')
+        return
+      }
+
+      // Pre-check size limit to fail fast
+      if (currentTotalSize >= maxBytes) {
+        Logger.warn(`Context limit reached (${maxBytes} bytes). Truncating output.`)
+        yield `\n> [System]: Context limit of ${maxBytes / 1024 / 1024}MB reached. Output truncated.`
+        return
+      }
+
+      const block = await this.formatFileBlock(file)
+
+      if (block) {
+        const output = block + '\n'
+        currentTotalSize += output.length
+        yield output
+      }
+    }
+  }
+
+  /**
+   * Legacy-compatible wrapper that consumes the stream into a single string.
+   * Includes safety checks to abort BEFORE string concatenation crashes V8.
+   */
+  public static async format(files: StagedFile[], options: FormatOptions = {}): Promise<string> {
+    const parts: string[] = []
+    let length = 0
+    const maxBytes = options.maxTotalBytes ?? DEFAULT_MAX_TOTAL_BYTES
+
+    for await (const chunk of this.formatStream(files, options)) {
+      length += chunk.length
+
+      if (length > maxBytes) {
+        // Optimization: Don't join if we already blew the limit
+        vscode.window.showErrorMessage(
+          `Context too large (> ${maxBytes / 1024 / 1024}MB). Copy aborted to prevent crash.`,
+        )
         return ''
       }
-      const block = await this.formatFileBlock(file)
-      if (block) parts.push(block, '\n')
+
+      parts.push(chunk)
     }
 
     return parts.join('')
@@ -54,6 +107,7 @@ export class ContentFormatter {
 
   /**
    * Generates a visual ASCII tree structure of the staged files.
+   * Pure CPU operation - no I/O.
    */
   public static generateAsciiTree(files: StagedFile[]): string {
     const paths = files.map((f) => vscode.workspace.asRelativePath(f.uri)).sort()
