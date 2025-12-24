@@ -56,7 +56,8 @@ export function registerTrackCommands(
   // Move Track Up
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.moveTrackUp', (item?: ContextTrack) => {
-      const action = () => handleMoveTrack(trackManager, item, 'up')
+      // Pass the view to resolve selection when triggered by keybinding
+      const action = () => handleMoveTrack(trackManager, filesView, item, 'up')
       return ErrorHandler.safeExecute('Move Track Up', action)()
     }),
   )
@@ -64,7 +65,8 @@ export function registerTrackCommands(
   // Move Track Down
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.moveTrackDown', (item?: ContextTrack) => {
-      const action = () => handleMoveTrack(trackManager, item, 'down')
+      // Pass the view to resolve selection when triggered by keybinding
+      const action = () => handleMoveTrack(trackManager, filesView, item, 'down')
       return ErrorHandler.safeExecute('Move Track Down', action)()
     }),
   )
@@ -137,11 +139,13 @@ async function handleDeleteAllTracks(manager: TrackManager): Promise<void> {
 
 async function handleMoveTrack(
   manager: TrackManager,
+  view: vscode.TreeView<ContextTrack>,
   item: ContextTrack | undefined,
   direction: 'up' | 'down',
 ): Promise<void> {
-  if (!item) return
-  manager.moveTrackRelative(item.id, direction)
+  // Fallback: If no item (keybinding), use selection or active track
+  const target = resolveTargetTrack(manager, view, item)
+  manager.moveTrackRelative(target.id, direction)
 }
 
 // --- Helpers ---
