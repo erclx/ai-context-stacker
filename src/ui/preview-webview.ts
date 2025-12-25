@@ -63,12 +63,29 @@ export class PreviewWebview {
   }
 
   private registerListeners(): void {
+    // 1. Data Model Changes
     this._provider.onDidChangeTreeData(() => this.scheduleUpdate(), null, this._disposables)
+
+    // 2. Webview Messages (e.g. Copy button)
     this._panel.webview.onDidReceiveMessage((m: IWebviewMessage) => this.handleMsg(m), null, this._disposables)
 
+    // 3. Configuration Changes
     vscode.workspace.onDidChangeConfiguration(
       (e) => {
         if (e.affectsConfiguration('aiContextStacker')) this.scheduleUpdate()
+      },
+      null,
+      this._disposables,
+    )
+
+    // 4. View State Changes (The "Re-hydration" Fix)
+    // If the panel becomes visible again (user tabbed back), trigger an update
+    // to ensure we aren't showing stale data.
+    this._panel.onDidChangeViewState(
+      (e) => {
+        if (e.webviewPanel.visible) {
+          this.scheduleUpdate()
+        }
       },
       null,
       this._disposables,
@@ -81,6 +98,7 @@ export class PreviewWebview {
   }
 
   private async update(): Promise<void> {
+    // Optimization: Don't render if hidden (Passive Visibility)
     if (!this._panel.visible) return
 
     try {
