@@ -244,6 +244,12 @@
         "title": "Show All Files",
         "category": "AI Context Stacker",
         "icon": "$(list-flat)"
+      },
+      {
+        "command": "aiContextStacker.selectAll",
+        "title": "Select All",
+        "category": "AI Context Stacker",
+        "icon": "$(check-all)"
       }
     ],
     "menus": {
@@ -472,6 +478,12 @@
         "command": "aiContextStacker.moveTrackDown",
         "key": "alt+down",
         "when": "focusedView == aiContextTracksView && !inputFocus"
+      },
+      {
+        "command": "aiContextStacker.selectAll",
+        "key": "ctrl+a",
+        "mac": "cmd+a",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
       }
     ]
   },

@@ -20,6 +20,7 @@ import { registerRemoveFileCommand } from './remove-file'
 import { registerRemoveFilePickerCommand } from './remove-file-picker'
 import { registerRevealInExplorerCommand } from './reveal-in-explorer'
 import { registerRevealInViewCommand } from './reveal-in-view'
+import { registerSelectAllCommand } from './select-all'
 import { registerTogglePinCommand } from './toggle-pin'
 import { registerTrackCommands } from './track-ops'
 
@@ -49,6 +50,7 @@ function registerStackModifications(deps: CommandDependencies) {
   registerRemoveFilePickerCommand(deps.context, deps.services.stackProvider)
   registerTogglePinCommand(deps.context, deps.services.trackManager, deps.views.filesView)
   registerClearAllCommand(deps.context, deps.services.stackProvider)
+  registerSelectAllCommand(deps.context)
 }
 
 function registerClipboardOperations(deps: CommandDependencies) {
