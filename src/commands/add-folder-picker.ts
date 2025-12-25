@@ -3,6 +3,11 @@ import * as vscode from 'vscode'
 
 import { IgnoreManager, StackProvider } from '../providers'
 import { Logger } from '../utils'
+import { scanMultipleFolders } from '../utils/file-scanner'
+
+// Heuristic: These files usually indicate a meaningful directory
+const FOLDER_MARKERS = '{package.json,tsconfig.json,jsconfig.json,README.md,Cargo.toml,go.mod,pom.xml,requirements.txt}'
+const MAX_DISCOVERY_RESULTS = 5000
 
 interface FolderQuickPickItem extends vscode.QuickPickItem {
   uri: vscode.Uri
@@ -20,120 +25,135 @@ export function registerAddFolderPickerCommand(
   context.subscriptions.push(command)
 }
 
-async function executeAddFolderPicker(stackProvider: StackProvider, ignoreManager: IgnoreManager): Promise<void> {
+async function executeAddFolderPicker(provider: StackProvider, ignore: IgnoreManager): Promise<void> {
   try {
-    const folders = await findUniqueFolders(ignoreManager)
+    const folders = await findUniqueFolders(ignore)
 
     if (folders.length === 0) {
-      vscode.window.showInformationMessage('No valid folders found in workspace.')
+      void vscode.window.showInformationMessage('No relevant folders found.')
       return
     }
 
     const selected = await showFolderPicker(folders)
-    if (!selected || selected.length === 0) return
+    if (!selected?.length) return
 
-    await processSelection(selected, stackProvider, ignoreManager)
+    await processSelection(selected, provider, ignore)
   } catch (error) {
-    Logger.error('Add Folder Picker failed', error as Error)
-    vscode.window.showErrorMessage('Failed to add folders.')
+    Logger.error('Folder picker failed', error as Error)
+    void vscode.window.showErrorMessage('Failed to add folders.')
   }
 }
 
-async function findUniqueFolders(ignoreManager: IgnoreManager): Promise<vscode.Uri[]> {
-  const excludePatterns = await ignoreManager.getExcludePatterns()
-  const allFiles = await vscode.workspace.findFiles('**/*', excludePatterns)
+// --- Discovery Logic ---
 
-  const folderPaths = new Set<string>()
-  const folderUris: vscode.Uri[] = []
+async function findUniqueFolders(ignore: IgnoreManager): Promise<vscode.Uri[]> {
+  const excludes = await ignore.getExcludePatterns()
 
-  for (const file of allFiles) {
-    const dirPath = path.dirname(file.fsPath)
-    if (!folderPaths.has(dirPath)) {
-      folderPaths.add(dirPath)
-      folderUris.push(vscode.Uri.file(dirPath))
+  // Parallelize discovery strategies
+  const [shallow, marked] = await Promise.all([discoverShallowFolders(), discoverMarkedFolders(excludes)])
+
+  return mergeFolderLists(shallow, marked)
+}
+
+async function discoverShallowFolders(): Promise<vscode.Uri[]> {
+  const roots = vscode.workspace.workspaceFolders || []
+  const results: vscode.Uri[] = []
+
+  for (const root of roots) {
+    results.push(root.uri)
+    try {
+      const children = await vscode.workspace.fs.readDirectory(root.uri)
+      children.forEach(([name, type]) => {
+        if (type === vscode.FileType.Directory) {
+          results.push(vscode.Uri.joinPath(root.uri, name))
+        }
+      })
+    } catch {
+      /* Ignore permission errors */
     }
   }
-
-  return folderUris.sort((a, b) => a.fsPath.localeCompare(b.fsPath))
+  return results
 }
 
-async function showFolderPicker(folders: vscode.Uri[]): Promise<FolderQuickPickItem[] | undefined> {
-  const items: FolderQuickPickItem[] = folders.map((uri) => createPickerItem(uri))
-
-  return vscode.window.showQuickPick(items, {
-    canPickMany: true,
-    placeHolder: 'Select folders to add...',
-    title: 'Add Folders to Context Stack',
-    matchOnDescription: true,
-  })
+async function discoverMarkedFolders(excludes: string): Promise<vscode.Uri[]> {
+  // Use search service to jump deep into the tree without scanning everything
+  const files = await vscode.workspace.findFiles(FOLDER_MARKERS, excludes, MAX_DISCOVERY_RESULTS)
+  return files.map((f) => vscode.Uri.file(path.dirname(f.fsPath)))
 }
 
-function createPickerItem(uri: vscode.Uri): FolderQuickPickItem {
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri)
-  const isRoot = workspaceFolder ? uri.fsPath === workspaceFolder.uri.fsPath : false
+function mergeFolderLists(listA: vscode.Uri[], listB: vscode.Uri[]): vscode.Uri[] {
+  const unique = new Map<string, vscode.Uri>()
 
-  const relativePath = vscode.workspace.asRelativePath(uri, false)
-  const folderName = path.basename(uri.fsPath)
+  const add = (uri: vscode.Uri) => unique.set(uri.fsPath, uri)
+  listA.forEach(add)
+  listB.forEach(add)
 
-  if (isRoot) {
-    const rootName = workspaceFolder?.name ?? folderName
-    return {
-      label: `$(root-folder) ${rootName}`,
-      description: 'Add all files in workspace',
-      uri,
-    }
-  }
-
-  return {
-    label: `$(folder) ${folderName}`,
-    description: relativePath === folderName ? undefined : relativePath,
-    detail: undefined,
-    uri,
-  }
+  return Array.from(unique.values()).sort((a, b) => a.fsPath.localeCompare(b.fsPath))
 }
+
+// --- Processing Logic ---
 
 async function processSelection(
   items: FolderQuickPickItem[],
-  stackProvider: StackProvider,
-  ignoreManager: IgnoreManager,
+  provider: StackProvider,
+  ignore: IgnoreManager,
 ): Promise<void> {
-  const folders = items.map((i) => i.uri)
-  const excludes = await ignoreManager.getExcludePatterns()
+  const distinctRoots = pruneNestedFolders(items.map((i) => i.uri))
+  const excludes = await ignore.getExcludePatterns()
 
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: `Scanning ${folders.length} folder(s)...`,
+      title: `Scanning ${distinctRoots.length} folder(s)...`,
       cancellable: true,
     },
     async (_, token) => {
-      const files = await scanFolders(folders, excludes, token)
+      await scanMultipleFolders(distinctRoots, excludes, (files) => provider.addFiles(files), token)
 
-      if (token.isCancellationRequested) return
-
-      if (files.length > 0) {
-        stackProvider.addFiles(files)
-        vscode.window.showInformationMessage(`Added ${files.length} files to context stack`)
-      } else {
-        vscode.window.showInformationMessage('No valid files found in selected folders.')
+      if (!token.isCancellationRequested) {
+        void vscode.window.showInformationMessage(`Processed ${distinctRoots.length} folders.`)
       }
     },
   )
 }
 
-async function scanFolders(
-  folders: vscode.Uri[],
-  excludes: string,
-  token: vscode.CancellationToken,
-): Promise<vscode.Uri[]> {
-  const results: vscode.Uri[] = []
+function pruneNestedFolders(uris: vscode.Uri[]): vscode.Uri[] {
+  const sorted = [...uris].sort((a, b) => a.fsPath.length - b.fsPath.length)
+  const accepted: vscode.Uri[] = []
 
-  for (const folder of folders) {
-    if (token.isCancellationRequested) break
-
-    const folderFiles = await vscode.workspace.findFiles(new vscode.RelativePattern(folder, '**/*'), excludes)
-    results.push(...folderFiles)
+  for (const uri of sorted) {
+    const isNested = accepted.some((parent) => isChildOf(parent, uri))
+    if (!isNested) {
+      accepted.push(uri)
+    }
   }
+  return accepted
+}
 
-  return results
+function isChildOf(parent: vscode.Uri, child: vscode.Uri): boolean {
+  const relative = path.relative(parent.fsPath, child.fsPath)
+  return !relative.startsWith('..') && !path.isAbsolute(relative)
+}
+
+// --- UI Helpers ---
+
+async function showFolderPicker(folders: vscode.Uri[]): Promise<FolderQuickPickItem[] | undefined> {
+  const items = folders.map(createPickerItem)
+  return vscode.window.showQuickPick(items, {
+    canPickMany: true,
+    placeHolder: 'Select folders to add...',
+    matchOnDescription: true,
+  })
+}
+
+function createPickerItem(uri: vscode.Uri): FolderQuickPickItem {
+  const wsFolder = vscode.workspace.getWorkspaceFolder(uri)
+  const isRoot = wsFolder ? uri.fsPath === wsFolder.uri.fsPath : false
+  const name = path.basename(uri.fsPath)
+
+  return {
+    label: isRoot ? `$(root-folder) ${wsFolder?.name ?? name}` : `$(folder) ${name}`,
+    description: vscode.workspace.asRelativePath(uri, false),
+    uri,
+  }
 }
