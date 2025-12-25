@@ -22,7 +22,7 @@ This workflow becomes inefficient when working with multiple files simultaneousl
 
 1. **Install the extension** from the VS Code Marketplace
 2. **Open the AI Context Stacker view** in the Activity Bar (left sidebar)
-3. **Right-click any file** → "Add to AI Context Stack"
+3. **Drag or click the 'Drag or click here to add files...' placeholder** in the sidebar to start building your stack
 4. **Click the Copy Stack button** (📋 icon in the view title)
 5. **Paste into your language model** – you're done
 
@@ -30,7 +30,11 @@ This workflow becomes inefficient when working with multiple files simultaneousl
 
 ### Instant Context Staging
 
-Stop copying files one by one. Drag files, folders, or use the right-click menu to build your context in seconds.
+Stop copying files one by one. Drag files, folders, or use the right-click menu to build your context in seconds. The interactive empty state placeholder guides you through adding your first files.
+
+### Smart Folder Discovery
+
+Use the Folder Picker to find any directory in your project. It automatically filters out absolute system paths (like `/home/user`) to keep your search focused strictly on project folders.
 
 ### Visual Token Heatmap
 
@@ -53,7 +57,7 @@ Organize your work into separate "tracks" (e.g., "Refactor Auth", "Bug Fix #123"
 
 - **Custom Order**: Drag and drop tracks to reorder them exactly how you work.
 - **Persistent**: Your tracks and file lists are saved automatically.
-- **Reset**: Easily wipe all tracks to start fresh with a clean workspace.
+- **Smart Reset**: The 'Delete All Tracks' (nuclear option) automatically hides itself when your workspace is already clean, keeping your view focused.
 
 ### Smart Filtering & Pinning
 
@@ -75,6 +79,11 @@ Context Map
 │   └── helpers.ts
 └── README.md
 ```
+
+### Refined for Focus
+
+- **Optical Alignment**: Headers and action buttons are perfectly aligned for a native VS Code feel.
+- **Zero Noise**: Search results in pickers dynamically hide "Add All" actions once you start typing, so they don't get in your way.
 
 ## Installation
 
