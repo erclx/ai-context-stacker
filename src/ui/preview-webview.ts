@@ -15,11 +15,11 @@ interface IWebviewMessage {
 export class PreviewWebview {
   public static currentPanel: PreviewWebview | undefined
   public static readonly viewType = 'aiContextStacker.preview'
+  private static readonly DEBOUNCE_MS = 250
 
   private readonly _panel: vscode.WebviewPanel
   private _disposables: vscode.Disposable[] = []
   private _updateTimeout: NodeJS.Timeout | undefined
-  private readonly DEBOUNCE_MS = 250
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -45,13 +45,12 @@ export class PreviewWebview {
       return
     }
 
-    // Factory handles the initial options (enableScripts: true)
     const panel = WebviewFactory.create(PreviewWebview.viewType, 'AI Context Preview', extensionUri)
     PreviewWebview.currentPanel = new PreviewWebview(panel, extensionUri, provider)
   }
 
-  public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, provider: StackProvider): void {
-    PreviewWebview.currentPanel = new PreviewWebview(panel, extensionUri, provider)
+  public static revive(panel: vscode.WebviewPanel, extUri: vscode.Uri, provider: StackProvider): void {
+    PreviewWebview.currentPanel = new PreviewWebview(panel, extUri, provider)
   }
 
   public dispose(): void {
@@ -65,8 +64,7 @@ export class PreviewWebview {
 
   private registerListeners(): void {
     this._provider.onDidChangeTreeData(() => this.scheduleUpdate(), null, this._disposables)
-
-    this._panel.webview.onDidReceiveMessage((msg: IWebviewMessage) => this.handleMessage(msg), null, this._disposables)
+    this._panel.webview.onDidReceiveMessage((m: IWebviewMessage) => this.handleMsg(m), null, this._disposables)
 
     vscode.workspace.onDidChangeConfiguration(
       (e) => {
@@ -79,7 +77,7 @@ export class PreviewWebview {
 
   private scheduleUpdate(): void {
     if (this._updateTimeout) clearTimeout(this._updateTimeout)
-    this._updateTimeout = setTimeout(() => void this.update(), this.DEBOUNCE_MS)
+    this._updateTimeout = setTimeout(() => void this.update(), PreviewWebview.DEBOUNCE_MS)
   }
 
   private async update(): Promise<void> {
@@ -88,18 +86,19 @@ export class PreviewWebview {
     try {
       const files = this._provider.getFiles()
       const content = await ContentFormatter.format(files)
+
       const html = await WebviewFactory.generateHtml(this._panel.webview, this._extensionUri, content)
       this._panel.webview.html = html
     } catch (error) {
       Logger.error('Failed to update preview webview', error)
+      void vscode.window.showErrorMessage('Preview update failed.')
     }
   }
 
-  private handleMessage(message: IWebviewMessage): void {
-    if (message.command !== 'copy') return
-
-    // Delegate to shared clipboard logic
-    void ClipboardOps.copyText(message.text, 'Preview Content')
+  private handleMsg(message: IWebviewMessage): void {
+    if (message.command === 'copy') {
+      void ClipboardOps.copyText(message.text, 'Preview Content')
+    }
   }
 }
 
@@ -113,12 +112,10 @@ export class PreviewWebviewSerializer implements vscode.WebviewPanelSerializer {
   ) {}
 
   public async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, _state: unknown): Promise<void> {
-    // CRITICAL: Re-apply options during deserialization or scripts will be disabled
     webviewPanel.webview.options = {
       enableScripts: true,
       localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'media')],
     }
-
     PreviewWebview.revive(webviewPanel, this._extensionUri, this._provider)
   }
 }

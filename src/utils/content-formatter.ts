@@ -1,3 +1,4 @@
+import { TextDecoder } from 'util'
 import * as vscode from 'vscode'
 
 import { StagedFile } from '../models'
@@ -5,6 +6,13 @@ import { Logger } from './logger'
 
 interface TreeNode {
   [key: string]: TreeNode
+}
+
+interface TreeStackItem {
+  node: TreeNode
+  prefix: string
+  entries: string[]
+  index: number
 }
 
 export interface FormatOptions {
@@ -19,12 +27,11 @@ interface FormatterConfig {
 }
 
 /**
- * Optimized formatter that uses Async Generators to stream content.
- * Exposes static utilities for specific format operations.
+ * Optimized formatter using Async Generators and iterative algorithms.
  */
 export class ContentFormatter {
   private static readonly DEFAULT_MAX_BYTES = 100 * 1024 * 1024 // 100MB
-  private static readonly FILE_SIZE_LIMIT = 1024 * 1024 // 1MB
+  private static readonly MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB Hard Cap
 
   /**
    * Orchestrates the context generation stream.
@@ -39,18 +46,17 @@ export class ContentFormatter {
     let currentTotalSize = 0
 
     if (config.includeTree) {
-      const tree = this.generateAsciiTree(files)
-      const treeBlock = `# Context Map\n\`\`\`\n${tree}\`\`\`\n\n`
+      const treeBlock = this.generateTreeBlock(files)
       currentTotalSize += treeBlock.length
       yield treeBlock
     }
 
     yield '# File Contents\n\n'
-    yield* this.streamFiles(files, config, currentTotalSize, opts.token)
+    yield* this.streamFileContent(files, config, currentTotalSize, opts.token)
   }
 
   /**
-   * Legacy wrapper for non-streaming consumers.
+   * Accumulates the stream into a single string.
    */
   public static async format(files: StagedFile[], opts: FormatOptions = {}): Promise<string> {
     const parts: string[] = []
@@ -66,23 +72,20 @@ export class ContentFormatter {
   }
 
   /**
-   * Public Utility: Generates just the visual ASCII tree.
-   * Useful for "Copy Tree" commands.
+   * Generates a visual ASCII tree using an iterative stack approach.
    */
   public static generateAsciiTree(files: StagedFile[]): string {
     const paths = files.map((f) => vscode.workspace.asRelativePath(f.uri)).sort()
     const root: TreeNode = {}
 
     this.buildHierarchy(paths, root)
-    return this.renderHierarchy(root)
+    return this.renderHierarchyIterative(root)
   }
 
-  // --- Configuration & Helpers ---
+  // --- Configuration ---
 
   private static getConfig(opts: FormatOptions): FormatterConfig {
     const cfg = vscode.workspace.getConfiguration('aiContextStacker')
-
-    // Command option takes precedence over user settings
     const includeTree = opts.skipTree ? false : cfg.get<boolean>('includeFileTree', true)
 
     return {
@@ -91,7 +94,14 @@ export class ContentFormatter {
     }
   }
 
-  private static async *streamFiles(
+  private static generateTreeBlock(files: StagedFile[]): string {
+    const tree = this.generateAsciiTree(files)
+    return `# Context Map\n\`\`\`\n${tree}\`\`\`\n\n`
+  }
+
+  // --- Streaming Logic ---
+
+  private static async *streamFileContent(
     files: StagedFile[],
     config: FormatterConfig,
     initialSize: number,
@@ -109,53 +119,13 @@ export class ContentFormatter {
 
       const block = await this.processFile(file)
       if (block) {
-        const output = block + '\n'
-        currentSize += output.length
-        yield output
+        currentSize += block.length
+        yield block
       }
     }
   }
 
-  // --- Tree Logic (Internal) ---
-
-  private static buildHierarchy(paths: string[], root: TreeNode): void {
-    for (const path of paths) {
-      let current = root
-      const segments = path.split(/[/\\]/)
-      for (const segment of segments) {
-        if (!current[segment]) current[segment] = {}
-        current = current[segment]
-      }
-    }
-  }
-
-  private static renderHierarchy(node: TreeNode, prefix = ''): string {
-    const entries = Object.keys(node).sort(this.sortNodes(node))
-    const parts: string[] = []
-
-    for (let i = 0; i < entries.length; i++) {
-      const key = entries[i]
-      const isLast = i === entries.length - 1
-
-      parts.push(`${prefix}${isLast ? '└── ' : '├── '}${key}\n`)
-
-      const childPrefix = prefix + (isLast ? '    ' : '│   ')
-      parts.push(this.renderHierarchy(node[key], childPrefix))
-    }
-
-    return parts.join('')
-  }
-
-  private static sortNodes(node: TreeNode): (a: string, b: string) => number {
-    return (a, b) => {
-      const aIsDir = Object.keys(node[a]).length > 0
-      const bIsDir = Object.keys(node[b]).length > 0
-      if (aIsDir === bIsDir) return a.localeCompare(b)
-      return bIsDir ? 1 : -1
-    }
-  }
-
-  // --- File Processing (Internal) ---
+  // --- File Processing ---
 
   private static async processFile(file: StagedFile): Promise<string | null> {
     const validationError = await this.validateFile(file)
@@ -166,12 +136,12 @@ export class ContentFormatter {
     try {
       const content = await this.readFileSafely(file.uri)
       if (content === null) {
-        return this.makeSkipMsg(file, 'binary file')
+        return this.makeSkipMsg(file, 'binary or unreadable')
       }
       return this.formatBlock(file, content)
     } catch (err) {
       Logger.error(`Read failed: ${file.uri.fsPath}`, err)
-      return `> Error reading: ${vscode.workspace.asRelativePath(file.uri)}`
+      return this.makeSkipMsg(file, 'read error')
     }
   }
 
@@ -179,8 +149,8 @@ export class ContentFormatter {
     if (file.isBinary) return 'binary file'
 
     const stats = await vscode.workspace.fs.stat(file.uri)
-    if (stats.size > this.FILE_SIZE_LIMIT) {
-      return 'large file (>1MB)'
+    if (stats.size > this.MAX_FILE_SIZE) {
+      return `large file (>${this.MAX_FILE_SIZE / 1024 / 1024}MB)`
     }
 
     return null
@@ -188,24 +158,99 @@ export class ContentFormatter {
 
   private static async readFileSafely(uri: vscode.Uri): Promise<string | null> {
     const data = await vscode.workspace.fs.readFile(uri)
+
+    // Quick binary check on first 512 bytes
+    if (this.isBinaryBuffer(data)) return null
+
+    // Safe decode
+    const decoder = new TextDecoder('utf-8', { fatal: false })
+    return decoder.decode(data)
+  }
+
+  private static isBinaryBuffer(data: Uint8Array): boolean {
     const checkLen = Math.min(data.length, 512)
-
-    // Binary check
     for (let i = 0; i < checkLen; i++) {
-      if (data[i] === 0) return null
+      if (data[i] === 0) return true
     }
-
-    return Buffer.from(data).toString('utf-8')
+    return false
   }
 
   private static formatBlock(file: StagedFile, content: string): string {
     const relPath = vscode.workspace.asRelativePath(file.uri)
     const ext = file.uri.path.split('.').pop() || ''
-    return `File: ${relPath}\n\`\`\`${ext}\n${content}\n\`\`\``
+    return `File: ${relPath}\n\`\`\`${ext}\n${content}\n\`\`\`\n`
   }
 
   private static makeSkipMsg(file: StagedFile, reason: string): string {
     const path = vscode.workspace.asRelativePath(file.uri)
     return `> Skipped ${reason}: ${path}\n`
+  }
+
+  // --- Tree Logic (Iterative) ---
+
+  private static buildHierarchy(paths: string[], root: TreeNode): void {
+    for (const path of paths) {
+      let current = root
+      const segments = path.split(/[/\\]/)
+
+      for (const segment of segments) {
+        if (!current[segment]) current[segment] = {}
+        current = current[segment]
+      }
+    }
+  }
+
+  /**
+   * Renders the tree using a stack to avoid recursion limits.
+   */
+  private static renderHierarchyIterative(root: TreeNode): string {
+    const parts: string[] = []
+    const rootEntries = Object.keys(root).sort(this.sortNodes(root))
+
+    // Stack stores state for each level of depth
+    const stack: TreeStackItem[] = [{ node: root, prefix: '', entries: rootEntries, index: 0 }]
+
+    while (stack.length > 0) {
+      this.processStackItem(stack, parts)
+    }
+
+    return parts.join('')
+  }
+
+  private static processStackItem(stack: TreeStackItem[], parts: string[]): void {
+    const current = stack[stack.length - 1]
+
+    if (current.index >= current.entries.length) {
+      stack.pop() // Level complete
+      return
+    }
+
+    const key = current.entries[current.index]
+    const isLast = current.index === current.entries.length - 1
+    current.index++ // Advance for next iteration
+
+    parts.push(`${current.prefix}${isLast ? '└── ' : '├── '}${key}\n`)
+
+    const childNode = current.node[key]
+    const childEntries = Object.keys(childNode).sort(this.sortNodes(childNode))
+
+    if (childEntries.length > 0) {
+      const childPrefix = current.prefix + (isLast ? '    ' : '│   ')
+      stack.push({
+        node: childNode,
+        prefix: childPrefix,
+        entries: childEntries,
+        index: 0,
+      })
+    }
+  }
+
+  private static sortNodes(node: TreeNode): (a: string, b: string) => number {
+    return (a, b) => {
+      const aIsDir = Object.keys(node[a]).length > 0
+      const bIsDir = Object.keys(node[b]).length > 0
+      if (aIsDir === bIsDir) return a.localeCompare(b)
+      return bIsDir ? 1 : -1
+    }
   }
 }
