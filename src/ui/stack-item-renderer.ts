@@ -33,7 +33,7 @@ export class StackItemRenderer {
     return {
       type: 'file',
       uri: vscode.Uri.from({ scheme: this.EMPTY_URI_SCHEME, path: 'empty-drop-target' }),
-      label: 'Drag files here to start...',
+      label: 'Drag or click here to add files...',
     }
   }
 
