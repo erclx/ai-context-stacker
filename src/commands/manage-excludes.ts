@@ -1,9 +1,5 @@
 import * as vscode from 'vscode'
 
-/**
- * Registers the command to manage exclusion patterns via a Checkbox Library.
- * @param context - Required for accessing globalState history.
- */
 export function registerManageExcludesCommand(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.manageExcludes', () => {

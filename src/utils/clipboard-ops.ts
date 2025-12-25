@@ -24,28 +24,37 @@ export class ClipboardOps {
    * @param label - UI label (e.g., "Preview Content")
    */
   public static async copyText(content: string, label: string): Promise<void> {
-    if (!this._isValidContent(content)) {
-      return
-    }
+    if (!this.validatePayload(content)) return
 
     try {
+      // Defensive check for environment capability
+      if (!vscode.env.clipboard) {
+        throw new Error('Clipboard API unavailable in this environment')
+      }
+
       await vscode.env.clipboard.writeText(content)
-      this._notifySuccess(content, label)
+      this.broadcastSuccess(content, label)
     } catch (error) {
       Logger.error('Clipboard write failed', error)
-      void vscode.window.showErrorMessage('Failed to write to clipboard.')
+      void vscode.window.showErrorMessage('Failed to write to clipboard. See output for details.')
     }
   }
 
-  private static _isValidContent(content: string): boolean {
-    if (!content) {
+  /**
+   * Validates content existence and manages UI feedback for empty states.
+   */
+  private static validatePayload(content: string): boolean {
+    if (!content || content.trim().length === 0) {
       void vscode.window.showWarningMessage('Selected content is empty.')
       return false
     }
     return true
   }
 
-  private static _notifySuccess(content: string, label: string): void {
+  /**
+   * Calculates metrics and displays the success toast.
+   */
+  private static broadcastSuccess(content: string, label: string): void {
     const stats = TokenEstimator.measure(content)
     const statsString = TokenEstimator.format(stats)
 

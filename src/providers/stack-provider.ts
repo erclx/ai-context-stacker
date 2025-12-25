@@ -21,7 +21,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   private disposables: vscode.Disposable[] = []
 
   private _cachedTree: StackTreeItem[] | undefined
-  private _cachedTotalTokens: number = 0
+  private _cachedTotalTokens = 0
   private _treeDirty = true
   private _showPinnedOnly = false
 
@@ -67,31 +67,10 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   public hasTrackedPath(uri: vscode.Uri): boolean {
     const targetStr = uri.toString()
-    const rawFiles = this.trackManager.getActiveTrack().files
-
-    return rawFiles.some((f) => {
+    return this.trackManager.getActiveTrack().files.some((f) => {
       const fileStr = f.uri.toString()
       return fileStr === targetStr || fileStr.startsWith(targetStr + '/')
     })
-  }
-
-  private findRecursive(nodes: StackTreeItem[], targetKey: string): StackTreeItem | undefined {
-    for (const node of nodes) {
-      if (this.nodeMatches(node, targetKey)) {
-        return node
-      }
-
-      if (isStagedFolder(node)) {
-        const found = this.findRecursive(node.children, targetKey)
-        if (found) return found
-      }
-    }
-    return undefined
-  }
-
-  private nodeMatches(node: StackTreeItem, targetKey: string): boolean {
-    const uri = isStagedFolder(node) ? node.resourceUri : node.uri
-    return uri.toString() === targetKey
   }
 
   public getActiveTrackName(): string {
@@ -126,6 +105,42 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     return undefined
   }
 
+  // --- CRUD Proxies ---
+
+  public async addFiles(uris: vscode.Uri[]): Promise<void> {
+    if (!(await this.confirmBatchOperation(uris.length))) return
+
+    const newFiles = this.trackManager.addFilesToActive(uris)
+    if (newFiles.length > 0) {
+      this._treeDirty = true
+      this.rebuildCacheAndRefresh()
+    }
+  }
+
+  public addFile(uri: vscode.Uri): void {
+    void this.addFiles([uri])
+  }
+
+  public removeFiles(filesToRemove: StagedFile[]): void {
+    this.trackManager.removeFilesFromActive(filesToRemove)
+    this._treeDirty = true
+    this.rebuildCacheAndRefresh()
+  }
+
+  public clear(): void {
+    this.trackManager.clearActive()
+    this._treeDirty = true
+    this.rebuildCacheAndRefresh()
+  }
+
+  public dispose(): void {
+    this._onDidChangeTreeData.dispose()
+    this.disposables.forEach((d) => d.dispose())
+    this.clearAllPendingTimers()
+  }
+
+  // --- Internal Implementation ---
+
   private rebuildCacheAndRefresh(): void {
     this.rebuildTreeCache()
     this._treeDirty = false
@@ -135,22 +150,14 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   private rebuildTreeCache(): StackTreeItem[] {
     const rawFiles = this.trackManager.getActiveTrack().files
-    const hasPinnedFiles = rawFiles.some((f) => f.isPinned)
-    const hasFiles = rawFiles.length > 0
-
-    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasPinnedFiles', hasPinnedFiles)
-    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasFiles', hasFiles)
-
-    if (this._showPinnedOnly && !hasPinnedFiles) {
-      this._showPinnedOnly = false
-      void vscode.commands.executeCommand('setContext', 'aiContextStacker.pinnedOnly', false)
-    }
+    this.syncContextKeys(rawFiles)
+    this.resetPinFilterIfNeeded(rawFiles)
 
     const files = this.getFiles()
 
     if (files.length === 0) {
       this.updateContextKeys(false)
-      this._cachedTree = [this.hasActiveFilters ? this.createNoMatchItem() : this.renderer.createPlaceholderItem()]
+      this._cachedTree = this.generateEmptyState()
       return this._cachedTree
     }
 
@@ -160,16 +167,47 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     return this._cachedTree
   }
 
+  private syncContextKeys(rawFiles: StagedFile[]): void {
+    const hasPinnedFiles = rawFiles.some((f) => f.isPinned)
+    const hasFiles = rawFiles.length > 0
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasPinnedFiles', hasPinnedFiles)
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasFiles', hasFiles)
+  }
+
+  private resetPinFilterIfNeeded(rawFiles: StagedFile[]): void {
+    const hasPinnedFiles = rawFiles.some((f) => f.isPinned)
+    if (this._showPinnedOnly && !hasPinnedFiles) {
+      this._showPinnedOnly = false
+      void vscode.commands.executeCommand('setContext', 'aiContextStacker.pinnedOnly', false)
+    }
+  }
+
+  private generateEmptyState(): StackTreeItem[] {
+    return [this.hasActiveFilters ? this.createNoMatchItem() : this.renderer.createPlaceholderItem()]
+  }
+
+  private findRecursive(nodes: StackTreeItem[], targetKey: string): StackTreeItem | undefined {
+    for (const node of nodes) {
+      if (this.nodeMatches(node, targetKey)) return node
+
+      if (isStagedFolder(node)) {
+        const found = this.findRecursive(node.children, targetKey)
+        if (found) return found
+      }
+    }
+    return undefined
+  }
+
+  private nodeMatches(node: StackTreeItem, targetKey: string): boolean {
+    const uri = isStagedFolder(node) ? node.resourceUri : node.uri
+    return uri.toString() === targetKey
+  }
+
   private updateContextKeys(hasFolders: boolean): void {
     void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasFolders', hasFolders)
 
-    // Publish all staged paths (files & folders) to context for smart menu toggling
-    if (this._cachedTree) {
-      const allPaths = this.collectAllPaths(this._cachedTree)
-      void vscode.commands.executeCommand('setContext', 'aiContextStacker.stagedPaths', allPaths)
-    } else {
-      void vscode.commands.executeCommand('setContext', 'aiContextStacker.stagedPaths', [])
-    }
+    const allPaths = this._cachedTree ? this.collectAllPaths(this._cachedTree) : []
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.stagedPaths', allPaths)
   }
 
   private collectAllPaths(nodes: StackTreeItem[]): string[] {
@@ -197,8 +235,6 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this._cachedTotalTokens = this.getFiles().reduce((sum, f) => sum + (f.stats?.tokenCount ?? 0), 0)
   }
 
-  // --- Stats & Events ---
-
   private async enrichStatsInBackground(): Promise<void> {
     try {
       await this.statsProcessor.enrichFileStats(this.getFiles())
@@ -218,9 +254,6 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument((e) => this.handleDocChange(e.document)),
       vscode.workspace.onDidSaveTextDocument((doc) => this.handleDocChange(doc, true)),
-    )
-
-    this.disposables.push(
       vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration('aiContextStacker')) {
           this._treeDirty = true
@@ -276,52 +309,19 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     return this.trackManager.getActiveTrack().files.find((f) => f.uri.toString() === uri.toString())
   }
 
-  // --- CRUD Proxies ---
+  private async confirmBatchOperation(count: number): Promise<boolean> {
+    if (count <= this.BATCH_WARNING_THRESHOLD) return true
 
-  public async addFiles(uris: vscode.Uri[]): Promise<void> {
-    // Safety Cap: Prevent extension hang on massive folder adds
-    if (uris.length > this.BATCH_WARNING_THRESHOLD) {
-      const result = await vscode.window.showWarningMessage(
-        `You are adding ${uris.length} files. This may affect performance.`,
-        'Proceed',
-        'Cancel',
-      )
-      if (result !== 'Proceed') {
-        return
-      }
-    }
-
-    const newFiles = this.trackManager.addFilesToActive(uris)
-    if (newFiles.length > 0) {
-      this._treeDirty = true
-      this.rebuildCacheAndRefresh()
-    }
-  }
-
-  public addFile(uri: vscode.Uri): void {
-    void this.addFiles([uri])
-  }
-
-  public removeFiles(filesToRemove: StagedFile[]): void {
-    this.trackManager.removeFilesFromActive(filesToRemove)
-    this._treeDirty = true
-    this.rebuildCacheAndRefresh()
-  }
-
-  public clear(): void {
-    this.trackManager.clearActive()
-    this._treeDirty = true
-    this.rebuildCacheAndRefresh()
+    const result = await vscode.window.showWarningMessage(
+      `You are adding ${count} files. This may affect performance.`,
+      'Proceed',
+      'Cancel',
+    )
+    return result === 'Proceed'
   }
 
   private clearAllPendingTimers(): void {
     this.pendingUpdates.forEach((timer) => clearTimeout(timer))
     this.pendingUpdates.clear()
-  }
-
-  public dispose(): void {
-    this._onDidChangeTreeData.dispose()
-    this.disposables.forEach((d) => d.dispose())
-    this.clearAllPendingTimers()
   }
 }

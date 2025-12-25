@@ -3,10 +3,6 @@ import * as vscode from 'vscode'
 import { StackProvider } from '../providers'
 import { ContentFormatter, Logger } from '../utils'
 
-/**
- * Registers the 'Copy Context Map' command.
- * Copies only the ASCII tree structure to the clipboard.
- */
 export function registerCopyTreeCommand(context: vscode.ExtensionContext, stackProvider: StackProvider) {
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.copyTree', async () => {

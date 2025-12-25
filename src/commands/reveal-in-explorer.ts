@@ -3,10 +3,6 @@ import * as vscode from 'vscode'
 import { isStagedFolder, StackTreeItem } from '../models'
 import { Logger } from '../utils'
 
-/**
- * Registers the 'Reveal in Explorer' command.
- * Allows users to jump from the Staged Files view to the system/VS Code explorer.
- */
 export function registerRevealInExplorerCommand(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.revealInExplorer', (item?: StackTreeItem) => {

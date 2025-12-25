@@ -15,7 +15,7 @@ export function activate(context: vscode.ExtensionContext): ServiceRegistry {
   Logger.info('Extension is activating...')
 
   const services = new ServiceRegistry(context)
-  services.register(context.subscriptions)
+  services.register()
 
   const views = new ViewManager(
     services.stackProvider,

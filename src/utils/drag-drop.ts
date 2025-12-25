@@ -13,7 +13,7 @@ export async function extractUrisFromTransfer(dataTransfer: vscode.DataTransfer)
   for (const [mimeType, item] of dataTransfer) {
     // 1. Handle actual File objects (e.g., dragged from OS Explorer/Finder)
     const file = item.asFile()
-    if (file && file.uri) {
+    if (file?.uri) {
       distinctUris.set(file.uri.toString(), file.uri)
       continue
     }
@@ -21,8 +21,7 @@ export async function extractUrisFromTransfer(dataTransfer: vscode.DataTransfer)
     // 2. Handle URI lists (e.g., dragged from VS Code Explorer)
     if (mimeType === 'text/uri-list') {
       const content = await item.asString()
-      const uris = parseUriList(content)
-      uris.forEach((uri) => distinctUris.set(uri.toString(), uri))
+      parseUriList(content).forEach((uri) => distinctUris.set(uri.toString(), uri))
     }
   }
 
@@ -35,16 +34,21 @@ export async function extractUrisFromTransfer(dataTransfer: vscode.DataTransfer)
 function parseUriList(content: string): vscode.Uri[] {
   return content
     .split(/\r?\n/)
-    .filter((line) => line.trim().length > 0)
-    .map((line) => {
-      try {
-        // Handle standard file URIs and remote schemes
-        return line.startsWith('file:') || line.startsWith('vscode-remote:')
-          ? vscode.Uri.parse(line)
-          : vscode.Uri.file(line)
-      } catch {
-        return null
-      }
-    })
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => safeParseUri(line))
     .filter((uri): uri is vscode.Uri => uri !== null)
+}
+
+function safeParseUri(line: string): vscode.Uri | null {
+  try {
+    // Handle standard file URIs and remote schemes
+    if (line.startsWith('file:') || line.startsWith('vscode-remote:')) {
+      return vscode.Uri.parse(line)
+    }
+    // Fallback for raw paths
+    return vscode.Uri.file(line)
+  } catch {
+    return null
+  }
 }

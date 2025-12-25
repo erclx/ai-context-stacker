@@ -17,28 +17,21 @@ export async function categorizeTargets(targets: vscode.Uri[]) {
   const files: vscode.Uri[] = []
   const folders: vscode.Uri[] = []
 
+  if (!targets.length) {
+    return { files, folders }
+  }
+
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Processing selection...' },
     async () => {
       // Process in chunks to prevent "Too Many Open Files" (EMFILE) on huge selections
       for (let i = 0; i < targets.length; i += BATCH_SIZE_STAT) {
         const batch = targets.slice(i, i + BATCH_SIZE_STAT)
-
-        await Promise.all(
-          batch.map(async (target) => {
-            try {
-              const stat = await vscode.workspace.fs.stat(target)
-              if (stat.type === vscode.FileType.File) files.push(target)
-              if (stat.type === vscode.FileType.Directory) folders.push(target)
-            } catch (error) {
-              // Gracefully skip items we lack permissions for
-              Logger.warn(`Skipping unreadable item: ${target.fsPath}`)
-            }
-          }),
-        )
+        await processStatBatch(batch, files, folders)
       }
     },
   )
+
   return { files, folders }
 }
 
@@ -50,6 +43,8 @@ export async function handleFolderScanning(
   provider: StackProvider,
   ignoreProvider: IgnoreManager,
 ): Promise<void> {
+  if (!folders.length) return
+
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
@@ -83,20 +78,49 @@ export async function scanMultipleFolders(
     if (token?.isCancellationRequested) break
 
     const batch = folders.slice(i, i + BATCH_SIZE_GLOB)
-
-    await Promise.all(
-      batch.map(async (folder) => {
-        if (token?.isCancellationRequested) return
-
-        const foundFiles = await scanFolder(folder, excludes, token)
-
-        // Critical: Guard against empty results to prevent unnecessary UI updates
-        if (foundFiles.length > 0) {
-          onFound(foundFiles)
-        }
-      }),
-    )
+    await processScanBatch(batch, excludes, onFound, token)
   }
+}
+
+/**
+ * Helper: Processes a batch of URIs for fs.stat calls
+ */
+async function processStatBatch(batch: vscode.Uri[], files: vscode.Uri[], folders: vscode.Uri[]): Promise<void> {
+  await Promise.all(
+    batch.map(async (target) => {
+      try {
+        const stat = await vscode.workspace.fs.stat(target)
+        if (stat.type === vscode.FileType.File) files.push(target)
+        if (stat.type === vscode.FileType.Directory) folders.push(target)
+      } catch (error) {
+        // Gracefully skip items we lack permissions for
+        Logger.warn(`Skipping unreadable item: ${target.fsPath}`)
+      }
+    }),
+  )
+}
+
+/**
+ * Helper: Processes a batch of folders for glob scanning
+ */
+async function processScanBatch(
+  batch: vscode.Uri[],
+  excludes: string,
+  onFound: (files: vscode.Uri[]) => void,
+  token?: vscode.CancellationToken,
+): Promise<void> {
+  await Promise.all(
+    batch.map(async (folder) => {
+      if (token?.isCancellationRequested) return
+
+      const foundFiles = await scanFolder(folder, excludes, token)
+
+      // Critical: Guard against empty results to prevent unnecessary UI updates
+      if (foundFiles.length > 0) {
+        onFound(foundFiles)
+      }
+    }),
+  )
 }
 
 /**

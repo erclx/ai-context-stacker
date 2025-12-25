@@ -17,7 +17,7 @@ export class TreeBuilder {
       this.placeFileInTree(file, rootItems, folderMap)
     }
 
-    return this.sortTree(rootItems)
+    return this.sortTreeRecursive(rootItems)
   }
 
   /**
@@ -43,7 +43,7 @@ export class TreeBuilder {
     let currentPath = ''
     let parentChildren = roots
 
-    // Iterate over folder segments only
+    // Iterate over folder segments only (exclude the filename)
     for (let i = 0; i < segments.length - 1; i++) {
       const segment = segments[i]
       currentPath = currentPath ? `${currentPath}/${segment}` : segment
@@ -63,14 +63,14 @@ export class TreeBuilder {
   private getOrCreateFolder(
     name: string,
     pathId: string,
-    uri: vscode.Uri,
+    sampleUri: vscode.Uri,
     map: Map<string, StagedFolder>,
     parentList: StackTreeItem[],
   ): StagedFolder {
     let folder = map.get(pathId)
 
     if (!folder) {
-      folder = this.createVirtualFolder(name, pathId, uri)
+      folder = this.createVirtualFolder(name, pathId, sampleUri)
       map.set(pathId, folder)
       parentList.push(folder)
     }
@@ -79,11 +79,19 @@ export class TreeBuilder {
   }
 
   private getPathSegments(file: StagedFile): string[] {
-    return vscode.workspace.asRelativePath(file.uri).split('/')
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(file.uri)
+
+    // If file is outside workspace, treat it as a flat file to avoid path errors
+    if (!workspaceFolder) {
+      return [file.label]
+    }
+
+    return vscode.workspace.asRelativePath(file.uri, false).split('/')
   }
 
   private createVirtualFolder(name: string, id: string, sampleUri: vscode.Uri): StagedFolder {
     const root = vscode.workspace.getWorkspaceFolder(sampleUri)
+    // Reconstruct valid URI for the folder so context menus work
     const folderUri = root ? vscode.Uri.joinPath(root.uri, id) : sampleUri
 
     return {
@@ -96,14 +104,24 @@ export class TreeBuilder {
     }
   }
 
-  private sortTree(items: StackTreeItem[]): StackTreeItem[] {
-    return items.sort((a, b) => {
+  private sortTreeRecursive(items: StackTreeItem[]): StackTreeItem[] {
+    items.sort((a, b) => {
       const aIsFolder = isStagedFolder(a)
       const bIsFolder = isStagedFolder(b)
 
-      if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1
-
+      if (aIsFolder !== bIsFolder) {
+        return aIsFolder ? -1 : 1
+      }
       return a.label.localeCompare(b.label)
     })
+
+    // Deep sort children
+    for (const item of items) {
+      if (isStagedFolder(item)) {
+        this.sortTreeRecursive(item.children)
+      }
+    }
+
+    return items
   }
 }

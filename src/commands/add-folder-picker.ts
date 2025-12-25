@@ -8,12 +8,6 @@ interface FolderQuickPickItem extends vscode.QuickPickItem {
   uri: vscode.Uri
 }
 
-/**
- * Registers the command to add entire folders via a QuickPick interface.
- * @param context - Extension context
- * @param stackProvider - Provider to receive the files
- * @param ignoreManager - Manager for exclusion patterns
- */
 export function registerAddFolderPickerCommand(
   context: vscode.ExtensionContext,
   stackProvider: StackProvider,

@@ -24,6 +24,7 @@ const FALLBACK_EXCLUDE_PATTERNS = [
 const RX_LEADING_SLASH = /^\//
 const RX_TRAILING_SLASH = /\/$/
 const RX_STARTS_WITH_STARS = /^\*\*/
+const RX_NEWLINE = /\r?\n/
 
 /**
  * Service responsible for parsing gitignore content into VS Code glob patterns.
@@ -32,31 +33,37 @@ const RX_STARTS_WITH_STARS = /^\*\*/
 export class IgnoreParser {
   public static readonly DEFAULT_EXCLUDES = `{${FALLBACK_EXCLUDE_PATTERNS.join(',')}}`
 
+  /**
+   * Merges .gitignore content, user settings, and defaults into a single glob string.
+   */
   public static generatePatternString(content: string, userExcludes: string[] = []): string {
-    const gitPatterns = this.parseRawLines(content)
+    // 1. Parse sources
+    const gitPatterns = this.parseGitContent(content)
     const userPatterns = this.formatUserPatterns(userExcludes)
 
+    // 2. Unify and deduplicate
     const patternSet = new Set([...gitPatterns, ...userPatterns])
 
-    // Add defaults if missing
-    for (const def of FALLBACK_EXCLUDE_PATTERNS) {
-      if (!patternSet.has(def)) {
-        patternSet.add(def)
-      }
-    }
+    // 3. Ensure safeguards (Defaults)
+    FALLBACK_EXCLUDE_PATTERNS.forEach((def) => patternSet.add(def))
 
     return `{${Array.from(patternSet).join(',')}}`
   }
 
-  private static parseRawLines(content: string): string[] {
+  private static parseGitContent(content: string): string[] {
     if (!content) return []
 
-    // Split by newline regex handles \r\n and \n uniformly
     return content
-      .split(/\r?\n/)
+      .split(RX_NEWLINE)
       .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith('#') && !line.startsWith('!'))
+      .filter((line) => this.isValidLine(line))
       .map((line) => this.convertToGlob(line))
+  }
+
+  private static isValidLine(line: string): boolean {
+    // Filter empty lines, comments (#), and negations (!)
+    // Note: Negations are not supported in standard VS Code findFiles excludes
+    return line.length > 0 && !line.startsWith('#') && !line.startsWith('!')
   }
 
   private static formatUserPatterns(patterns: string[]): string[] {
@@ -66,9 +73,15 @@ export class IgnoreParser {
   private static convertToGlob(line: string): string {
     let cleanLine = line
 
-    if (RX_LEADING_SLASH.test(cleanLine)) cleanLine = cleanLine.replace(RX_LEADING_SLASH, '')
-    if (RX_TRAILING_SLASH.test(cleanLine)) cleanLine = cleanLine.replace(RX_TRAILING_SLASH, '')
+    if (RX_LEADING_SLASH.test(cleanLine)) {
+      cleanLine = cleanLine.replace(RX_LEADING_SLASH, '')
+    }
 
+    if (RX_TRAILING_SLASH.test(cleanLine)) {
+      cleanLine = cleanLine.replace(RX_TRAILING_SLASH, '')
+    }
+
+    // Ensure deep matching for generic names (e.g., 'dist' -> '**/dist')
     return RX_STARTS_WITH_STARS.test(cleanLine) ? cleanLine : `**/${cleanLine}`
   }
 }

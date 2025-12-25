@@ -1,11 +1,9 @@
+import { TextDecoder } from 'util'
 import * as vscode from 'vscode'
 
 import { IgnoreParser } from '../services'
 import { Logger } from '../utils'
 
-/**
- * Manages file exclusion patterns by combining .gitignore, User Settings, and Defaults.
- */
 export class IgnoreManager implements vscode.Disposable {
   private _cachedPatterns: string | undefined
   private _fsWatcher: vscode.FileSystemWatcher | undefined
@@ -29,6 +27,12 @@ export class IgnoreManager implements vscode.Disposable {
     return this._cachedPatterns ?? IgnoreParser.DEFAULT_EXCLUDES
   }
 
+  public dispose(): void {
+    this._fsWatcher?.dispose()
+    this._configListener?.dispose()
+    Logger.info('IgnoreManager disposed.')
+  }
+
   private async refreshPatterns(): Promise<void> {
     try {
       const gitIgnoreContent = await this.readGitIgnoreContent()
@@ -43,11 +47,18 @@ export class IgnoreManager implements vscode.Disposable {
   }
 
   private async readGitIgnoreContent(): Promise<string> {
-    const files = await vscode.workspace.findFiles('.gitignore', null, 1)
-    if (files.length === 0) return ''
+    try {
+      const files = await vscode.workspace.findFiles('.gitignore', null, 1)
+      if (!files || files.length === 0) {
+        return ''
+      }
 
-    const uint8Array = await vscode.workspace.fs.readFile(files[0])
-    return Buffer.from(uint8Array).toString('utf-8')
+      const uint8Array = await vscode.workspace.fs.readFile(files[0])
+      return new TextDecoder('utf-8').decode(uint8Array)
+    } catch (error) {
+      Logger.error('Failed to read .gitignore file', error)
+      return ''
+    }
   }
 
   private getUserSettings(): string[] {
@@ -55,7 +66,7 @@ export class IgnoreManager implements vscode.Disposable {
     return config.get<string[]>('excludes', [])
   }
 
-  private initWatchers() {
+  private initWatchers(): void {
     this._fsWatcher = vscode.workspace.createFileSystemWatcher('**/.gitignore')
     const invalidate = () => (this._cachedPatterns = undefined)
 
@@ -69,11 +80,5 @@ export class IgnoreManager implements vscode.Disposable {
         this._cachedPatterns = undefined
       }
     })
-  }
-
-  public dispose() {
-    this._fsWatcher?.dispose()
-    this._configListener?.dispose()
-    Logger.info('IgnorePatternProvider disposed.')
   }
 }

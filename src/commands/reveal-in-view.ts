@@ -4,9 +4,6 @@ import { StackTreeItem } from '../models'
 import { StackProvider } from '../providers/stack-provider'
 import { Logger } from '../utils'
 
-/**
- * Registers the 'Reveal in AI Stack' command.
- */
 export function registerRevealInViewCommand(
   context: vscode.ExtensionContext,
   provider: StackProvider,

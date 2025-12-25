@@ -10,12 +10,7 @@ import { StackProvider } from '../providers'
 export class SelectionResolver {
   /**
    * Resolves the final list of files to process.
-   *
-   * Resolution Hierarchy:
-   * 1. Context Menu Multi-select (User right-clicked with multiple items selected)
-   * 2. Context Menu Single-click (User right-clicked a single item)
-   * 3. Tree View Selection (User navigated via keyboard or previous click)
-   * 4. Fallback: All Files (Implicit 'Copy All' behavior)
+   * Uses a cascading priority system to determine user intent.
    */
   public static resolve(
     clickedItem: StackTreeItem | undefined,
@@ -23,16 +18,10 @@ export class SelectionResolver {
     treeView: vscode.TreeView<StackTreeItem>,
     stackProvider: StackProvider,
   ): StagedFile[] {
-    let rawSelection: StackTreeItem[] = []
+    const rawSelection = this.getRawSelection(clickedItem, selectedItems, treeView)
 
-    if (selectedItems && selectedItems.length > 0) {
-      rawSelection = selectedItems
-    } else if (clickedItem) {
-      rawSelection = [clickedItem]
-    } else if (treeView.selection.length > 0) {
-      rawSelection = [...treeView.selection]
-    } else {
-      // Fallback: Act on the entire stack if nothing is specifically selected
+    // Fallback: Act on the entire stack if nothing is specifically selected
+    if (rawSelection.length === 0) {
       return stackProvider.getFiles()
     }
 
@@ -46,7 +35,7 @@ export class SelectionResolver {
   public static flattenSelection(items: StackTreeItem[]): StagedFile[] {
     const uniqueFiles = new Map<string, StagedFile>()
 
-    const collect = (item: StackTreeItem) => {
+    for (const item of items) {
       if (isStagedFolder(item)) {
         item.containedFiles.forEach((f) => uniqueFiles.set(f.uri.toString(), f))
       } else {
@@ -54,13 +43,11 @@ export class SelectionResolver {
       }
     }
 
-    items.forEach(collect)
     return Array.from(uniqueFiles.values())
   }
 
   /**
    * Generates a consistent human-readable label for feedback messages.
-   * e.g. "All Staged Files", "auth.ts", or "5 Files"
    */
   public static getFeedbackLabel(files: StagedFile[], totalStagedCount: number): string {
     if (files.length === totalStagedCount && totalStagedCount > 1) {
@@ -70,5 +57,31 @@ export class SelectionResolver {
       return files[0].label
     }
     return `${files.length} Files`
+  }
+
+  /**
+   * Resolution Hierarchy:
+   * 1. Context Menu Multi-select
+   * 2. Context Menu Single-click
+   * 3. Tree View Selection
+   */
+  private static getRawSelection(
+    clickedItem: StackTreeItem | undefined,
+    selectedItems: StackTreeItem[] | undefined,
+    treeView: vscode.TreeView<StackTreeItem>,
+  ): StackTreeItem[] {
+    if (selectedItems && selectedItems.length > 0) {
+      return selectedItems
+    }
+
+    if (clickedItem) {
+      return [clickedItem]
+    }
+
+    if (treeView.selection.length > 0) {
+      return [...treeView.selection]
+    }
+
+    return []
   }
 }

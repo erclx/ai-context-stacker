@@ -3,10 +3,6 @@ import * as vscode from 'vscode'
 import { StackProvider } from '../providers'
 import { ClipboardOps, ErrorHandler } from '../utils'
 
-/**
- * Command: aiContextStacker.copyAll
- * Copies all staged files in the current stack to the clipboard.
- */
 export function registerCopyAllCommand(context: vscode.ExtensionContext, stackProvider: StackProvider): void {
   const command = vscode.commands.registerCommand(
     'aiContextStacker.copyAll',

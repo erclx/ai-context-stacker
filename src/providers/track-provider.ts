@@ -14,7 +14,6 @@ export class TrackProvider
   private _onDidChangeTreeData = new vscode.EventEmitter<ContextTrack | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
-  // D&D Mime Types
   public readonly dragMimeTypes = ['application/vnd.code.tree.aiContextTracks']
   public readonly dropMimeTypes = ['application/vnd.code.tree.aiContextTracks']
 
@@ -30,12 +29,12 @@ export class TrackProvider
   /**
    * Injects stack provider for live token stats on active track.
    */
-  setStackProvider(provider: StackProvider): void {
+  public setStackProvider(provider: StackProvider): void {
     this.stackProvider = provider
     this.stackProvider.onDidChangeTreeData(() => this.refresh())
   }
 
-  refresh(): void {
+  public refresh(): void {
     this._onDidChangeTreeData.fire()
   }
 
@@ -62,7 +61,7 @@ export class TrackProvider
     if (!transferItem) return
 
     const sourceId = transferItem.value as string
-    const targetId = target?.id // undefined means drop at the end/root
+    const targetId = target?.id
 
     if (sourceId === targetId) return
 
@@ -71,25 +70,13 @@ export class TrackProvider
 
   // --- TreeDataProvider Implementation ---
 
-  getTreeItem(element: ContextTrack): vscode.TreeItem {
+  public getTreeItem(element: ContextTrack): vscode.TreeItem {
     const isActive = element.id === this.contextTrackManager.getActiveTrack().id
     const item = new vscode.TreeItem(element.name)
 
-    // Calculate position context (first/last) to smartly hide Move Up/Down commands
-    const allTracks = this.contextTrackManager.allTracks
-    const index = allTracks.findIndex((t) => t.id === element.id)
-    const isFirst = index === 0
-    const isLast = index === allTracks.length - 1
-
-    // Build compound context value: "contextTrack:active:first", etc.
-    const contextParts = ['contextTrack']
-    if (isActive) contextParts.push('active')
-    if (isFirst) contextParts.push('first')
-    if (isLast) contextParts.push('last')
-
-    item.contextValue = contextParts.join(':')
+    item.contextValue = this.getTrackContextValue(element, isActive)
     item.iconPath = isActive ? new vscode.ThemeIcon('check') : new vscode.ThemeIcon('git-branch')
-    item.description = this._getTrackDescription(element, isActive)
+    item.description = this.getTrackDescription(element, isActive)
 
     item.command = {
       command: 'aiContextStacker.switchTrack',
@@ -100,24 +87,37 @@ export class TrackProvider
     return item
   }
 
-  getChildren(element?: ContextTrack): ContextTrack[] {
-    // Gate: Prevent rendering partial state during startup
+  public getChildren(element?: ContextTrack): ContextTrack[] {
     if (!this.contextTrackManager.isInitialized) return []
-
     if (element) return []
     return this.contextTrackManager.allTracks
   }
 
-  dispose(): void {
+  public dispose(): void {
     this.disposable.dispose()
     this._onDidChangeTreeData.dispose()
   }
 
-  private _getTrackDescription(element: ContextTrack, isActive: boolean): string {
+  // --- Helpers ---
+
+  private getTrackContextValue(element: ContextTrack, isActive: boolean): string {
+    const allTracks = this.contextTrackManager.allTracks
+    const index = allTracks.findIndex((t) => t.id === element.id)
+    const isFirst = index === 0
+    const isLast = index === allTracks.length - 1
+
+    const contextParts = ['contextTrack']
+    if (isActive) contextParts.push('active')
+    if (isFirst) contextParts.push('first')
+    if (isLast) contextParts.push('last')
+
+    return contextParts.join(':')
+  }
+
+  private getTrackDescription(element: ContextTrack, isActive: boolean): string {
     if (isActive && this.stackProvider) {
       const fileCount = element.files.length
       const tokenCount = this.stackProvider.getTotalTokens()
-      // Use standardized formatting from the provider
       const formattedTokens = this.stackProvider.formatTokenCount(tokenCount)
 
       return `(Active) • ${fileCount} files • ${formattedTokens} tokens`

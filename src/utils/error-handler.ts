@@ -17,7 +17,7 @@ export class ErrorHandler {
       try {
         return await action()
       } catch (error: unknown) {
-        this._handleError(commandName, error)
+        this.logAndNotify(commandName, error)
       }
     }
   }
@@ -26,10 +26,11 @@ export class ErrorHandler {
    * Helper to handle errors in "fire-and-forget" scenarios.
    */
   public static handle(error: unknown, context: string): void {
-    this._handleError(context, error)
+    this.logAndNotify(context, error)
   }
 
-  private static _handleError(context: string, error: unknown): void {
+  private static logAndNotify(context: string, error: unknown): void {
+    // Don't alert the user if they simply canceled an input box or picker
     if (error instanceof vscode.CancellationError) {
       Logger.info(`Command canceled: ${context}`)
       return
