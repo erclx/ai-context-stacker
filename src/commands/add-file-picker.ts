@@ -23,23 +23,29 @@ export function registerAddFilePickerCommand(
     const selectedItems = await showFilePicker(newFiles)
     if (!selectedItems || selectedItems.length === 0) return
 
-    // If "Add All" is selected, ignore specific choices and add everything
-    if (selectedItems.some((i) => i.id === 'action')) {
-      stackProvider.addFiles(newFiles)
-      vscode.window.showInformationMessage(`Added all ${newFiles.length} file(s) to context stack`)
-      return
-    }
-
-    // Otherwise, add only the specifically selected files
-    const uris = selectedItems.filter((i) => i.id === 'file' && i.uri).map((i) => i.uri!)
-
-    if (uris.length > 0) {
-      stackProvider.addFiles(uris)
-      vscode.window.showInformationMessage(`Added ${uris.length} file(s) to context stack`)
-    }
+    await processSelection(selectedItems, newFiles, stackProvider)
   })
 
   context.subscriptions.push(command)
+}
+
+async function processSelection(
+  items: readonly FileQuickPickItem[],
+  allAvailableFiles: vscode.Uri[],
+  provider: StackProvider,
+): Promise<void> {
+  if (items.some((i) => i.id === 'action')) {
+    provider.addFiles(allAvailableFiles)
+    vscode.window.showInformationMessage(`Added all ${allAvailableFiles.length} file(s) to context stack`)
+    return
+  }
+
+  const uris = items.filter((i) => i.id === 'file' && i.uri).map((i) => i.uri!)
+
+  if (uris.length > 0) {
+    provider.addFiles(uris)
+    vscode.window.showInformationMessage(`Added ${uris.length} file(s) to context stack`)
+  }
 }
 
 async function findUnstagedFiles(stackProvider: StackProvider, ignoreManager: IgnoreManager): Promise<vscode.Uri[]> {
@@ -52,26 +58,71 @@ async function findUnstagedFiles(stackProvider: StackProvider, ignoreManager: Ig
   return allFiles.filter((uri) => !stagedFileIds.has(uri.toString()))
 }
 
-async function showFilePicker(files: vscode.Uri[]): Promise<FileQuickPickItem[] | undefined> {
-  const fileItems: FileQuickPickItem[] = files.map((uri) => ({
+function showFilePicker(files: vscode.Uri[]): Promise<readonly FileQuickPickItem[] | undefined> {
+  return new Promise((resolve) => {
+    const picker = vscode.window.createQuickPick<FileQuickPickItem>()
+    const fileItems = createFileItems(files)
+    const actionItem = createAddAllItem(files.length)
+
+    configurePicker(picker, fileItems, actionItem)
+    bindPickerEvents(picker, fileItems, actionItem, resolve)
+
+    picker.show()
+  })
+}
+
+function createFileItems(files: vscode.Uri[]): FileQuickPickItem[] {
+  return files.map((uri) => ({
     label: vscode.workspace.asRelativePath(uri),
     uri: uri,
     id: 'file',
     iconPath: new vscode.ThemeIcon('file'),
   }))
+}
 
-  const addAllItem: FileQuickPickItem = {
+function createAddAllItem(count: number): FileQuickPickItem {
+  return {
     label: '$(check-all) Add All Unstaged Files',
-    description: `(${files.length} files)`,
+    description: `(${count} files)`,
     id: 'action',
     alwaysShow: true,
   }
+}
 
-  return vscode.window.showQuickPick([addAllItem, ...fileItems], {
-    canPickMany: true,
-    placeHolder: 'Search and select files to add...',
-    title: 'Add Files to Context Stack',
-    matchOnDescription: true,
-    matchOnDetail: true,
+function configurePicker(
+  picker: vscode.QuickPick<FileQuickPickItem>,
+  fileItems: FileQuickPickItem[],
+  actionItem: FileQuickPickItem,
+): void {
+  picker.canSelectMany = true
+  picker.placeholder = 'Search and select files to add...'
+  picker.title = 'Add Files to Context Stack'
+  picker.matchOnDescription = true
+  picker.matchOnDetail = true
+  picker.items = [actionItem, ...fileItems]
+}
+
+function bindPickerEvents(
+  picker: vscode.QuickPick<FileQuickPickItem>,
+  fileItems: FileQuickPickItem[],
+  actionItem: FileQuickPickItem,
+  resolve: (value: readonly FileQuickPickItem[] | undefined) => void,
+): void {
+  picker.onDidChangeValue((value) => {
+    if (value.trim() === '') {
+      picker.items = [actionItem, ...fileItems]
+    } else {
+      picker.items = fileItems
+    }
+  })
+
+  picker.onDidAccept(() => {
+    resolve(picker.selectedItems)
+    picker.hide()
+  })
+
+  picker.onDidHide(() => {
+    resolve(undefined)
+    picker.dispose()
   })
 }

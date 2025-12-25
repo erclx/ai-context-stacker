@@ -5,8 +5,7 @@ import { IgnoreManager, StackProvider } from '../providers'
 import { Logger } from '../utils'
 import { scanMultipleFolders } from '../utils/file-scanner'
 
-// Heuristic: These files usually indicate a meaningful directory
-const FOLDER_MARKERS = '{package.json,tsconfig.json,jsconfig.json,README.md,Cargo.toml,go.mod,pom.xml,requirements.txt}'
+// Search limit to prevent performance bottlenecks on massive repos
 const MAX_DISCOVERY_RESULTS = 5000
 
 interface FolderQuickPickItem extends vscode.QuickPickItem {
@@ -49,10 +48,9 @@ async function executeAddFolderPicker(provider: StackProvider, ignore: IgnoreMan
 async function findUniqueFolders(ignore: IgnoreManager): Promise<vscode.Uri[]> {
   const excludes = await ignore.getExcludePatterns()
 
-  // Parallelize discovery strategies
-  const [shallow, marked] = await Promise.all([discoverShallowFolders(), discoverMarkedFolders(excludes)])
+  const [shallow, deep] = await Promise.all([discoverShallowFolders(), discoverDeepFolders(excludes)])
 
-  return mergeFolderLists(shallow, marked)
+  return mergeFolderLists(shallow, deep)
 }
 
 async function discoverShallowFolders(): Promise<vscode.Uri[]> {
@@ -75,9 +73,8 @@ async function discoverShallowFolders(): Promise<vscode.Uri[]> {
   return results
 }
 
-async function discoverMarkedFolders(excludes: string): Promise<vscode.Uri[]> {
-  // Use search service to jump deep into the tree without scanning everything
-  const files = await vscode.workspace.findFiles(FOLDER_MARKERS, excludes, MAX_DISCOVERY_RESULTS)
+async function discoverDeepFolders(excludes: string): Promise<vscode.Uri[]> {
+  const files = await vscode.workspace.findFiles('**/*', excludes, MAX_DISCOVERY_RESULTS)
   return files.map((f) => vscode.Uri.file(path.dirname(f.fsPath)))
 }
 
@@ -151,9 +148,19 @@ function createPickerItem(uri: vscode.Uri): FolderQuickPickItem {
   const isRoot = wsFolder ? uri.fsPath === wsFolder.uri.fsPath : false
   const name = path.basename(uri.fsPath)
 
+  let description: string
+
+  if (isRoot) {
+    description = '(Workspace Root)'
+  } else {
+    const relative = vscode.workspace.asRelativePath(uri, false)
+
+    description = relative === uri.fsPath ? '' : relative
+  }
+
   return {
     label: isRoot ? `$(root-folder) ${wsFolder?.name ?? name}` : `$(folder) ${name}`,
-    description: vscode.workspace.asRelativePath(uri, false),
+    description,
     uri,
   }
 }
