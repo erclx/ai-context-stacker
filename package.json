@@ -323,7 +323,7 @@
         },
         {
           "command": "aiContextStacker.addCurrentFile",
-          "when": "view == aiContextStackerView",
+          "when": "view == aiContextStackerView && aiContextStacker.isTextEditorActive && !aiContextStacker.isCurrentFileInStack",
           "group": "1_add@3"
         },
         {

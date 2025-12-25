@@ -9,6 +9,7 @@ import { TrackManager } from './track-manager'
 
 /**
  * The primary data provider for the "Context Stack" view in VS Code.
+ * Orchestrates file tracking, tree generation, and statistics updates.
  */
 export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vscode.Disposable {
   private _onDidChangeTreeData = new vscode.EventEmitter<StackTreeItem | undefined | void>()
@@ -47,8 +48,10 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   public togglePinnedOnly(): boolean {
     this._showPinnedOnly = !this._showPinnedOnly
     void vscode.commands.executeCommand('setContext', 'aiContextStacker.pinnedOnly', this._showPinnedOnly)
+
     this._treeDirty = true
     this.rebuildCacheAndRefresh()
+
     return this._showPinnedOnly
   }
 
@@ -56,12 +59,16 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   public getFiles(): StagedFile[] {
     const rawFiles = this.trackManager.getActiveTrack().files
-    if (!this.hasActiveFilters) return rawFiles
+    if (!this.hasActiveFilters) {
+      return rawFiles
+    }
     return rawFiles.filter((f) => !this._showPinnedOnly || f.isPinned)
   }
 
   public getStackItem(uri: vscode.Uri): StackTreeItem | undefined {
-    if (!this._cachedTree) return undefined
+    if (!this._cachedTree) {
+      return undefined
+    }
     return this.findRecursive(this._cachedTree, uri.toString())
   }
 
@@ -108,11 +115,14 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   // --- CRUD Proxies ---
 
   public async addFiles(uris: vscode.Uri[]): Promise<boolean> {
-    if (!(await this.confirmBatchOperation(uris.length))) return false
+    if (!(await this.confirmBatchOperation(uris.length))) {
+      return false
+    }
 
     const newFiles = this.trackManager.addFilesToActive(uris)
-
-    if (newFiles.length === 0) return false
+    if (newFiles.length === 0) {
+      return false
+    }
 
     this._treeDirty = true
     this.rebuildCacheAndRefresh()
@@ -148,6 +158,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this._treeDirty = false
     this._onDidChangeTreeData.fire()
     void this.enrichStatsInBackground()
+    this.updateEditorContext()
   }
 
   private rebuildTreeCache(): StackTreeItem[] {
@@ -156,7 +167,6 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this.resetPinFilterIfNeeded(rawFiles)
 
     const files = this.getFiles()
-
     if (files.length === 0) {
       this.updateContextKeys(false)
       this._cachedTree = this.generateEmptyState()
@@ -166,6 +176,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this._cachedTree = this.treeBuilder.build(files)
     this.updateContextKeys(this._cachedTree.some((i) => isStagedFolder(i)))
     this.recalculateTotalTokens()
+
     return this._cachedTree
   }
 
@@ -190,11 +201,15 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   private findRecursive(nodes: StackTreeItem[], targetKey: string): StackTreeItem | undefined {
     for (const node of nodes) {
-      if (this.nodeMatches(node, targetKey)) return node
+      if (this.nodeMatches(node, targetKey)) {
+        return node
+      }
 
       if (isStagedFolder(node)) {
         const found = this.findRecursive(node.children, targetKey)
-        if (found) return found
+        if (found) {
+          return found
+        }
       }
     }
     return undefined
@@ -253,6 +268,16 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
       this.rebuildCacheAndRefresh()
     })
 
+    this.registerEditorListeners()
+    this.registerWorkspaceListeners()
+    this.updateEditorContext()
+  }
+
+  private registerEditorListeners(): void {
+    vscode.window.onDidChangeActiveTextEditor(() => this.updateEditorContext(), null, this.disposables)
+  }
+
+  private registerWorkspaceListeners(): void {
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument((e) => this.handleDocChange(e.document)),
       vscode.workspace.onDidSaveTextDocument((doc) => this.handleDocChange(doc, true)),
@@ -265,9 +290,24 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     )
   }
 
+  private updateEditorContext(): void {
+    const editor = vscode.window.activeTextEditor
+
+    const isTextEditor = !!editor
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.isTextEditorActive', isTextEditor)
+
+    let isCurrentFileStaged = false
+    if (editor) {
+      isCurrentFileStaged = this.hasTrackedPath(editor.document.uri)
+    }
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.isCurrentFileInStack', isCurrentFileStaged)
+  }
+
   private handleDocChange(doc: vscode.TextDocument, immediate = false): void {
     const targetFile = this.findStagedFile(doc.uri)
-    if (!targetFile) return
+    if (!targetFile) {
+      return
+    }
     this.scheduleStatsUpdate(doc, targetFile, immediate)
   }
 
@@ -312,7 +352,9 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   }
 
   private async confirmBatchOperation(count: number): Promise<boolean> {
-    if (count <= this.BATCH_WARNING_THRESHOLD) return true
+    if (count <= this.BATCH_WARNING_THRESHOLD) {
+      return true
+    }
 
     const result = await vscode.window.showWarningMessage(
       `You are adding ${count} files. This may affect performance.`,
