@@ -107,18 +107,20 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   // --- CRUD Proxies ---
 
-  public async addFiles(uris: vscode.Uri[]): Promise<void> {
-    if (!(await this.confirmBatchOperation(uris.length))) return
+  public async addFiles(uris: vscode.Uri[]): Promise<boolean> {
+    if (!(await this.confirmBatchOperation(uris.length))) return false
 
     const newFiles = this.trackManager.addFilesToActive(uris)
-    if (newFiles.length > 0) {
-      this._treeDirty = true
-      this.rebuildCacheAndRefresh()
-    }
+
+    if (newFiles.length === 0) return false
+
+    this._treeDirty = true
+    this.rebuildCacheAndRefresh()
+    return true
   }
 
-  public addFile(uri: vscode.Uri): void {
-    void this.addFiles([uri])
+  public async addFile(uri: vscode.Uri): Promise<boolean> {
+    return this.addFiles([uri])
   }
 
   public removeFiles(filesToRemove: StagedFile[]): void {

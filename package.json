@@ -85,7 +85,7 @@
     "commands": [
       {
         "command": "aiContextStacker.addCurrentFile",
-        "title": "Add Current File",
+        "title": "Add Current Open File",
         "category": "AI Context Stacker"
       },
       {
@@ -320,6 +320,11 @@
           "command": "aiContextStacker.addOpenFiles",
           "when": "view == aiContextStackerView",
           "group": "1_add@2"
+        },
+        {
+          "command": "aiContextStacker.addCurrentFile",
+          "when": "view == aiContextStackerView",
+          "group": "1_add@3"
         },
         {
           "command": "aiContextStacker.previewContext",

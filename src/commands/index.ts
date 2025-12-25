@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 
 import { ServiceRegistry } from '../services'
 import { ViewManager } from '../ui'
-import { registerAddFileCommand } from './add-file'
+import { registerAddCurrentFileCommand } from './add-current-file'
 import { registerAddFileContextMenuCommand } from './add-file-context-menu'
 import { registerAddFilePickerCommand } from './add-file-picker'
 import { registerAddFolderPickerCommand } from './add-folder-picker'
@@ -42,7 +42,7 @@ export function registerAllCommands(deps: CommandDependencies) {
 }
 
 function registerStackModifications(deps: CommandDependencies) {
-  registerAddFileCommand(deps.context, deps.services.stackProvider)
+  registerAddCurrentFileCommand(deps.context, deps.services.stackProvider)
   registerAddFileContextMenuCommand(deps.context, deps.services.stackProvider, deps.services.ignoreManager)
   registerAddFilePickerCommand(deps.context, deps.services.stackProvider, deps.services.ignoreManager)
   registerAddFolderPickerCommand(deps.context, deps.services.stackProvider, deps.services.ignoreManager)
