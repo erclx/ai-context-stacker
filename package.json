@@ -286,7 +286,7 @@
         },
         {
           "command": "aiContextStacker.deleteAllTracks",
-          "when": "view == aiContextTracksView",
+          "when": "view == aiContextTracksView && aiContextStacker.canReset",
           "group": "navigation@9"
         },
         {

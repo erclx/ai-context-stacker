@@ -336,8 +336,14 @@ export class TrackManager implements vscode.Disposable {
     const hasTracks = this.tracks.size > 0
     const hasMultipleTracks = this.tracks.size > 1
 
+    // A "Pristine" state implies there is nothing to reset:
+    const activeTrack = this.getActiveTrack()
+    const isPristine = this.tracks.size === 1 && activeTrack.files.length === 0
+    const canReset = !isPristine
+
     void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasTracks', hasTracks)
     void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasMultipleTracks', hasMultipleTracks)
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.canReset', canReset)
   }
 
   private rebuildIndex(): void {
