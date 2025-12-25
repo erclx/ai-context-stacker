@@ -106,7 +106,7 @@
       },
       {
         "command": "aiContextStacker.addFilePicker",
-        "title": "Add Files",
+        "title": "Add Files...",
         "category": "AI Context Stacker",
         "icon": "$(add)"
       },
@@ -192,13 +192,13 @@
       },
       {
         "command": "aiContextStacker.switchTrack",
-        "title": "Switch Track",
+        "title": "Switch Track...",
         "category": "AI Context Stacker",
         "icon": "$(list-flat)"
       },
       {
         "command": "aiContextStacker.renameTrack",
-        "title": "Rename Track",
+        "title": "Rename Track...",
         "category": "AI Context Stacker",
         "icon": "$(edit)"
       },
@@ -228,7 +228,7 @@
       },
       {
         "command": "aiContextStacker.manageExcludes",
-        "title": "Manage Excludes",
+        "title": "Manage Excludes...",
         "category": "AI Context Stacker",
         "icon": "$(filter)"
       },
