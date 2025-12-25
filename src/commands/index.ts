@@ -21,6 +21,7 @@ import { registerRemoveFilePickerCommand } from './remove-file-picker'
 import { registerRevealInExplorerCommand } from './reveal-in-explorer'
 import { registerRevealInViewCommand } from './reveal-in-view'
 import { registerSelectAllCommand } from './select-all'
+import { registerSetThresholdCommand } from './set-threshold'
 import { registerTogglePinCommand } from './toggle-pin'
 import { registerTrackCommands } from './track-ops'
 
@@ -68,6 +69,7 @@ function registerViewOperations(deps: CommandDependencies) {
   registerPreviewContextCommand(deps.context, deps.services.stackProvider)
   registerManageExcludesCommand(deps.context)
   registerConfigureOutputCommand(deps.context)
+  registerSetThresholdCommand(deps.context)
   registerFilterCommands(deps.context, deps.services.stackProvider)
   registerRevealInViewCommand(deps.context, deps.services.stackProvider, deps.views.filesView)
   registerRevealInExplorerCommand(deps.context)

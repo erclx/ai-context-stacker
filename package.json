@@ -168,6 +168,11 @@
         "category": "AI Context Stacker"
       },
       {
+        "command": "aiContextStacker.setThreshold",
+        "title": "Set Large File Threshold...",
+        "category": "AI Context Stacker"
+      },
+      {
         "command": "aiContextStacker.previewContext",
         "title": "Preview Context",
         "category": "AI Context Stacker",
@@ -338,6 +343,11 @@
         },
         {
           "command": "aiContextStacker.configureOutput",
+          "when": "view == aiContextStackerView",
+          "group": "3_config"
+        },
+        {
+          "command": "aiContextStacker.setThreshold",
           "when": "view == aiContextStackerView",
           "group": "3_config"
         },
