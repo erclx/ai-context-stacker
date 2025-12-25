@@ -102,6 +102,13 @@ export class TrackProvider
 
   private getTrackContextValue(element: ContextTrack, isActive: boolean): string {
     const allTracks = this.contextTrackManager.allTracks
+    const isOnly = allTracks.length === 1
+
+    if (isOnly) {
+      // If it's the only track, it is inherently active and protected
+      return 'contextTrack:active:only'
+    }
+
     const index = allTracks.findIndex((t) => t.id === element.id)
     const isFirst = index === 0
     const isLast = index === allTracks.length - 1

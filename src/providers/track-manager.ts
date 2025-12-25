@@ -6,6 +6,7 @@ import { generateId } from '../utils'
 
 /**
  * Manages the lifecycle of Context Tracks (groups of staged files).
+ * Enforces a "Minimum One Track" policy.
  */
 export class TrackManager implements vscode.Disposable {
   private static readonly STORAGE_KEY = 'aiContextStacker.tracks.v1'
@@ -18,7 +19,7 @@ export class TrackManager implements vscode.Disposable {
   private uriIndex = new Set<string>()
   private _isInitialized = false
 
-  // Ghost object for UI safety when no tracks exist
+  // Ghost object for strictly typed fallbacks
   private readonly GHOST_TRACK: ContextTrack = { id: 'ghost', name: 'No Active Track', files: [] }
 
   private _onDidChangeTrack = new vscode.EventEmitter<ContextTrack>()
@@ -98,10 +99,8 @@ export class TrackManager implements vscode.Disposable {
   }
 
   public deleteTrack(id: string): void {
-    if (this.tracks.size <= 1) {
-      void vscode.window.showWarningMessage('Cannot delete the last remaining track. Use "Delete All" to reset.')
-      return
-    }
+    // Protection: Never delete the last remaining track.
+    if (this.tracks.size <= 1) return
 
     const wasActive = this.activeTrackId === id
     this.performDeletion(id)
@@ -115,13 +114,15 @@ export class TrackManager implements vscode.Disposable {
   }
 
   /**
-   * Nuke Option: Deletes ALL tracks and resets to a clean default state.
+   * Resets the entire state to a single empty "Main" track.
    */
   public deleteAllTracks(): void {
     this.tracks.clear()
     this._trackOrder = []
     this.uriIndex.clear()
-    this.activeTrackId = ''
+
+    // Enforce Minimum One Rule
+    this.createDefaultTrack()
 
     this.persistState(true)
     this._onDidChangeTrack.fire(this.getActiveTrack())
@@ -221,14 +222,15 @@ export class TrackManager implements vscode.Disposable {
     this._onDidChangeTrack.dispose()
   }
 
-  // --- Internal Implementation ---
-
   private init(): void {
     const rawState = this.extensionContext.workspaceState.get<SerializedState>(TrackManager.STORAGE_KEY)
 
     if (rawState) {
       this.restoreState(rawState)
-    } else {
+    }
+
+    // Safety net: Ensure at least one track exists after init/restore
+    if (this.tracks.size === 0) {
       this.createDefaultTrack()
     }
 
@@ -287,6 +289,7 @@ export class TrackManager implements vscode.Disposable {
 
   private handleActiveTrackDeletion(): void {
     const nextId = this._trackOrder[0] || this.tracks.keys().next().value
+
     if (nextId) {
       this.switchToTrack(nextId)
     } else {
@@ -331,10 +334,10 @@ export class TrackManager implements vscode.Disposable {
 
   private updateContextKeys(): void {
     const hasTracks = this.tracks.size > 0
-    const showWelcome = this._isInitialized && !hasTracks
+    const hasMultipleTracks = this.tracks.size > 1
 
     void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasTracks', hasTracks)
-    void vscode.commands.executeCommand('setContext', 'aiContextStacker.showWelcome', showWelcome)
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasMultipleTracks', hasMultipleTracks)
   }
 
   private rebuildIndex(): void {

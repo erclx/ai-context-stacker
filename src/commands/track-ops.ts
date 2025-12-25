@@ -120,6 +120,12 @@ async function handleDeleteTrack(
 ): Promise<void> {
   const target = resolveTargetTrack(manager, view, item)
 
+  // Double check constraint, though UI should hide it
+  if (manager.allTracks.length <= 1) {
+    void vscode.window.showWarningMessage('Cannot delete the last track. Use "Reset All" to clear workspace.')
+    return
+  }
+
   const answer = await vscode.window.showWarningMessage(`Delete track "${target.name}"?`, { modal: true }, 'Delete')
 
   if (answer === 'Delete') {
@@ -128,12 +134,12 @@ async function handleDeleteTrack(
 }
 
 async function handleDeleteAllTracks(manager: TrackManager): Promise<void> {
-  const warning = 'Are you sure you want to delete ALL tracks? This cannot be undone.'
-  const answer = await vscode.window.showWarningMessage(warning, { modal: true }, 'Delete All')
+  const warning = 'This will remove ALL tracks and reset the workspace to default. This cannot be undone.'
+  const answer = await vscode.window.showWarningMessage(warning, { modal: true }, 'Reset All')
 
-  if (answer === 'Delete All') {
+  if (answer === 'Reset All') {
     manager.deleteAllTracks()
-    vscode.window.showInformationMessage('All context tracks deleted and workspace reset.')
+    void vscode.window.showInformationMessage('Workspace reset to default.')
   }
 }
 

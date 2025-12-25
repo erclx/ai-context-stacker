@@ -108,7 +108,7 @@
         "command": "aiContextStacker.addFilePicker",
         "title": "Add Files",
         "category": "AI Context Stacker",
-        "icon": "$(file-add)"
+        "icon": "$(add)"
       },
       {
         "command": "aiContextStacker.addFolderPicker",
@@ -205,9 +205,9 @@
       },
       {
         "command": "aiContextStacker.deleteAllTracks",
-        "title": "Delete All Tracks",
+        "title": "Reset All Tracks",
         "category": "AI Context Stacker",
-        "icon": "$(trash)"
+        "icon": "$(clear-all)"
       },
       {
         "command": "aiContextStacker.moveTrackUp",
@@ -280,8 +280,8 @@
         },
         {
           "command": "aiContextStacker.deleteAllTracks",
-          "when": "view == aiContextTracksView && aiContextStacker.hasTracks",
-          "group": "9_danger"
+          "when": "view == aiContextTracksView",
+          "group": "navigation@9"
         },
         {
           "//": "--- Staged Files: Title (Primary Actions) ---",
@@ -365,7 +365,7 @@
         },
         {
           "command": "aiContextStacker.deleteTrack",
-          "when": "view == aiContextTracksView",
+          "when": "view == aiContextTracksView && !(viewItem =~ /:only/)",
           "group": "inline"
         },
         {
@@ -381,7 +381,7 @@
         },
         {
           "command": "aiContextStacker.deleteTrack",
-          "when": "view == aiContextTracksView",
+          "when": "view == aiContextTracksView && !(viewItem =~ /:only/)",
           "group": "3_modification"
         },
         {
