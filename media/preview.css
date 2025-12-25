@@ -22,10 +22,10 @@ body {
 h2 {
   margin: 0;
   font-weight: 600;
-  font-size: 1.3em;
+  font-size: 1.4em;
   color: var(--vscode-foreground);
   letter-spacing: -0.01em;
-  line-height: 1.2;
+  line-height: 1;
 }
 
 button {
