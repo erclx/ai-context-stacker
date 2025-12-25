@@ -1,72 +1,68 @@
 # AI Context Stacker
 
-**Stop context switching. Stage your prompts instantly.**
+Stage files for LLM prompts without juggling tabs.
 
-Build the perfect context for ChatGPT, Claude, Gemini or any LLM without leaving VS Code. Drag files, switch between tasks, and copy everything in one click.
+Build context for ChatGPT, Claude, Gemini or any LLM directly from VS Code. Drag in files, organize them into tracks, and copy everything at once.
 
-![Drag and Drop Demo](./demos/drag-and-drop.gif)
+<p align="center">
+  <img src="./demos/hero.gif" alt="Drag and Drop Demo" width="800" />
+</p>
 
 ## The Problem
 
-Working with language models typically means:
+When working with LLMs, you typically need to:
 
-1. Open a file, select all, copy
-2. Switch to browser, paste
-3. Go back to VS Code
-4. Repeat for every file
-5. Try to remember what you already copied
+1. Open a file, copy its contents
+2. Switch to your browser
+3. Paste it into the chat
+4. Return to VS Code
+5. Repeat for each additional file
 
-This workflow becomes inefficient when working with multiple files simultaneously.
+This gets tedious with multiple files.
 
 ## Quick Start
 
-1. **Install the extension** from the VS Code Marketplace
-2. **Open the AI Context Stacker view** in the Activity Bar (left sidebar)
-3. **Drag or click the 'Drag or click here to add files...' placeholder** in the sidebar to start building your stack
-4. **Click the Copy Stack button** (📋 icon in the view title)
-5. **Paste into your language model** – you're done
+1. Install the extension from the VS Code Marketplace
+2. Open the AI Context Stacker view in the Activity Bar (left sidebar)
+3. Drag files into the "Staged Files" panel (or right-click → "Add to AI Context Stack")
+4. Click the Copy Stack button (📋 icon)
+5. Paste into your LLM
 
 ## Key Features
 
-### Instant Context Staging
+### File Staging
 
-Stop copying files one by one. Drag files, folders, or use the right-click menu to build your context in seconds. The interactive empty state placeholder guides you through adding your first files.
+Drag files or folders into the staging area. Right-click any file in the Explorer to add it. The extension shows you what's staged and lets you copy everything at once.
 
-### Smart Folder Discovery
+When adding folders, the picker highlights project directories (ones containing `package.json`, `tsconfig.json`, or `README.md`) to help you find relevant roots quickly.
 
-Use the Folder Picker to find any directory in your project. It automatically filters out absolute system paths (like `/home/user`) to keep your search focused strictly on project folders.
+### Token Warnings
 
-### Visual Token Heatmap
+Files are color-coded based on their token count:
 
-Instantly spot which files are consuming your context window.
+- **Amber**: Files over 5k tokens (configurable)
+- **Red**: Files over 10k tokens
+- **Pinned files** keep their pin icon but inherit the warning color
 
-- **Amber Icon**: File is "Heavy" (exceeds your configured threshold).
-- **Red Icon**: File is "Critical" (exceeds 2x threshold).
-- **Pinned Files**: Retain their pin icon but adopt the warning color.
+This helps you spot large files that might hit token limits.
 
-### Seamless Navigation
+### Navigation
 
-Jump between your code and your context stack effortlessly with a Smart Context Menu:
+Right-click a file in the Explorer to either add it (if new) or reveal it in the stack (if already staged). Right-click staged files to reveal them in your system file manager.
 
-- **Context-Aware Actions**: Right-clicking a file automatically shows "Add to AI Context Stack" if it's new, or "Reveal in AI Stack" if it's already staged.
-- **Reveal in Explorer**: Right-click any staged file in the sidebar to locate it immediately in your system's file manager.
+### Context Tracks
 
-### Advanced Context Tracks
+Create separate tracks for different tasks (e.g., "Bug Fix #123", "Refactor Auth"). Each track maintains its own list of staged files. You can reorder tracks by dragging them or using Alt+Up/Down.
 
-Organize your work into separate "tracks" (e.g., "Refactor Auth", "Bug Fix #123").
+Note: You cannot delete the last remaining track. The extension always maintains at least one active track.
 
-- **Custom Order**: Drag and drop tracks to reorder them exactly how you work.
-- **Persistent**: Your tracks and file lists are saved automatically.
-- **Smart Reset**: The 'Delete All Tracks' (nuclear option) automatically hides itself when your workspace is already clean, keeping your view focused.
+### Pinning and Filtering
 
-### Smart Filtering & Pinning
+Pin files to protect them from the "Clear Stack" command. Toggle "Show Pinned Only" to filter the view. The Copy command respects whatever filter is active.
 
-- **Pin Important Files**: Keep critical docs or configs safe from the "Clear Stack" command.
-- **Show Pinned Only**: Toggle the view to focus purely on your pinned context. "Copy Stack" respects this filter!
+### Context Map
 
-### Visual Context Map
-
-Include an ASCII directory tree so the model understands your project structure at a glance.
+The extension can include an ASCII directory tree in the copied output. This helps the LLM understand your project structure.
 
 ```
 Context Map
@@ -80,11 +76,6 @@ Context Map
 └── README.md
 ```
 
-### Refined for Focus
-
-- **Optical Alignment**: Headers and action buttons are perfectly aligned for a native VS Code feel.
-- **Zero Noise**: Search results in pickers dynamically hide "Add All" actions once you start typing, so they don't get in your way.
-
 ## Installation
 
 1. Open VS Code
@@ -94,81 +85,93 @@ Context Map
 
 ## Settings
 
-| Setting                               | Type      | Default | Description                                                                                               |
-| :------------------------------------ | :-------- | :------ | :-------------------------------------------------------------------------------------------------------- |
-| `aiContextStacker.excludes`           | `array`   | `[]`    | Glob patterns for files to skip (e.g., `["**/node_modules/**"]`)                                          |
-| `aiContextStacker.includeFileTree`    | `boolean` | `true`  | Include ASCII tree in copied output                                                                       |
-| `aiContextStacker.largeFileThreshold` | `integer` | `5000`  | Token count at which a file is flagged as 'Heavy' (Amber). At 2x this value, it becomes 'Critical' (Red). |
+Most settings can be configured through the UI (see Commands below), but you can also edit them in `settings.json`:
 
-Example configuration:
+| Setting                               | Default | Description                                                   |
+| :------------------------------------ | :------ | :------------------------------------------------------------ |
+| `aiContextStacker.excludes`           | `[]`    | File patterns to exclude (e.g., `["**/node_modules/**"]`)     |
+| `aiContextStacker.includeFileTree`    | `true`  | Include ASCII tree in copied output                           |
+| `aiContextStacker.largeFileThreshold` | `5000`  | Token count for "Heavy" warning. "Critical" is 2x this value. |
 
-```json
-{
-  "aiContextStacker.excludes": ["**/node_modules/**", "**/.git/**", "**/dist/**"],
-  "aiContextStacker.includeFileTree": true,
-  "aiContextStacker.largeFileThreshold": 4000
-}
-```
+**Tip:** Use "Configure Output...", "Manage Excludes...", and "Set Large File Threshold..." commands instead of manually editing these settings.
 
 ## Commands
 
 ### Stack Operations
 
-| Command              | Description                           |
-| -------------------- | ------------------------------------- |
-| `Add Files`          | Pick files to add to the stack        |
-| `Remove Files...`    | Bulk uncheck files to remove them     |
-| `Add All Open Files` | Stage everything currently open       |
-| `Add Current File`   | Stage the active file                 |
-| `Reveal in AI Stack` | Locate the active file in the stack   |
-| `Clear Stack`        | Remove all files (except pinned ones) |
-| `Toggle Pin`         | Pin or unpin a file                   |
+| Command              | Description                                                |
+| -------------------- | ---------------------------------------------------------- |
+| `Add Files...`       | Pick files to add to the stack (includes "Add All" option) |
+| `Add Folder...`      | Recursively scan and add an entire directory               |
+| `Remove Files...`    | Bulk uncheck files to remove them                          |
+| `Add All Open Files` | Stage everything currently open                            |
+| `Add Current File`   | Stage the active file                                      |
+| `Reveal in AI Stack` | Locate the active file in the stack                        |
+| `Clear Stack`        | Remove all files (except pinned ones)                      |
+| `Toggle Pin`         | Pin or unpin selected file(s) - supports bulk operations   |
 
 ### Output & Clipboard
 
-| Command                  | Description                                                   |
-| ------------------------ | ------------------------------------------------------------- |
-| `Copy Stack`             | Copy all staged content to clipboard (respects active filter) |
-| `Copy Context Map Only`  | Copy just the ASCII tree                                      |
-| `Copy File Content Only` | Copy files without the tree                                   |
-| `Preview Context`        | Open a webview showing exactly what will be copied            |
+| Command                  | Description                                                                |
+| ------------------------ | -------------------------------------------------------------------------- |
+| `Copy Stack`             | Copy all staged content to clipboard (respects active filter)              |
+| `Copy Context Map Only`  | Copy just the ASCII tree                                                   |
+| `Copy File Content Only` | Copy files without the tree                                                |
+| `Preview Context`        | Open a live-syncing webview. Retains scroll position when you switch tabs. |
 
 ### View & Filtering
 
-| Command                  | Description                                               |
-| ------------------------ | --------------------------------------------------------- |
-| `Reveal in Explorer`     | Open selected staged file in system file manager          |
-| `Collapse All`           | Instantly collapse all folders (auto-hides if no folders) |
-| `Show Pinned Files Only` | Filter the view to only pinned files                      |
-| `Show All Files`         | Reset the view to show all staged files                   |
-| `Manage Excludes`        | Configure exclusion patterns                              |
-| `Configure Output`       | Toggle output options                                     |
+| Command                       | Description                                                                      |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| `Reveal in Explorer`          | Open selected staged file in system file manager                                 |
+| `Collapse All`                | Instantly collapse all folders (auto-hides if no folders)                        |
+| `Select All`                  | Use `Cmd+A` or `Ctrl+A` to instantly select all staged files for bulk operations |
+| `Show Pinned Files Only`      | Filter the view to only pinned files                                             |
+| `Show All Files`              | Reset the view to show all staged files                                          |
+| `Manage Excludes...`          | Configure exclusion patterns                                                     |
+| `Configure Output...`         | Toggle output options                                                            |
+| `Set Large File Threshold...` | Adjust token warning levels                                                      |
 
 ### Track Management
 
-| Command             | Description                            |
-| ------------------- | -------------------------------------- |
-| `New Track`         | Start a new context stack              |
-| `Switch Track`      | Change to a different track            |
-| `Rename Track`      | Rename the current track               |
-| `Delete Track`      | Remove a track                         |
-| `Delete All Tracks` | Reset workspace (delete all tracks)    |
-| `Move Up / Down`    | Reorder tracks manually (context menu) |
+| Command             | Description                                      |
+| ------------------- | ------------------------------------------------ |
+| `New Track...`      | Start a new context stack                        |
+| `Switch Track...`   | Change to a different track                      |
+| `Rename Track...`   | Rename the current track                         |
+| `Delete Track`      | Remove a track                                   |
+| `Delete All Tracks` | Reset workspace (delete all tracks)              |
+| `Move Up / Down`    | Reorder tracks via Context Menu or Alt + Up/Down |
+
+## Keyboard Shortcuts
+
+| Shortcut                   | Command         | Context                        |
+| -------------------------- | --------------- | ------------------------------ |
+| `F2`                       | Rename Track    | When focused on Context Tracks |
+| `Delete` / `Cmd+Backspace` | Delete Track    | When focused on Context Tracks |
+| `Delete` / `Cmd+Backspace` | Remove File     | When focused on Staged Files   |
+| `Ctrl+C` / `Cmd+C`         | Copy Content    | When focused on Staged Files   |
+| `Alt+Up`                   | Move Track Up   | When focused on Context Tracks |
+| `Alt+Down`                 | Move Track Down | When focused on Context Tracks |
+| `Ctrl+A` / `Cmd+A`         | Select All      | When focused on Staged Files   |
 
 ## Tips
 
-**Heatmap Optimization**: Adjust `aiContextStacker.largeFileThreshold` based on the model you are using (e.g., lower it for models with smaller context windows).
+Adjust `aiContextStacker.largeFileThreshold` based on your model's context window. Lower values for smaller models, higher for larger ones.
 
-**Filtered Copying**: If you only want to copy your pinned documentation for a specific query, toggle "Show Pinned Only" before hitting Copy. The extension copies exactly what you see.
+Use "Show Pinned Only" when you only want to copy specific files. The Copy command respects active filters.
 
-**Status Bar**: Click the status bar item (bottom right) to quickly copy your entire stack without opening the sidebar.
+Click the status bar item to quickly copy your stack without opening the sidebar.
 
 ## Known Limitations
 
-- Binary files are skipped automatically and marked with a warning icon
-- Files over 1MB are excluded from token counting for performance reasons
+- Binary files are automatically detected by scanning the first 512 bytes for null characters, not just by extension
+- Files over 100KB use faster character-based token estimation instead of word counting
+- Individual files over 5MB are skipped to prevent extension lag
+- Total context payload is capped at 100MB to ensure clipboard stability
 - Token estimates are approximate (based on character count heuristics, not actual tokenizer output)
 - The extension respects VS Code's file scheme restrictions (works with local files and most remote schemes)
+- Bulk Protection: Adding folders with >200 files triggers a confirmation warning to prevent Extension Host performance issues
 
 ## Support
 
