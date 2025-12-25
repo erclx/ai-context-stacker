@@ -45,6 +45,10 @@ button:hover {
   background-color: var(--vscode-button-hoverBackground);
 }
 
+.hidden {
+  display: none;
+}
+
 .content-wrapper {
   padding: 16px 24px 24px 24px;
   max-width: 800px;
@@ -60,4 +64,11 @@ pre {
   word-wrap: break-word;
   font-family: var(--vscode-editor-font-family);
   margin: 0;
+}
+
+.placeholder {
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+  border-color: transparent;
+  background-color: transparent;
 }

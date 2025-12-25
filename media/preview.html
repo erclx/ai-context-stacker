@@ -42,6 +42,15 @@
           return
         }
 
+        // If content is empty/whitespace, hide button and show placeholder
+        if (!pre.textContent.trim()) {
+          btn.classList.add('hidden')
+          pre.textContent = 'No files staged. Add files to see a preview.'
+          pre.classList.add('placeholder')
+          // Exit early; no copy functionality needed
+          return
+        }
+
         btn.addEventListener('click', () => {
           const text = pre.textContent
 

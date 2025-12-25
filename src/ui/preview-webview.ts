@@ -103,7 +103,11 @@ export class PreviewWebview {
 
     try {
       const files = this._provider.getFiles()
-      const content = await ContentFormatter.format(files)
+      let content = ''
+
+      if (files.length > 0) {
+        content = await ContentFormatter.format(files)
+      }
 
       const html = await WebviewFactory.generateHtml(this._panel.webview, this._extensionUri, content)
       this._panel.webview.html = html
