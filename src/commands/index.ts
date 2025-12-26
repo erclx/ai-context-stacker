@@ -10,9 +10,7 @@ import { registerAddOpenFilesCommand } from './add-open-files'
 import { registerClearAllCommand } from './clear-all'
 import { registerCopyAllCommand } from './copy-all'
 import { registerCopyAndClearCommand } from './copy-and-clear'
-import { registerCopyContentCommand } from './copy-content'
 import { registerCopyFileCommand } from './copy-file'
-import { registerCopyTreeCommand } from './copy-tree'
 import { registerFilterCommands } from './filter-commands'
 import { registerPreviewContextCommand } from './preview-context'
 import { registerRemoveFileCommand } from './remove-file'
@@ -57,8 +55,6 @@ function registerClipboardOperations(deps: CommandDependencies) {
   registerCopyAllCommand(deps.context, deps.services.stackProvider)
   registerCopyAndClearCommand(deps.context, deps.services.stackProvider)
   registerCopyFileCommand(deps.context, deps.services.stackProvider, deps.views.filesView)
-  registerCopyTreeCommand(deps.context, deps.services.stackProvider)
-  registerCopyContentCommand(deps.context, deps.services.stackProvider)
 }
 
 function registerTrackOperations(deps: CommandDependencies) {

@@ -184,16 +184,6 @@
         "icon": "$(copy)"
       },
       {
-        "command": "aiContextStacker.copyTree",
-        "title": "Copy Context Map Only",
-        "category": "AI Context Stacker"
-      },
-      {
-        "command": "aiContextStacker.copyContent",
-        "title": "Copy File Content Only",
-        "category": "AI Context Stacker"
-      },
-      {
         "command": "aiContextStacker.openSettings",
         "title": "Settings...",
         "category": "AI Context Stacker",
@@ -354,16 +344,6 @@
         },
         {
           "command": "aiContextStacker.copyAndClear",
-          "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
-          "group": "2_copy_variants"
-        },
-        {
-          "command": "aiContextStacker.copyTree",
-          "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
-          "group": "2_copy_variants"
-        },
-        {
-          "command": "aiContextStacker.copyContent",
           "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
           "group": "2_copy_variants"
         },
