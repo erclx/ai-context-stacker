@@ -86,7 +86,7 @@ export class ContentFormatter {
    * Generates a visual ASCII tree using an iterative stack approach.
    */
   public static generateAsciiTree(files: StagedFile[]): string {
-    const paths = files.map((f) => vscode.workspace.asRelativePath(f.uri)).sort()
+    const paths = files.map((f) => this.getDisplayPath(f.uri)).sort()
     const root: TreeNode = {}
 
     this.buildHierarchy(paths, root)
@@ -188,10 +188,8 @@ export class ContentFormatter {
   private static async readFileSafely(uri: vscode.Uri): Promise<string | null> {
     const data = await vscode.workspace.fs.readFile(uri)
 
-    // Quick binary check on first 512 bytes
     if (this.isBinaryBuffer(data)) return null
 
-    // Safe decode
     const decoder = new TextDecoder('utf-8', { fatal: false })
     return decoder.decode(data)
   }
@@ -205,14 +203,19 @@ export class ContentFormatter {
   }
 
   private static formatBlock(file: StagedFile, content: string): string {
-    const relPath = vscode.workspace.asRelativePath(file.uri)
+    const relPath = this.getDisplayPath(file.uri)
     const ext = file.uri.path.split('.').pop() || ''
     return `File: ${relPath}\n\`\`\`${ext}\n${content}\n\`\`\`\n`
   }
 
   private static makeSkipMsg(file: StagedFile, reason: string): string {
-    const path = vscode.workspace.asRelativePath(file.uri)
+    const path = this.getDisplayPath(file.uri)
     return `> Skipped ${reason}: ${path}\n`
+  }
+
+  private static getDisplayPath(uri: vscode.Uri): string {
+    const isMultiRoot = (vscode.workspace.workspaceFolders?.length ?? 0) > 1
+    return vscode.workspace.asRelativePath(uri, isMultiRoot)
   }
 
   // --- Tree Logic (Iterative) ---
@@ -233,7 +236,6 @@ export class ContentFormatter {
     const parts: string[] = []
     const rootEntries = Object.keys(root).sort(this.sortNodes(root))
 
-    // Stack stores state for each level of depth
     const stack: TreeStackItem[] = [{ node: root, prefix: '', entries: rootEntries, index: 0 }]
 
     while (stack.length > 0) {
