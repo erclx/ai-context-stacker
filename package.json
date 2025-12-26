@@ -484,9 +484,6 @@
     },
     "keybindings": [
       {
-        "//": "--- Global Shortcuts ---"
-      },
-      {
         "command": "aiContextStacker.addFilePicker",
         "key": "ctrl+alt+a",
         "mac": "cmd+alt+a"
@@ -497,9 +494,14 @@
         "mac": "cmd+alt+f"
       },
       {
-        "command": "aiContextStacker.refreshStack",
-        "key": "ctrl+alt+r",
-        "mac": "cmd+alt+r"
+        "command": "aiContextStacker.newTrack",
+        "key": "ctrl+alt+k",
+        "mac": "cmd+alt+k"
+      },
+      {
+        "command": "aiContextStacker.switchTrack",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s"
       },
       {
         "command": "aiContextStacker.previewContext",
@@ -508,7 +510,10 @@
         "when": "editorLangId != markdown"
       },
       {
-        "//": "--- Scoped: Staged Files View ---"
+        "command": "aiContextStacker.refreshStack",
+        "key": "ctrl+alt+u",
+        "mac": "cmd+alt+u",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
       },
       {
         "command": "aiContextStacker.copyAll",
@@ -541,12 +546,15 @@
         "when": "focusedView == aiContextStackerView && !inputFocus"
       },
       {
-        "command": "aiContextStacker.togglePin",
-        "key": "space",
+        "command": "aiContextStacker.clearAll",
+        "key": "shift+delete",
+        "mac": "shift+cmd+backspace",
         "when": "focusedView == aiContextStackerView && !inputFocus"
       },
       {
-        "//": "--- Scoped: Tracks View ---"
+        "command": "aiContextStacker.togglePin",
+        "key": "space",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
       },
       {
         "command": "aiContextStacker.renameTrack",
@@ -557,6 +565,12 @@
         "command": "aiContextStacker.deleteTrack",
         "key": "delete",
         "mac": "cmd+backspace",
+        "when": "focusedView == aiContextTracksView && !inputFocus"
+      },
+      {
+        "command": "aiContextStacker.deleteAllTracks",
+        "key": "shift+delete",
+        "mac": "shift+cmd+backspace",
         "when": "focusedView == aiContextTracksView && !inputFocus"
       },
       {
