@@ -172,6 +172,12 @@
         "icon": "$(copy)"
       },
       {
+        "command": "aiContextStacker.copyAndClear",
+        "title": "Copy and Clear Stack",
+        "category": "AI Context Stacker",
+        "icon": "$(save-all)"
+      },
+      {
         "command": "aiContextStacker.copyFile",
         "title": "Copy Content",
         "category": "AI Context Stacker",
@@ -345,6 +351,11 @@
           "command": "aiContextStacker.previewContext",
           "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
           "group": "1_view"
+        },
+        {
+          "command": "aiContextStacker.copyAndClear",
+          "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
+          "group": "2_copy_variants"
         },
         {
           "command": "aiContextStacker.copyTree",

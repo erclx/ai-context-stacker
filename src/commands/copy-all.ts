@@ -29,23 +29,22 @@ async function handleCopyAll(provider: StackProvider): Promise<void> {
       cancellable: true,
     },
     async (_, token) => {
-      await generateAndCopy(files, token)
+      const result = await generateContext(files, token)
+
+      if (result !== undefined) {
+        await ClipboardOps.copyText(result, `${files.length} files`)
+      }
     },
   )
 }
 
-async function generateAndCopy(files: any[], token: vscode.CancellationToken): Promise<void> {
+export async function generateContext(files: any[], token: vscode.CancellationToken): Promise<string | undefined> {
   let finalOutput = ''
-  let fileCount = 0
 
-  // Consume the stream directly to build the clipboard string
   for await (const chunk of ContentFormatter.formatStream(files, { token })) {
-    if (token.isCancellationRequested) return
+    if (token.isCancellationRequested) return undefined
     finalOutput += chunk
-    fileCount++ // Heuristic progress
   }
 
-  if (!token.isCancellationRequested) {
-    await ClipboardOps.copyText(finalOutput, `${files.length} files`)
-  }
+  return token.isCancellationRequested ? undefined : finalOutput
 }
