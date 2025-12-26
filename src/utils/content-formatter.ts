@@ -22,7 +22,12 @@ export interface FormatOptions {
 }
 
 interface FormatterConfig {
-  includeTree: boolean
+  showTreeMap: boolean
+  showTreeMapHeader: boolean
+  treeMapText: string
+  includeFileContents: boolean
+  showFileContentsHeader: boolean
+  fileContentsText: string
   maxSizeBytes: number
 }
 
@@ -45,14 +50,20 @@ export class ContentFormatter {
     const config = this.getConfig(opts)
     let currentTotalSize = 0
 
-    if (config.includeTree) {
-      const treeBlock = this.generateTreeBlock(files)
+    // 1. Process Tree Map Section
+    if (config.showTreeMap) {
+      const treeBlock = this.generateTreeBlock(files, config)
       currentTotalSize += treeBlock.length
       yield treeBlock
     }
 
-    yield '# File Contents\n\n'
-    yield* this.streamFileContent(files, config, currentTotalSize, opts.token)
+    // 2. Process File Contents Section (Master Toggle)
+    if (config.includeFileContents) {
+      if (config.showFileContentsHeader) {
+        yield this.renderHeader(config.fileContentsText)
+      }
+      yield* this.streamFileContent(files, config, currentTotalSize, opts.token)
+    }
   }
 
   /**
@@ -86,17 +97,35 @@ export class ContentFormatter {
 
   private static getConfig(opts: FormatOptions): FormatterConfig {
     const cfg = vscode.workspace.getConfiguration('aiContextStacker')
-    const includeTree = opts.skipTree ? false : cfg.get<boolean>('includeFileTree', true)
+    const userTreeMap = cfg.get<boolean>('showTreeMap', true)
 
     return {
-      includeTree,
+      showTreeMap: opts.skipTree ? false : userTreeMap,
+      showTreeMapHeader: cfg.get<boolean>('showTreeMapHeader', true),
+      treeMapText: cfg.get<string>('treeMapText', '# Context Map'),
+      includeFileContents: cfg.get<boolean>('includeFileContents', true),
+      showFileContentsHeader: cfg.get<boolean>('showFileContentsHeader', true),
+      fileContentsText: cfg.get<string>('fileContentsText', '# File Contents'),
       maxSizeBytes: opts.maxTotalBytes ?? this.DEFAULT_MAX_BYTES,
     }
   }
 
-  private static generateTreeBlock(files: StagedFile[]): string {
+  private static generateTreeBlock(files: StagedFile[], config: FormatterConfig): string {
     const tree = this.generateAsciiTree(files)
-    return `# Context Map\n\`\`\`\n${tree}\`\`\`\n\n`
+
+    let header = ''
+    if (config.showTreeMapHeader) {
+      header = this.renderHeader(config.treeMapText)
+    }
+
+    return `${header}\`\`\`\n${tree}\`\`\`\n\n`
+  }
+
+  private static renderHeader(text: string): string {
+    if (!text || !text.trim()) {
+      return ''
+    }
+    return `${text}\n\n`
   }
 
   // --- Streaming Logic ---
@@ -200,9 +229,6 @@ export class ContentFormatter {
     }
   }
 
-  /**
-   * Renders the tree using a stack to avoid recursion limits.
-   */
   private static renderHierarchyIterative(root: TreeNode): string {
     const parts: string[] = []
     const rootEntries = Object.keys(root).sort(this.sortNodes(root))
@@ -221,13 +247,13 @@ export class ContentFormatter {
     const current = stack[stack.length - 1]
 
     if (current.index >= current.entries.length) {
-      stack.pop() // Level complete
+      stack.pop()
       return
     }
 
     const key = current.entries[current.index]
     const isLast = current.index === current.entries.length - 1
-    current.index++ // Advance for next iteration
+    current.index++
 
     parts.push(`${current.prefix}${isLast ? '└── ' : '├── '}${key}\n`)
 

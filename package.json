@@ -42,15 +42,40 @@
             "type": "string"
           }
         },
-        "aiContextStacker.includeFileTree": {
-          "type": "boolean",
-          "default": true,
-          "description": "If true, adds an ASCII file tree map to the top of the copied context."
-        },
         "aiContextStacker.largeFileThreshold": {
           "type": "integer",
           "default": 5000,
           "description": "Token count at which a file is flagged as 'Heavy' (Orange). At 2x this value, it is flagged as 'Critical' (Red)."
+        },
+        "aiContextStacker.showTreeMap": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include the ASCII file tree structure."
+        },
+        "aiContextStacker.showTreeMapHeader": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the title text (e.g., '# Context Map') above the tree."
+        },
+        "aiContextStacker.treeMapText": {
+          "type": "string",
+          "default": "# Context Map",
+          "description": "The Markdown title for the file tree section."
+        },
+        "aiContextStacker.includeFileContents": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include the actual code/text of the staged files."
+        },
+        "aiContextStacker.showFileContentsHeader": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the title text (e.g., '# File Contents') above the code blocks."
+        },
+        "aiContextStacker.fileContentsText": {
+          "type": "string",
+          "default": "# File Contents",
+          "description": "The Markdown title for the file contents section."
         }
       }
     },
