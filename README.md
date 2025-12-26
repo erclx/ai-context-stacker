@@ -26,22 +26,28 @@ This gets tedious fast—especially with larger codebases or multi-file tasks.
 2. Open the **AI Context Stacker** view in the Activity Bar.
 3. Drag files into the **Staged Files** panel.
    - Or right-click → **Add to AI Context Stack**.
-4. Click **Copy Stack** or **Copy and Clear Stack**.
-5. Paste into your LLM.
+4. Use **`Ctrl+Alt+A`** (`Cmd+Alt+A` on Mac) to search and add files from anywhere in the editor.
+5. Click **Copy Stack** or press **`Ctrl+Shift+C`** when focused on the Staged Files view.
+6. Use **`Ctrl+Shift+V`** (`Cmd+Shift+V` on Mac, except in Markdown files) to preview your context before copying.
+7. Paste into your LLM.
 
 ## Key Features
 
 ### File Staging
 
-Drag files or folders into the staging area. Right-click any file in the Explorer to add it. The extension shows what’s staged and lets you copy everything in one go.
+Drag files or folders into the staging area. Right-click any file in the Explorer to add it. The extension shows what's staged and lets you copy everything in one go.
+
+**Live Token Updates**: Token counts refresh automatically as you edit (400ms debounce). Files over 1MB use optimized statistical estimation to keep the editor responsive during rapid typing.
+
+**Manual Refresh**: Use the dedicated **Refresh Stack** command (found in the `...` menu or press **`Ctrl+Alt+U`**) to force a re-scan of the filesystem and re-calculate all token counts.
 
 ### Context Tracks
 
 Create separate tracks for different tasks (e.g. _Bug Fix #123_, _Refactor Auth_). Each track maintains its own list of staged files.
 
 - Reorder tracks by dragging or using **Alt + Up / Down**
-- Rename tracks inline
-- Quickly switch between tracks
+- Rename tracks inline with **F2**
+- Quickly switch between tracks with **`Ctrl+Alt+S`** (`Cmd+Alt+S` on Mac)
 
 Note: The extension always maintains at least one active track. The last remaining track cannot be deleted.
 
@@ -51,14 +57,14 @@ Designed for professional workflows, AI Context Stacker fully supports **Multi-r
 
 Staged files are grouped by their project folder name so the LLM understands which project each file belongs to—even when multiple projects contain identical paths like `src/index.ts`.
 
-Tip: In multi-root workspaces, both the context map and file headers automatically include the project folder name to prevent ambiguity for the LLM.
+Works seamlessly across GitHub Codespaces, WSL2, and SSH Remote sessions with optimized clipboard and drag-and-drop handling for remote environments.
 
 ### Token Warnings
 
 Files are color-coded based on estimated token count:
 
-- **Amber** — over 5k tokens (configurable)
-- **Red** — over 10k tokens
+- **Amber** — over 5,000 tokens (configurable via `largeFileThreshold`)
+- **Red** — over 10,000 tokens (2x the threshold)
 - **Pinned files** retain their pin icon while inheriting warning colors
 
 This helps you spot large files before hitting model limits.
@@ -68,18 +74,16 @@ This helps you spot large files before hitting model limits.
 - Pin files to protect them from **Clear Stack**
 - Toggle **Show Pinned Files Only** to filter the view
 - Copy commands respect the active filter
+- Use **Space** to quickly toggle pin on selected files
 
 Pinned files persist across clears and workflow resets.
 
 ### Context Map
 
-Optionally include an ASCII directory tree in the copied output to help the LLM understand your project structure. You can customize the header text or disable the map entirely in settings.
-
 Optionally include an ASCII directory tree in the copied output to help the LLM understand project structure.
 
 ```
-
-Context Map
+# Context Map
 ├── components
 │   ├── Header.tsx
 │   ├── Sidebar.tsx
@@ -88,101 +92,137 @@ Context Map
 │   ├── api.ts
 │   └── helpers.ts
 └── README.md
-
 ```
+
+### Selection-Aware Copying
+
+Copy commands adapt to your current selection:
+
+- **Files selected** → Copies only the selected files
+- **Nothing selected** → Copies the entire visible stack (respects active filters)
+
+This makes both targeted and bulk operations intuitive without separate commands.
 
 ### Navigation
 
 - Right-click files in the Explorer to add them or reveal them in the stack
 - Right-click staged files to reveal them in your system file manager
-- Quickly locate files without breaking flow
+- Use **Reveal in AI Stack** to locate and highlight any file within your staged context
 
 ## Commands
 
 ### Stack Operations
 
-| Command              | Description                                                               |
-| :------------------- | :------------------------------------------------------------------------ |
-| `Add Files...`       | Pick files to add to the stack (includes **Add All** option).             |
-| `Add Folder...`      | Recursively scan and add an entire directory.                             |
-| `Remove Files...`    | Bulk-remove selected files from the stack.                                |
-| `Add All Open Files` | Stage all currently open text editors.                                    |
-| `Add Current File`   | Stage the active editor.                                                  |
-| `Reveal in AI Stack` | Locate the active file in the sidebar.                                    |
-| `Clear Stack`        | Remove all **unpinned** files from the current track.                     |
-| `Toggle Pin`         | Pin or unpin selected file(s) for bulk protection.                        |
-| `Unpin All`          | Instantly unpin all files in the current track (found in the `...` menu). |
+| Command                   | Description                                                               | Keybinding                  |
+| :------------------------ | :------------------------------------------------------------------------ | :-------------------------- |
+| `Add Files...`            | Pick files to add to the stack (includes **Add All** option).             | `Ctrl+Alt+A` / `Cmd+Alt+A`  |
+| `Add Folder...`           | Recursively scan and add an entire directory.                             | `Ctrl+Alt+F` / `Cmd+Alt+F`  |
+| `Remove Files...`         | Bulk-remove selected files from the stack.                                |                             |
+| `Add All Open Files`      | Stage all currently open text editors.                                    |                             |
+| `Add Current File`        | Stage the active editor.                                                  |                             |
+| `Add to AI Context Stack` | Add file from Explorer context menu.                                      |                             |
+| `Reveal in AI Stack`      | Locate and highlight any file within your staged context.                 |                             |
+| `Clear Stack`             | Remove all **unpinned** files from the current track.                     | `Shift+Del` (when focused)  |
+| `Toggle Pin`              | Pin or unpin selected file(s) for bulk protection.                        | `Space` (when focused)      |
+| `Unpin All`               | Instantly unpin all files in the current track (found in the `...` menu). |                             |
+| `Refresh Stack`           | Manually re-calculate token counts and sync file metadata from disk.      | `Ctrl+Alt+U` (when focused) |
+| `Select All`              | Select all staged files for bulk operations (Pin/Remove).                 | `Ctrl+A` / `Cmd+A`          |
 
 ### Output & Clipboard
 
-| Command                | Description                                                        |
-| :--------------------- | :----------------------------------------------------------------- |
-| `Copy Stack`           | Copy all staged content based on your active settings and filters. |
-| `Copy and Clear Stack` | Copy context and immediately clear all unpinned files in one step. |
-| `Preview Context`      | Open a live-syncing Markdown preview of your current stack.        |
+| Command                | Description                                                        | Keybinding                             |
+| :--------------------- | :----------------------------------------------------------------- | :------------------------------------- |
+| `Copy Stack`           | Copy all staged content based on your active settings and filters. | `Ctrl+Shift+C` / `Cmd+Shift+C`         |
+| `Copy and Clear Stack` | Copy context and immediately clear all unpinned files in one step. | `Ctrl+X` / `Cmd+X` (when focused)      |
+| `Copy Content`         | Copy individual file or folder content.                            | `Ctrl+C` / `Cmd+C` (when item focused) |
+| `Preview Context`      | Open a live-syncing Markdown preview of your current stack.        | `Ctrl+Shift+V` / `Cmd+Shift+V`         |
 
 ### View & Filtering
 
-| Command                  | Description                                               |
-| :----------------------- | :-------------------------------------------------------- |
-| `Reveal in Explorer`     | Open the staged file in the system file manager.          |
-| `Collapse All`           | Collapse all folders in the Staged Files view.            |
-| `Select All`             | Select all staged files for bulk operations (Pin/Remove). |
-| `Show Pinned Files Only` | Filter the view to only show pinned items.                |
-| `Show All Files`         | Reset filters to show the full stack.                     |
-| `Settings...`            | Open VS Code Settings filtered to AI Context Stacker.     |
+| Command                  | Description                                           |
+| :----------------------- | :---------------------------------------------------- |
+| `Reveal in Explorer`     | Open the staged file in the system file manager.      |
+| `Collapse All`           | Collapse all folders in the Staged Files view.        |
+| `Show Pinned Files Only` | Filter the view to only show pinned items.            |
+| `Show All Files`         | Reset filters to show the full stack.                 |
+| `Settings...`            | Open VS Code Settings filtered to AI Context Stacker. |
 
 ### Track Management
 
-| Command             | Description                                           |
-| :------------------ | :---------------------------------------------------- |
-| `New Track...`      | Create a new isolated context track.                  |
-| `Switch Track...`   | Switch between your saved tracks.                     |
-| `Rename Track...`   | Rename the selected track.                            |
-| `Delete Track`      | Delete the selected track (except for the last one).  |
-| `Delete All Tracks` | Reset the extension state (removes all tracks/files). |
-| `Move Up / Down`    | Reorder tracks in the sidebar.                        |
+| Command              | Description                                           | Keybinding                             |
+| :------------------- | :---------------------------------------------------- | :------------------------------------- |
+| `New Track...`       | Create a new isolated context track.                  | `Ctrl+Alt+K` / `Cmd+Alt+K`             |
+| `Switch Track...`    | Switch between your saved tracks.                     | `Ctrl+Alt+S` / `Cmd+Alt+S`             |
+| `Rename Track...`    | Rename the selected track.                            | `F2` (when focused on track)           |
+| `Delete Track`       | Delete the selected track (except for the last one).  | `Del` / `Cmd+Backspace` (when focused) |
+| `Reset All Tracks`   | Reset the extension state (removes all tracks/files). | `Shift+Del` / `Shift+Cmd+Backspace`    |
+| `Move Track Up/Down` | Reorder tracks in the sidebar.                        | `Alt+Up` / `Alt+Down` (when focused)   |
 
 ## Keyboard Shortcuts
 
-| Shortcut                | Command              | Context                   |
-| :---------------------- | :------------------- | :------------------------ |
-| `F2`                    | Rename Track         | Focused on Context Tracks |
-| `Del` / `Cmd+Backspace` | Delete Track         | Focused on Context Tracks |
-| `Del` / `Cmd+Backspace` | Remove File          | Focused on Staged Files   |
-| `Ctrl+C` / `Cmd+C`      | Copy Stack           | Focused on Staged Files   |
-| `Cmd+Shift+C`           | Copy and Clear Stack | Focused on Staged Files   |
-| `Alt+Up` / `Alt+Down`   | Move Track           | Focused on Context Tracks |
-| `Ctrl+A` / `Cmd+A`      | Select All           | Focused on Staged Files   |
+### Global Shortcuts
+
+| Shortcut                       | Command           |
+| :----------------------------- | :---------------- |
+| `Ctrl+Alt+A` / `Cmd+Alt+A`     | Add Files Picker  |
+| `Ctrl+Alt+F` / `Cmd+Alt+F`     | Add Folder Picker |
+| `Ctrl+Alt+K` / `Cmd+Alt+K`     | New Track         |
+| `Ctrl+Alt+S` / `Cmd+Alt+S`     | Switch Track      |
+| `Ctrl+Shift+V` / `Cmd+Shift+V` | Preview Context   |
+
+### Staged Files View (when focused)
+
+| Shortcut                            | Command              |
+| :---------------------------------- | :------------------- |
+| `Ctrl+Alt+U` / `Cmd+Alt+U`          | Refresh Stack        |
+| `Ctrl+Shift+C` / `Cmd+Shift+C`      | Copy Stack           |
+| `Ctrl+X` / `Cmd+X`                  | Copy and Clear Stack |
+| `Ctrl+C` / `Cmd+C`                  | Copy File            |
+| `Ctrl+A` / `Cmd+A`                  | Select All           |
+| `Space`                             | Toggle Pin           |
+| `Del` / `Cmd+Backspace`             | Remove File          |
+| `Shift+Del` / `Shift+Cmd+Backspace` | Clear Stack          |
+
+### Context Tracks View (when focused)
+
+| Shortcut                            | Command          |
+| :---------------------------------- | :--------------- |
+| `F2`                                | Rename Track     |
+| `Alt+Up` / `Alt+Down`               | Move Track       |
+| `Del` / `Cmd+Backspace`             | Delete Track     |
+| `Shift+Del` / `Shift+Cmd+Backspace` | Reset All Tracks |
 
 ## Settings
 
 All configuration is managed natively via VS Code Settings.
 
-| Setting                                   | Default           | Description                                   |
-| :---------------------------------------- | :---------------- | :-------------------------------------------- |
-| `aiContextStacker.excludes`               | `[]`              | File patterns to exclude (glob patterns).     |
-| `aiContextStacker.largeFileThreshold`     | `5000`            | Token count for **Heavy** warning.            |
-| `aiContextStacker.showTreeMap`            | `true`            | Include the ASCII directory tree in output.   |
-| `aiContextStacker.showTreeMapHeader`      | `true`            | Show the title text above the tree map.       |
-| `aiContextStacker.treeMapText`            | `# Context Map`   | Custom text for the map header.               |
-| `aiContextStacker.includeFileContents`    | `true`            | Include the actual code/text of staged files. |
-| `aiContextStacker.showFileContentsHeader` | `true`            | Show the title text above file contents.      |
-| `aiContextStacker.fileContentsText`       | `# File Contents` | Custom text for the contents header.          |
+| Setting                                   | Default           | Description                                                      |
+| :---------------------------------------- | :---------------- | :--------------------------------------------------------------- |
+| `aiContextStacker.excludes`               | `[]`              | File patterns to exclude (glob patterns).                        |
+| `aiContextStacker.largeFileThreshold`     | `5000`            | Token count for **Heavy** warning (Amber). Red at 2x this value. |
+| `aiContextStacker.showTreeMap`            | `true`            | Include the ASCII directory tree in output.                      |
+| `aiContextStacker.showTreeMapHeader`      | `true`            | Show the title text above the tree map.                          |
+| `aiContextStacker.treeMapText`            | `# Context Map`   | Custom text for the map header.                                  |
+| `aiContextStacker.includeFileContents`    | `true`            | Include the actual code/text of staged files.                    |
+| `aiContextStacker.showFileContentsHeader` | `true`            | Show the title text above file contents.                         |
+| `aiContextStacker.fileContentsText`       | `# File Contents` | Custom text for the contents header.                             |
 
 ## Tips
 
-- **Model Context**: Adjust `largeFileThreshold` based on your model’s context window (e.g., lower for GPT-3.5, higher for Claude 3).
-- **Iteration**: Use **Copy and Clear Stack** to quickly grab context and reset for your next prompt.
-- **Status Bar**: Click the status bar item to copy your stack without opening the sidebar.
+- **Model Context**: Adjust `largeFileThreshold` based on your model's context window to match your specific LLM's token limits.
+- **Iteration**: Use **Copy and Clear Stack** (`Ctrl+X` / `Cmd+X`) to quickly grab context and reset for your next prompt.
+- **Smart Copying**: Pressing `Ctrl+C` in the Staged Files view is selection-aware. Select specific files to copy only those, or copy the entire visible stack when nothing is selected.
+- **Bulk Operations**: Use `Ctrl+A` to select all files, then `Space` to toggle pin on multiple files at once.
+- **Remote Work**: Optimized for GitHub Codespaces, WSL2, and SSH sessions with clipboard and file operations.
 
 ## Known Limitations
 
-- **Binary Files**: Detected via null-byte scan; content is automatically skipped.
-- **Performance**: Files over 5MB are skipped to prevent UI lag.
-- **Clipboard**: Total payload is capped at 100MB for system stability.
-- **Token Counts**: Estimates are based on character/word heuristics, not specific model tokenizers.
+- **Clipboard Safeguard**: Payload is capped at 100MB to prevent V8 engine crashes and system lag. Operations exceeding this limit return empty to protect IDE stability.
+- **Large File Shield**: Files over 5MB are excluded from context to prevent model rejection. Files over 1MB use high-speed statistical estimation instead of full buffer scanning to maintain UI responsiveness.
+- **Binary Files**: Automatically detected and skipped via null-byte scanning.
+- **Token Accuracy**: Estimates use character/word density heuristics optimized for speed. While highly accurate, they may vary slightly from specific model tokenizers.
 - **Bulk Safety**: Adding folders with more than 200 files triggers a confirmation warning.
+- **Clipboard API**: In web-based VS Code environments (e.g., vscode.dev), clipboard access requires a secure HTTPS context.
 
 ## Support
 
