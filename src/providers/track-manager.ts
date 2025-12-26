@@ -135,6 +135,18 @@ export class TrackManager implements vscode.Disposable {
     this._onDidChangeTrack.fire(this.getActiveTrack())
   }
 
+  public unpinAllInActive(): void {
+    const track = this.getActiveTrack()
+    if (track === this.GHOST_TRACK) return
+
+    const hasPinned = track.files.some((f) => f.isPinned)
+    if (!hasPinned) return
+
+    track.files.forEach((f) => (f.isPinned = false))
+    this.persistState(false)
+    this._onDidChangeTrack.fire(track)
+  }
+
   public hasUri(uri: vscode.Uri): boolean {
     return this.uriIndex.has(uri.toString())
   }
@@ -336,14 +348,15 @@ export class TrackManager implements vscode.Disposable {
     const hasTracks = this.tracks.size > 0
     const hasMultipleTracks = this.tracks.size > 1
 
-    // A "Pristine" state implies there is nothing to reset:
     const activeTrack = this.getActiveTrack()
     const isPristine = this.tracks.size === 1 && activeTrack.files.length === 0
     const canReset = !isPristine
+    const hasPinnedFiles = activeTrack.files.some((f) => f.isPinned)
 
     void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasTracks', hasTracks)
     void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasMultipleTracks', hasMultipleTracks)
     void vscode.commands.executeCommand('setContext', 'aiContextStacker.canReset', canReset)
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasPinnedFiles', hasPinnedFiles)
   }
 
   private rebuildIndex(): void {

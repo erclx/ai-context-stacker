@@ -202,6 +202,12 @@
         "icon": "$(pin)"
       },
       {
+        "command": "aiContextStacker.unpinAll",
+        "title": "Unpin All Files",
+        "category": "AI Context Stacker",
+        "icon": "$(pinned)"
+      },
+      {
         "command": "aiContextStacker.newTrack",
         "title": "New Track...",
         "category": "AI Context Stacker",
@@ -365,6 +371,11 @@
         {
           "command": "aiContextStacker.showAllFiles",
           "when": "view == aiContextStackerView && aiContextStacker.pinnedOnly",
+          "group": "4_filtering"
+        },
+        {
+          "command": "aiContextStacker.unpinAll",
+          "when": "view == aiContextStackerView && aiContextStacker.hasPinnedFiles",
           "group": "4_filtering"
         },
         {

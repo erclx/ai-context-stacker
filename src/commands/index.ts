@@ -21,6 +21,7 @@ import { registerSelectAllCommand } from './select-all'
 import { registerOpenSettingsCommand } from './settings'
 import { registerTogglePinCommand } from './toggle-pin'
 import { registerTrackCommands } from './track-ops'
+import { registerUnpinAllCommand } from './unpin-all'
 
 export interface CommandDependencies {
   context: vscode.ExtensionContext
@@ -47,6 +48,7 @@ function registerStackModifications(deps: CommandDependencies) {
   registerRemoveFileCommand(deps.context, deps.services.stackProvider, deps.views.filesView)
   registerRemoveFilePickerCommand(deps.context, deps.services.stackProvider)
   registerTogglePinCommand(deps.context, deps.services.trackManager, deps.views.filesView)
+  registerUnpinAllCommand(deps.context, deps.services.trackManager)
   registerClearAllCommand(deps.context, deps.services.stackProvider)
   registerSelectAllCommand(deps.context)
 }
