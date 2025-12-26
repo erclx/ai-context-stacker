@@ -13,20 +13,28 @@ export function registerAddFilePickerCommand(
   ignoreManager: IgnoreManager,
 ): void {
   const command = vscode.commands.registerCommand('aiContextStacker.addFilePicker', async () => {
-    const newFiles = await findUnstagedFiles(stackProvider, ignoreManager)
-
-    if (newFiles.length === 0) {
-      vscode.window.showInformationMessage('All files in workspace are already staged!')
-      return
+    try {
+      await executePickerFlow(stackProvider, ignoreManager)
+    } catch (error) {
+      vscode.window.showErrorMessage(`Picker Error: ${error instanceof Error ? error.message : String(error)}`)
     }
-
-    const selectedItems = await showFilePicker(newFiles)
-    if (!selectedItems || selectedItems.length === 0) return
-
-    await processSelection(selectedItems, newFiles, stackProvider)
   })
 
   context.subscriptions.push(command)
+}
+
+async function executePickerFlow(stackProvider: StackProvider, ignoreManager: IgnoreManager): Promise<void> {
+  const newFiles = await findUnstagedFiles(stackProvider, ignoreManager)
+
+  if (newFiles.length === 0) {
+    vscode.window.showInformationMessage('All files in workspace are already staged!')
+    return
+  }
+
+  const selectedItems = await showFilePicker(newFiles)
+  if (!selectedItems || selectedItems.length === 0) return
+
+  await processSelection(selectedItems, newFiles, stackProvider)
 }
 
 async function processSelection(
@@ -40,7 +48,7 @@ async function processSelection(
     return
   }
 
-  const uris = items.filter((i) => i.id === 'file' && i.uri).map((i) => i.uri!)
+  const uris = items.filter((i) => i.id === 'file' && i.uri).map((i) => i.uri as vscode.Uri)
 
   if (uris.length > 0) {
     provider.addFiles(uris)
@@ -85,7 +93,6 @@ function createAddAllItem(count: number): FileQuickPickItem {
     label: '$(check-all) Add All Unstaged Files',
     description: `(${count} files)`,
     id: 'action',
-    alwaysShow: true,
   }
 }
 
@@ -109,10 +116,15 @@ function bindPickerEvents(
   resolve: (value: readonly FileQuickPickItem[] | undefined) => void,
 ): void {
   picker.onDidChangeValue((value) => {
-    if (value.trim() === '') {
-      picker.items = [actionItem, ...fileItems]
-    } else {
-      picker.items = fileItems
+    const previousSelection = picker.selectedItems
+
+    const isSearchEmpty = value.trim() === ''
+    const newItems = isSearchEmpty ? [actionItem, ...fileItems] : fileItems
+
+    if (picker.items.length !== newItems.length) {
+      picker.items = newItems
+
+      picker.selectedItems = previousSelection
     }
   })
 
