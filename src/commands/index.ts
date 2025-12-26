@@ -8,20 +8,18 @@ import { registerAddFilePickerCommand } from './add-file-picker'
 import { registerAddFolderPickerCommand } from './add-folder-picker'
 import { registerAddOpenFilesCommand } from './add-open-files'
 import { registerClearAllCommand } from './clear-all'
-import { registerConfigureOutputCommand } from './configure-output'
 import { registerCopyAllCommand } from './copy-all'
 import { registerCopyContentCommand } from './copy-content'
 import { registerCopyFileCommand } from './copy-file'
 import { registerCopyTreeCommand } from './copy-tree'
 import { registerFilterCommands } from './filter-commands'
-import { registerManageExcludesCommand } from './manage-excludes'
 import { registerPreviewContextCommand } from './preview-context'
 import { registerRemoveFileCommand } from './remove-file'
 import { registerRemoveFilePickerCommand } from './remove-file-picker'
 import { registerRevealInExplorerCommand } from './reveal-in-explorer'
 import { registerRevealInViewCommand } from './reveal-in-view'
 import { registerSelectAllCommand } from './select-all'
-import { registerSetThresholdCommand } from './set-threshold'
+import { registerOpenSettingsCommand } from './settings'
 import { registerTogglePinCommand } from './toggle-pin'
 import { registerTrackCommands } from './track-ops'
 
@@ -67,9 +65,7 @@ function registerTrackOperations(deps: CommandDependencies) {
 
 function registerViewOperations(deps: CommandDependencies) {
   registerPreviewContextCommand(deps.context, deps.services.stackProvider)
-  registerManageExcludesCommand(deps.context)
-  registerConfigureOutputCommand(deps.context)
-  registerSetThresholdCommand(deps.context)
+  registerOpenSettingsCommand(deps.context)
   registerFilterCommands(deps.context, deps.services.stackProvider)
   registerRevealInViewCommand(deps.context, deps.services.stackProvider, deps.views.filesView)
   registerRevealInExplorerCommand(deps.context)

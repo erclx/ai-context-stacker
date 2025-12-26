@@ -163,14 +163,10 @@
         "category": "AI Context Stacker"
       },
       {
-        "command": "aiContextStacker.configureOutput",
-        "title": "Configure Output...",
-        "category": "AI Context Stacker"
-      },
-      {
-        "command": "aiContextStacker.setThreshold",
-        "title": "Set Large File Threshold...",
-        "category": "AI Context Stacker"
+        "command": "aiContextStacker.openSettings",
+        "title": "Settings...",
+        "category": "AI Context Stacker",
+        "icon": "$(settings-gear)"
       },
       {
         "command": "aiContextStacker.previewContext",
@@ -225,12 +221,6 @@
         "title": "Move Down",
         "category": "AI Context Stacker",
         "icon": "$(arrow-down)"
-      },
-      {
-        "command": "aiContextStacker.manageExcludes",
-        "title": "Manage Excludes...",
-        "category": "AI Context Stacker",
-        "icon": "$(filter)"
       },
       {
         "command": "aiContextStacker.removeFilePicker",
@@ -342,17 +332,7 @@
           "group": "2_copy_variants"
         },
         {
-          "command": "aiContextStacker.manageExcludes",
-          "when": "view == aiContextStackerView",
-          "group": "3_config"
-        },
-        {
-          "command": "aiContextStacker.configureOutput",
-          "when": "view == aiContextStackerView",
-          "group": "3_config"
-        },
-        {
-          "command": "aiContextStacker.setThreshold",
+          "command": "aiContextStacker.openSettings",
           "when": "view == aiContextStackerView",
           "group": "3_config"
         },
