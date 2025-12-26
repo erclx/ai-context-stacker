@@ -13,6 +13,7 @@ import { registerCopyAndClearCommand } from './copy-and-clear'
 import { registerCopyFileCommand } from './copy-file'
 import { registerFilterCommands } from './filter-commands'
 import { registerPreviewContextCommand } from './preview-context'
+import { registerRefreshStackCommand } from './refresh-stack'
 import { registerRemoveFileCommand } from './remove-file'
 import { registerRemoveFilePickerCommand } from './remove-file-picker'
 import { registerRevealInExplorerCommand } from './reveal-in-explorer'
@@ -51,6 +52,7 @@ function registerStackModifications(deps: CommandDependencies) {
   registerUnpinAllCommand(deps.context, deps.services.trackManager)
   registerClearAllCommand(deps.context, deps.services.stackProvider)
   registerSelectAllCommand(deps.context)
+  registerRefreshStackCommand(deps.context, deps.services.stackProvider)
 }
 
 function registerClipboardOperations(deps: CommandDependencies) {

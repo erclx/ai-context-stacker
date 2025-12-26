@@ -114,26 +114,15 @@
         "category": "AI Context Stacker"
       },
       {
-        "command": "aiContextStacker.addFileToStack",
-        "title": "Add to AI Context Stack",
-        "category": "AI Context Stacker"
-      },
-      {
-        "command": "aiContextStacker.revealInView",
-        "title": "Reveal in AI Stack",
-        "category": "AI Context Stacker"
-      },
-      {
-        "command": "aiContextStacker.revealInExplorer",
-        "title": "Reveal in Explorer",
-        "category": "AI Context Stacker",
-        "icon": "$(folder-opened)"
-      },
-      {
         "command": "aiContextStacker.addFilePicker",
         "title": "Add Files...",
         "category": "AI Context Stacker",
         "icon": "$(add)"
+      },
+      {
+        "command": "aiContextStacker.addFileToStack",
+        "title": "Add to AI Context Stack",
+        "category": "AI Context Stacker"
       },
       {
         "command": "aiContextStacker.addFolderPicker",
@@ -146,12 +135,6 @@
         "title": "Add All Open Files",
         "category": "AI Context Stacker",
         "icon": "$(editor-layout)"
-      },
-      {
-        "command": "aiContextStacker.removeFile",
-        "title": "Remove from Stack",
-        "category": "AI Context Stacker",
-        "icon": "$(trash)"
       },
       {
         "command": "aiContextStacker.clearAll",
@@ -184,6 +167,36 @@
         "icon": "$(copy)"
       },
       {
+        "command": "aiContextStacker.deleteAllTracks",
+        "title": "Reset All Tracks",
+        "category": "AI Context Stacker",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "aiContextStacker.deleteTrack",
+        "title": "Delete Track",
+        "category": "AI Context Stacker",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "aiContextStacker.moveTrackDown",
+        "title": "Move Down",
+        "category": "AI Context Stacker",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "aiContextStacker.moveTrackUp",
+        "title": "Move Up",
+        "category": "AI Context Stacker",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "aiContextStacker.newTrack",
+        "title": "New Track...",
+        "category": "AI Context Stacker",
+        "icon": "$(add)"
+      },
+      {
         "command": "aiContextStacker.openSettings",
         "title": "Settings...",
         "category": "AI Context Stacker",
@@ -196,6 +209,65 @@
         "icon": "$(eye)"
       },
       {
+        "command": "aiContextStacker.refreshStack",
+        "title": "Refresh Stack",
+        "category": "AI Context Stacker",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "aiContextStacker.removeFile",
+        "title": "Remove from Stack",
+        "category": "AI Context Stacker",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "aiContextStacker.removeFilePicker",
+        "title": "Remove Files...",
+        "category": "AI Context Stacker",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "aiContextStacker.renameTrack",
+        "title": "Rename Track...",
+        "category": "AI Context Stacker",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "aiContextStacker.revealInExplorer",
+        "title": "Reveal in Explorer",
+        "category": "AI Context Stacker",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "aiContextStacker.revealInView",
+        "title": "Reveal in AI Stack",
+        "category": "AI Context Stacker"
+      },
+      {
+        "command": "aiContextStacker.selectAll",
+        "title": "Select All",
+        "category": "AI Context Stacker",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "aiContextStacker.showAllFiles",
+        "title": "Show All Files",
+        "category": "AI Context Stacker",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "aiContextStacker.showPinnedOnly",
+        "title": "Show Pinned Files Only",
+        "category": "AI Context Stacker",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "aiContextStacker.switchTrack",
+        "title": "Switch Track...",
+        "category": "AI Context Stacker",
+        "icon": "$(layers)"
+      },
+      {
         "command": "aiContextStacker.togglePin",
         "title": "Toggle Pin",
         "category": "AI Context Stacker",
@@ -206,72 +278,6 @@
         "title": "Unpin All Files",
         "category": "AI Context Stacker",
         "icon": "$(pinned)"
-      },
-      {
-        "command": "aiContextStacker.newTrack",
-        "title": "New Track...",
-        "category": "AI Context Stacker",
-        "icon": "$(add)"
-      },
-      {
-        "command": "aiContextStacker.switchTrack",
-        "title": "Switch Track...",
-        "category": "AI Context Stacker",
-        "icon": "$(layers)"
-      },
-      {
-        "command": "aiContextStacker.renameTrack",
-        "title": "Rename Track...",
-        "category": "AI Context Stacker",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "aiContextStacker.deleteTrack",
-        "title": "Delete Track",
-        "category": "AI Context Stacker",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "aiContextStacker.deleteAllTracks",
-        "title": "Reset All Tracks",
-        "category": "AI Context Stacker",
-        "icon": "$(clear-all)"
-      },
-      {
-        "command": "aiContextStacker.moveTrackUp",
-        "title": "Move Up",
-        "category": "AI Context Stacker",
-        "icon": "$(arrow-up)"
-      },
-      {
-        "command": "aiContextStacker.moveTrackDown",
-        "title": "Move Down",
-        "category": "AI Context Stacker",
-        "icon": "$(arrow-down)"
-      },
-      {
-        "command": "aiContextStacker.removeFilePicker",
-        "title": "Remove Files...",
-        "category": "AI Context Stacker",
-        "icon": "$(list-unordered)"
-      },
-      {
-        "command": "aiContextStacker.showPinnedOnly",
-        "title": "Show Pinned Files Only",
-        "category": "AI Context Stacker",
-        "icon": "$(pin)"
-      },
-      {
-        "command": "aiContextStacker.showAllFiles",
-        "title": "Show All Files",
-        "category": "AI Context Stacker",
-        "icon": "$(list-flat)"
-      },
-      {
-        "command": "aiContextStacker.selectAll",
-        "title": "Select All",
-        "category": "AI Context Stacker",
-        "icon": "$(check-all)"
       }
     ],
     "menus": {
@@ -301,10 +307,10 @@
       ],
       "view/title": [
         {
-          "//": "--- Context Tracks: Title ---",
+          "//": "--- Tracks: Title Actions ---",
           "command": "aiContextStacker.newTrack",
           "when": "view == aiContextTracksView",
-          "group": "navigation@0"
+          "group": "navigation@1"
         },
         {
           "command": "aiContextStacker.deleteAllTracks",
@@ -312,7 +318,7 @@
           "group": "navigation@9"
         },
         {
-          "//": "--- Staged Files: Title (Primary Actions) ---",
+          "//": "--- Staged Files: Title Actions (Visible) ---",
           "command": "aiContextStacker.addFilePicker",
           "when": "view == aiContextStackerView",
           "group": "navigation@1"
@@ -328,57 +334,66 @@
           "group": "navigation@3"
         },
         {
-          "//": "--- Staged Files: Title (Overflow '...') ---",
+          "//": "--- Staged Files: Overflow Menu (Group 1: Add) ---",
           "command": "aiContextStacker.addFolderPicker",
           "when": "view == aiContextStackerView",
-          "group": "1_add@1"
+          "group": "1_primary@1"
         },
         {
           "command": "aiContextStacker.addOpenFiles",
           "when": "view == aiContextStackerView && aiContextStacker.hasUnstagedOpenFiles",
-          "group": "1_add@2"
+          "group": "1_primary@2"
         },
         {
           "command": "aiContextStacker.addCurrentFile",
           "when": "view == aiContextStackerView && aiContextStacker.isTextEditorActive && !aiContextStacker.isCurrentFileInStack",
-          "group": "1_add@3"
+          "group": "1_primary@3"
         },
         {
+          "//": "--- Staged Files: Overflow Menu (Group 2: View/Action) ---",
           "command": "aiContextStacker.previewContext",
           "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
-          "group": "1_view"
+          "group": "2_secondary@1"
         },
         {
           "command": "aiContextStacker.copyAndClear",
           "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
-          "group": "2_copy_variants"
+          "group": "2_secondary@2"
         },
         {
-          "command": "aiContextStacker.openSettings",
-          "when": "view == aiContextStackerView",
-          "group": "3_config"
+          "command": "aiContextStacker.refreshStack",
+          "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
+          "group": "2_secondary@3"
         },
         {
+          "//": "--- Staged Files: Overflow Menu (Group 3: Filtering) ---",
           "command": "aiContextStacker.removeFilePicker",
           "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
-          "group": "4_filtering"
+          "group": "3_filtering@1"
         },
         {
           "command": "aiContextStacker.showPinnedOnly",
           "when": "view == aiContextStackerView && !aiContextStacker.pinnedOnly && aiContextStacker.hasPinnedFiles",
-          "group": "4_filtering"
+          "group": "3_filtering@2"
         },
         {
           "command": "aiContextStacker.showAllFiles",
           "when": "view == aiContextStackerView && aiContextStacker.pinnedOnly",
-          "group": "4_filtering"
+          "group": "3_filtering@3"
         },
         {
           "command": "aiContextStacker.unpinAll",
           "when": "view == aiContextStackerView && aiContextStacker.hasPinnedFiles",
-          "group": "4_filtering"
+          "group": "3_filtering@4"
         },
         {
+          "//": "--- Staged Files: Overflow Menu (Group 4: Config) ---",
+          "command": "aiContextStacker.openSettings",
+          "when": "view == aiContextStackerView",
+          "group": "4_config"
+        },
+        {
+          "//": "--- Staged Files: Overflow Menu (Group 9: Danger) ---",
           "command": "aiContextStacker.clearAll",
           "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
           "group": "9_danger"
@@ -386,7 +401,7 @@
       ],
       "view/item/context": [
         {
-          "//": "--- Tracks: HOVER ICONS ---",
+          "//": "--- Tracks: Hover Icons ---",
           "command": "aiContextStacker.renameTrack",
           "when": "view == aiContextTracksView",
           "group": "inline"
@@ -397,36 +412,36 @@
           "group": "inline"
         },
         {
-          "//": "--- Tracks: RIGHT CLICK MENU ---",
+          "//": "--- Tracks: Context Menu ---",
           "command": "aiContextStacker.switchTrack",
           "when": "view == aiContextTracksView && !(viewItem =~ /active/)",
-          "group": "1_modification"
+          "group": "1_primary"
         },
         {
           "command": "aiContextStacker.renameTrack",
           "when": "view == aiContextTracksView",
-          "group": "1_modification"
-        },
-        {
-          "command": "aiContextStacker.deleteTrack",
-          "when": "view == aiContextTracksView && !(viewItem =~ /:only/)",
-          "group": "3_modification"
+          "group": "1_primary"
         },
         {
           "command": "aiContextStacker.moveTrackUp",
           "when": "view == aiContextTracksView && !(viewItem =~ /:first/)",
-          "group": "2_modification@1"
+          "group": "2_secondary@1"
         },
         {
           "command": "aiContextStacker.moveTrackDown",
           "when": "view == aiContextTracksView && !(viewItem =~ /:last/)",
-          "group": "2_modification@2"
+          "group": "2_secondary@2"
         },
         {
-          "//": "--- Files: HOVER ICONS ---",
+          "command": "aiContextStacker.deleteTrack",
+          "when": "view == aiContextTracksView && !(viewItem =~ /:only/)",
+          "group": "9_danger"
+        },
+        {
+          "//": "--- Files: Hover Icons ---",
           "command": "aiContextStacker.togglePin",
           "when": "view == aiContextStackerView && viewItem =~ /stagedFile/",
-          "group": "inline@0"
+          "group": "inline@1"
         },
         {
           "command": "aiContextStacker.removeFile",
@@ -434,25 +449,25 @@
           "group": "inline@2"
         },
         {
-          "//": "--- Files/Folders: RIGHT CLICK MENU ---",
-          "command": "aiContextStacker.togglePin",
-          "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
-          "group": "1_modification"
-        },
-        {
+          "//": "--- Files: Context Menu ---",
           "command": "aiContextStacker.copyFile",
           "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
-          "group": "1_modification"
+          "group": "1_primary"
         },
         {
-          "command": "aiContextStacker.removeFile",
+          "command": "aiContextStacker.togglePin",
           "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
-          "group": "2_modification"
+          "group": "2_secondary"
         },
         {
           "command": "aiContextStacker.revealInExplorer",
           "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
-          "group": "5_navigation"
+          "group": "2_secondary"
+        },
+        {
+          "command": "aiContextStacker.removeFile",
+          "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
+          "group": "9_danger"
         },
         {
           "//": "--- Empty State ---",
@@ -469,6 +484,71 @@
     },
     "keybindings": [
       {
+        "//": "--- Global Shortcuts ---"
+      },
+      {
+        "command": "aiContextStacker.addFilePicker",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a"
+      },
+      {
+        "command": "aiContextStacker.addFolderPicker",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f"
+      },
+      {
+        "command": "aiContextStacker.refreshStack",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r"
+      },
+      {
+        "command": "aiContextStacker.previewContext",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorLangId != markdown"
+      },
+      {
+        "//": "--- Scoped: Staged Files View ---"
+      },
+      {
+        "command": "aiContextStacker.copyAll",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
+      },
+      {
+        "command": "aiContextStacker.copyAndClear",
+        "key": "ctrl+x",
+        "mac": "cmd+x",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
+      },
+      {
+        "command": "aiContextStacker.selectAll",
+        "key": "ctrl+a",
+        "mac": "cmd+a",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
+      },
+      {
+        "command": "aiContextStacker.copyFile",
+        "key": "ctrl+c",
+        "mac": "cmd+c",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
+      },
+      {
+        "command": "aiContextStacker.removeFile",
+        "key": "delete",
+        "mac": "cmd+backspace",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
+      },
+      {
+        "command": "aiContextStacker.togglePin",
+        "key": "space",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
+      },
+      {
+        "//": "--- Scoped: Tracks View ---"
+      },
+      {
         "command": "aiContextStacker.renameTrack",
         "key": "f2",
         "when": "focusedView == aiContextTracksView && !inputFocus"
@@ -480,18 +560,6 @@
         "when": "focusedView == aiContextTracksView && !inputFocus"
       },
       {
-        "command": "aiContextStacker.removeFile",
-        "key": "delete",
-        "mac": "cmd+backspace",
-        "when": "focusedView == aiContextStackerView && !inputFocus"
-      },
-      {
-        "command": "aiContextStacker.copyFile",
-        "key": "ctrl+c",
-        "mac": "cmd+c",
-        "when": "focusedView == aiContextStackerView && !inputFocus"
-      },
-      {
         "command": "aiContextStacker.moveTrackUp",
         "key": "alt+up",
         "when": "focusedView == aiContextTracksView && !inputFocus"
@@ -500,12 +568,6 @@
         "command": "aiContextStacker.moveTrackDown",
         "key": "alt+down",
         "when": "focusedView == aiContextTracksView && !inputFocus"
-      },
-      {
-        "command": "aiContextStacker.selectAll",
-        "key": "ctrl+a",
-        "mac": "cmd+a",
-        "when": "focusedView == aiContextStackerView && !inputFocus"
       }
     ]
   },

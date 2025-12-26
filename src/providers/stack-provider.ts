@@ -145,6 +145,13 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this.rebuildCacheAndRefresh()
   }
 
+  public async forceRefresh(): Promise<void> {
+    const files = this.trackManager.getActiveTrack().files
+    this.resetFileStats(files)
+    this._treeDirty = true
+    this.rebuildCacheAndRefresh()
+  }
+
   public dispose(): void {
     this._onDidChangeTreeData.dispose()
     this.disposables.forEach((d) => d.dispose())
@@ -397,5 +404,11 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   private clearAllPendingTimers(): void {
     this.pendingUpdates.forEach((timer) => clearTimeout(timer))
     this.pendingUpdates.clear()
+  }
+
+  private resetFileStats(files: StagedFile[]): void {
+    for (const file of files) {
+      file.stats = undefined
+    }
   }
 }
