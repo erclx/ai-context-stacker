@@ -158,7 +158,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this._treeDirty = false
     this._onDidChangeTreeData.fire()
     void this.enrichStatsInBackground()
-    this.updateEditorContext()
+    this.refreshSmartVisibility()
   }
 
   private rebuildTreeCache(): StackTreeItem[] {
@@ -270,11 +270,17 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
     this.registerEditorListeners()
     this.registerWorkspaceListeners()
-    this.updateEditorContext()
+    this.refreshSmartVisibility()
   }
 
   private registerEditorListeners(): void {
-    vscode.window.onDidChangeActiveTextEditor(() => this.updateEditorContext(), null, this.disposables)
+    vscode.window.onDidChangeActiveTextEditor(() => this.refreshSmartVisibility(), null, this.disposables)
+
+    const tabGroups = vscode.window.tabGroups
+    if (tabGroups) {
+      tabGroups.onDidChangeTabs(() => this.refreshSmartVisibility(), null, this.disposables)
+      tabGroups.onDidChangeTabGroups(() => this.refreshSmartVisibility(), null, this.disposables)
+    }
   }
 
   private registerWorkspaceListeners(): void {
@@ -290,9 +296,13 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     )
   }
 
-  private updateEditorContext(): void {
-    const editor = vscode.window.activeTextEditor
+  private refreshSmartVisibility(): void {
+    this.updateCurrentFileContext()
+    this.updateOpenFilesContext()
+  }
 
+  private updateCurrentFileContext(): void {
+    const editor = vscode.window.activeTextEditor
     const isTextEditor = !!editor
     void vscode.commands.executeCommand('setContext', 'aiContextStacker.isTextEditorActive', isTextEditor)
 
@@ -301,6 +311,26 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
       isCurrentFileStaged = this.hasTrackedPath(editor.document.uri)
     }
     void vscode.commands.executeCommand('setContext', 'aiContextStacker.isCurrentFileInStack', isCurrentFileStaged)
+  }
+
+  private updateOpenFilesContext(): void {
+    const hasUnstaged = this.checkForUnstagedTabs()
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasUnstagedOpenFiles', hasUnstaged)
+  }
+
+  private checkForUnstagedTabs(): boolean {
+    for (const group of vscode.window.tabGroups.all) {
+      for (const tab of group.tabs) {
+        if (!(tab.input instanceof vscode.TabInputText)) {
+          continue
+        }
+
+        if (!this.hasTrackedPath(tab.input.uri)) {
+          return true
+        }
+      }
+    }
+    return false
   }
 
   private handleDocChange(doc: vscode.TextDocument, immediate = false): void {

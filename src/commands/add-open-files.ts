@@ -4,27 +4,30 @@ import { StackProvider } from '../providers'
 import { Logger } from '../utils'
 
 export function registerAddOpenFilesCommand(context: vscode.ExtensionContext, stackProvider: StackProvider): void {
-  const command = vscode.commands.registerCommand('aiContextStacker.addOpenFiles', () => {
-    const uris: vscode.Uri[] = []
+  const command = vscode.commands.registerCommand('aiContextStacker.addOpenFiles', async () => {
+    const candidateUris: vscode.Uri[] = []
 
     vscode.window.tabGroups.all.forEach((group) => {
       group.tabs.forEach((tab) => {
-        // Only text documents, filters out custom editors/webviews/images
         if (tab.input instanceof vscode.TabInputText) {
-          uris.push(tab.input.uri)
+          candidateUris.push(tab.input.uri)
         }
       })
     })
 
-    if (uris.length === 0) {
-      vscode.window.showInformationMessage('No text files are currently open.')
+    const unstagedUris = candidateUris.filter((uri) => !stackProvider.hasTrackedPath(uri))
+
+    if (unstagedUris.length === 0) {
+      void vscode.window.showInformationMessage('All open files are already in the stack.')
       return
     }
 
-    stackProvider.addFiles(uris)
+    const success = await stackProvider.addFiles(unstagedUris)
 
-    Logger.info(`Added ${uris.length} open files to stack.`)
-    vscode.window.showInformationMessage(`Added ${uris.length} open files to stack!`)
+    if (success) {
+      Logger.info(`Added ${unstagedUris.length} open files to stack.`)
+      void vscode.window.showInformationMessage(`Added ${unstagedUris.length} file(s) to stack`)
+    }
   })
 
   context.subscriptions.push(command)

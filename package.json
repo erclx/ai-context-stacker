@@ -318,7 +318,7 @@
         },
         {
           "command": "aiContextStacker.addOpenFiles",
-          "when": "view == aiContextStackerView",
+          "when": "view == aiContextStackerView && aiContextStacker.hasUnstagedOpenFiles",
           "group": "1_add@2"
         },
         {
