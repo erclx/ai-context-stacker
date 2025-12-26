@@ -27,18 +27,6 @@ export class StackerStatusBar implements vscode.Disposable {
     this.update()
   }
 
-  /**
-   * Updates the status bar text with the current track and token count.
-   *
-   * Update triggers:
-   * - File added/removed from stack
-   * - Track switched
-   * - Token count recalculated (debounced edits or save)
-   *
-   * Icon state logic:
-   * - Hidden when stack is empty (no visual clutter)
-   * - Shows copy icon when stack has content (indicates primary action)
-   */
   private update() {
     const files = this.provider.getFiles()
 
@@ -51,15 +39,16 @@ export class StackerStatusBar implements vscode.Disposable {
     const formattedTokens = this.provider.formatTokenCount(totalTokens)
     const trackName = this.provider.getActiveTrackName()
 
-    this.item.text = `$(copy) ${trackName} (${formattedTokens})`
+    this.item.text = `$(layers) ${trackName} (${formattedTokens})`
 
     this.item.tooltip = new vscode.MarkdownString(
       `**Active Track:** ${trackName}\n\n` +
         `**Files:** ${files.length} staged\n` +
         `**Tokens:** ${formattedTokens}\n\n` +
         `$(copy) Click to Copy All\n` +
-        `$(list-flat) Use View Title icons to Switch Track`,
+        `$(layers) Use View Title icons to Switch Track`,
     )
+    this.item.tooltip.supportThemeIcons = true
     this.item.tooltip.isTrusted = true
 
     this.item.show()

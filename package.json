@@ -215,7 +215,7 @@
         "command": "aiContextStacker.switchTrack",
         "title": "Switch Track...",
         "category": "AI Context Stacker",
-        "icon": "$(list-flat)"
+        "icon": "$(layers)"
       },
       {
         "command": "aiContextStacker.renameTrack",

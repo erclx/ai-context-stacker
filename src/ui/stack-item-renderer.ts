@@ -87,7 +87,7 @@ export class StackItemRenderer {
   private renderEmptyState(element: StagedFile): vscode.TreeItem {
     const item = new vscode.TreeItem(element.label)
 
-    item.iconPath = new vscode.ThemeIcon('cloud-upload')
+    item.iconPath = new vscode.ThemeIcon('library')
     item.contextValue = this.EMPTY_ID
     item.command = {
       command: 'aiContextStacker.addFilePicker',

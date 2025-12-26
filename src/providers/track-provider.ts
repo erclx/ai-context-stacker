@@ -75,7 +75,8 @@ export class TrackProvider
     const item = new vscode.TreeItem(element.name)
 
     item.contextValue = this.getTrackContextValue(element, isActive)
-    item.iconPath = isActive ? new vscode.ThemeIcon('check') : new vscode.ThemeIcon('git-branch')
+
+    item.iconPath = isActive ? new vscode.ThemeIcon('check') : new vscode.ThemeIcon('layers')
     item.description = this.getTrackDescription(element, isActive)
 
     item.command = {
