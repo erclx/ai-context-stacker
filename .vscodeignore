@@ -5,6 +5,7 @@
 src/**
 node_modules/**
 out/**
+demos/**
 
 .lintstagedrc
 cspell.json
