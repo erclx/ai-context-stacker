@@ -29,7 +29,6 @@ async function handleClearAll(provider: StackProvider): Promise<void> {
     return
   }
 
-  // Handle 'confirm' case with modal dialog to prevent accidental data loss
   const answer = await vscode.window.showWarningMessage(action.message, { modal: true }, 'Confirm')
 
   if (answer === 'Confirm') {
@@ -38,10 +37,6 @@ async function handleClearAll(provider: StackProvider): Promise<void> {
   }
 }
 
-/**
- * Pure logic helper: Analyzes the file list and decides the appropriate
- * clear action and user message.
- */
 function determineClearAction(files: StagedFile[]): ClearAction {
   if (files.length === 0) {
     return { type: 'empty', message: 'Context stack is already empty' }

@@ -29,9 +29,7 @@ async function handleReveal(item?: StackTreeItem): Promise<void> {
 
 function resolveUri(item: StackTreeItem): vscode.Uri | undefined {
   if (isStagedFolder(item)) {
-    // Folders use resourceUri
     return item.resourceUri
   }
-  // Files use uri
   return item.uri
 }

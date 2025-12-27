@@ -1,16 +1,10 @@
 import * as vscode from 'vscode'
 
-/**
- * File content metrics for token estimation.
- */
 export interface ContentStats {
   tokenCount: number
   charCount: number
 }
 
-/**
- * Represents a file in the context stack with metadata and processing state.
- */
 export interface StagedFile {
   type: 'file'
   uri: vscode.Uri
@@ -20,10 +14,6 @@ export interface StagedFile {
   isPinned?: boolean
 }
 
-/**
- * Represents a directory node in the context stack tree view.
- * Contains references to all leaf files to optimize recursive operations.
- */
 export interface StagedFolder {
   type: 'folder'
   id: string
@@ -33,9 +23,6 @@ export interface StagedFolder {
   containedFiles: StagedFile[]
 }
 
-/**
- * Union type for items rendered in the Stack TreeView.
- */
 export type StackTreeItem = StagedFile | StagedFolder
 
 export function isStagedFolder(item: StackTreeItem): item is StagedFolder {

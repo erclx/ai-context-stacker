@@ -2,26 +2,17 @@ import { randomBytes } from 'crypto'
 import { TextDecoder } from 'util'
 import * as vscode from 'vscode'
 
-/**
- * Factory for creating and configuring Webview panels.
- * Optimized for rendering speed and security.
- */
 export class WebviewFactory {
-  // Cache the template in memory to prevent repetitive disk I/O
   private static _templateCache: string | undefined
 
   public static create(viewType: string, title: string, extensionUri: vscode.Uri): vscode.WebviewPanel {
     return vscode.window.createWebviewPanel(viewType, title, vscode.ViewColumn.Beside, {
       enableScripts: true,
       localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
-      retainContextWhenHidden: true, // Performance: Prevents re-rendering when switching tabs
+      retainContextWhenHidden: true,
     })
   }
 
-  /**
-   * Loads the HTML template and injects content using optimized string manipulation.
-   * Avoids global Regex on the content body to prevent Event Loop Blocking.
-   */
   public static async generateHtml(
     webview: vscode.Webview,
     extensionUri: vscode.Uri,
@@ -32,24 +23,17 @@ export class WebviewFactory {
     const nonce = this.getNonce()
     const cspSource = webview.cspSource
 
-    // Step 1: Replace variables in the template *before* splitting.
-    // This ensures that placeholders in the footer (like script nonces) are correctly substituted.
-    // The template is small, so this regex pass is negligible cost.
     const filledTemplate = templateString
       .replace(/{{cspSource}}/g, cspSource)
       .replace(/{{nonce}}/g, nonce)
       .replace(/{{cssUri}}/g, cssUri.toString())
 
-    // Step 2: Split by the content placeholder
     const parts = filledTemplate.split('{{content}}')
     const head = parts[0]
     const tail = parts[1] ?? ''
 
-    // Step 3: Escape the huge content separately (single pass optimization)
-    // We avoid running regex replacement on the content to keep performance O(N)
     const escapedContent = this.escapeHtmlFast(content)
 
-    // Step 4: Concatenate (Fast)
     return head + escapedContent + tail
   }
 
@@ -69,11 +53,6 @@ export class WebviewFactory {
     return randomBytes(16).toString('base64')
   }
 
-  /**
-   * High-Performance Escaper.
-   * Uses a single Regex pass with a replacer function.
-   * Prevents the O(5N) cost of chaining .replace() calls on large inputs.
-   */
   private static escapeHtmlFast(unsafe: string): string {
     if (!unsafe) return ''
 

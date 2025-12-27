@@ -26,25 +26,15 @@ const RX_TRAILING_SLASH = /\/$/
 const RX_STARTS_WITH_STARS = /^\*\*/
 const RX_NEWLINE = /\r?\n/
 
-/**
- * Service responsible for parsing gitignore content into VS Code glob patterns.
- * Optimized for startup speed.
- */
 export class IgnoreParser {
   public static readonly DEFAULT_EXCLUDES = `{${FALLBACK_EXCLUDE_PATTERNS.join(',')}}`
 
-  /**
-   * Merges .gitignore content, user settings, and defaults into a single glob string.
-   */
   public static generatePatternString(content: string, userExcludes: string[] = []): string {
-    // 1. Parse sources
     const gitPatterns = this.parseGitContent(content)
     const userPatterns = this.formatUserPatterns(userExcludes)
 
-    // 2. Unify and deduplicate
     const patternSet = new Set([...gitPatterns, ...userPatterns])
 
-    // 3. Ensure safeguards (Defaults)
     FALLBACK_EXCLUDE_PATTERNS.forEach((def) => patternSet.add(def))
 
     return `{${Array.from(patternSet).join(',')}}`
@@ -61,8 +51,6 @@ export class IgnoreParser {
   }
 
   private static isValidLine(line: string): boolean {
-    // Filter empty lines, comments (#), and negations (!)
-    // Note: Negations are not supported in standard VS Code findFiles excludes
     return line.length > 0 && !line.startsWith('#') && !line.startsWith('!')
   }
 
@@ -81,7 +69,6 @@ export class IgnoreParser {
       cleanLine = cleanLine.replace(RX_TRAILING_SLASH, '')
     }
 
-    // Ensure deep matching for generic names (e.g., 'dist' -> '**/dist')
     return RX_STARTS_WITH_STARS.test(cleanLine) ? cleanLine : `**/${cleanLine}`
   }
 }

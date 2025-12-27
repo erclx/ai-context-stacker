@@ -5,7 +5,6 @@ import { IgnoreManager, StackProvider } from '../providers'
 import { Logger } from '../utils'
 import { scanMultipleFolders } from '../utils/file-scanner'
 
-// Search limit to prevent performance bottlenecks on massive repos
 const MAX_DISCOVERY_RESULTS = 5000
 
 interface FolderQuickPickItem extends vscode.QuickPickItem {
@@ -66,9 +65,7 @@ async function discoverShallowFolders(): Promise<vscode.Uri[]> {
           results.push(vscode.Uri.joinPath(root.uri, name))
         }
       })
-    } catch {
-      /* Ignore permission errors */
-    }
+    } catch {}
   }
   return results
 }

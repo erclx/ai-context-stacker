@@ -7,10 +7,6 @@ import { Logger } from '../utils'
 import { IgnoreManager } from './ignore-manager'
 import { TrackManager } from './track-manager'
 
-/**
- * The primary data provider for the "Context Stack" view in VS Code.
- * Orchestrates file tracking, tree generation, and statistics updates.
- */
 export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vscode.Disposable {
   private _onDidChangeTreeData = new vscode.EventEmitter<StackTreeItem | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event

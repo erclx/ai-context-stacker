@@ -30,9 +30,6 @@ export interface CommandDependencies {
   views: ViewManager
 }
 
-/**
- * Main entry point for command registration.
- */
 export function registerAllCommands(deps: CommandDependencies) {
   registerStackModifications(deps)
   registerClipboardOperations(deps)

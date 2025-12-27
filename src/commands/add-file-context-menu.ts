@@ -39,7 +39,6 @@ function resolveTargets(clickedUri?: vscode.Uri, selectedUris?: vscode.Uri[]): v
 
   if (clickedUri) return [clickedUri]
 
-  // Fallback for Command Palette or keyboard shortcuts
   if (vscode.window.activeTextEditor) return [vscode.window.activeTextEditor.document.uri]
 
   return []

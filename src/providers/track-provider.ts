@@ -4,10 +4,6 @@ import { ContextTrack } from '../models'
 import { StackProvider } from './stack-provider'
 import { TrackManager } from './track-manager'
 
-/**
- * Provides tree view for context tracks with live token stats.
- * Enables Drag and Drop and Context Menu reordering.
- */
 export class TrackProvider
   implements vscode.TreeDataProvider<ContextTrack>, vscode.TreeDragAndDropController<ContextTrack>, vscode.Disposable
 {
@@ -26,9 +22,6 @@ export class TrackProvider
     })
   }
 
-  /**
-   * Injects stack provider for live token stats on active track.
-   */
   public setStackProvider(provider: StackProvider): void {
     this.stackProvider = provider
     this.stackProvider.onDidChangeTreeData(() => this.refresh())
@@ -106,7 +99,6 @@ export class TrackProvider
     const isOnly = allTracks.length === 1
 
     if (isOnly) {
-      // If it's the only track, it is inherently active and protected
       return 'contextTrack:active:only'
     }
 

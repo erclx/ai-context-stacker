@@ -13,7 +13,6 @@ export function registerTrackCommands(
   trackManager: TrackManager,
   filesView: vscode.TreeView<ContextTrack>,
 ): void {
-  // New Track
   context.subscriptions.push(
     vscode.commands.registerCommand(
       'aiContextStacker.newTrack',
@@ -21,7 +20,6 @@ export function registerTrackCommands(
     ),
   )
 
-  // Switch Track
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.switchTrack', (arg?: string | ContextTrack) => {
       const action = () => handleSwitchTrack(trackManager, arg)
@@ -29,7 +27,6 @@ export function registerTrackCommands(
     }),
   )
 
-  // Rename Track
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.renameTrack', (item?: ContextTrack) => {
       const action = () => handleRenameTrack(trackManager, filesView, item)
@@ -37,7 +34,6 @@ export function registerTrackCommands(
     }),
   )
 
-  // Delete Track
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.deleteTrack', (item?: ContextTrack) => {
       const action = () => handleDeleteTrack(trackManager, filesView, item)
@@ -45,7 +41,6 @@ export function registerTrackCommands(
     }),
   )
 
-  // Delete All Tracks (Reset)
   context.subscriptions.push(
     vscode.commands.registerCommand(
       'aiContextStacker.deleteAllTracks',
@@ -53,19 +48,15 @@ export function registerTrackCommands(
     ),
   )
 
-  // Move Track Up
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.moveTrackUp', (item?: ContextTrack) => {
-      // Pass the view to resolve selection when triggered by keybinding
       const action = () => handleMoveTrack(trackManager, filesView, item, 'up')
       return ErrorHandler.safeExecute('Move Track Up', action)()
     }),
   )
 
-  // Move Track Down
   context.subscriptions.push(
     vscode.commands.registerCommand('aiContextStacker.moveTrackDown', (item?: ContextTrack) => {
-      // Pass the view to resolve selection when triggered by keybinding
       const action = () => handleMoveTrack(trackManager, filesView, item, 'down')
       return ErrorHandler.safeExecute('Move Track Down', action)()
     }),
@@ -88,7 +79,6 @@ async function handleSwitchTrack(manager: TrackManager, arg?: string | ContextTr
 
   if (!targetId) return
 
-  // Prevent redundant context switching
   if (targetId === manager.getActiveTrack().id) {
     return
   }
@@ -120,7 +110,6 @@ async function handleDeleteTrack(
 ): Promise<void> {
   const target = resolveTargetTrack(manager, view, item)
 
-  // Double check constraint, though UI should hide it
   if (manager.allTracks.length <= 1) {
     void vscode.window.showWarningMessage('Cannot delete the last track. Use "Reset All" to clear workspace.')
     return
@@ -149,16 +138,10 @@ async function handleMoveTrack(
   item: ContextTrack | undefined,
   direction: 'up' | 'down',
 ): Promise<void> {
-  // Fallback: If no item (keybinding), use selection or active track
   const target = resolveTargetTrack(manager, view, item)
   manager.moveTrackRelative(target.id, direction)
 }
 
-// --- Helpers ---
-
-/**
- * Resolves the target track ID from an argument or prompts the user via QuickPick.
- */
 async function resolveTrackId(manager: TrackManager, arg?: string | ContextTrack): Promise<string | undefined> {
   if (arg) {
     return typeof arg === 'string' ? arg : arg.id
@@ -166,9 +149,6 @@ async function resolveTrackId(manager: TrackManager, arg?: string | ContextTrack
   return await pickTrack(manager)
 }
 
-/**
- * Resolves the target track object based on direct selection, view selection, or active state.
- */
 function resolveTargetTrack(
   manager: TrackManager,
   view: vscode.TreeView<ContextTrack>,
@@ -179,10 +159,6 @@ function resolveTargetTrack(
   return manager.getActiveTrack()
 }
 
-/**
- * Displays a QuickPick for selecting a context track.
- * Handles the mapping of track data to UI items.
- */
 async function pickTrack(manager: TrackManager): Promise<string | undefined> {
   const activeId = manager.getActiveTrack().id
 

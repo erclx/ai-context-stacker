@@ -4,9 +4,6 @@ import * as vscode from 'vscode'
 import { TrackManager } from '../providers'
 import { Logger } from '../utils'
 
-/**
- * Monitors the workspace for file system events to keep tracked files in sync.
- */
 export class FileWatcherService implements vscode.Disposable {
   private watcher: vscode.FileSystemWatcher
   private pendingDeletes = new Set<string>()
@@ -85,7 +82,6 @@ export class FileWatcherService implements vscode.Disposable {
       if (this._isDisposed) return
 
       const deleteUri = vscode.Uri.parse(deleteStr)
-      // Optimization: Ignore events for files that aren't currently being tracked
       if (!this.contextTrackManager.hasUri(deleteUri)) continue
 
       this.resolveFileChange(deleteUri, creationIndex)

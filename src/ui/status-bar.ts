@@ -2,10 +2,6 @@ import * as vscode from 'vscode'
 
 import { StackProvider } from '../providers'
 
-/**
- * Manages the Status Bar Item.
- * Primary Action: Copy All to Clipboard.
- */
 export class StackerStatusBar implements vscode.Disposable {
   private item: vscode.StatusBarItem
   private provider: StackProvider

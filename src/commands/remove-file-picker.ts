@@ -19,7 +19,7 @@ async function handleRemovePicker(provider: StackProvider): Promise<void> {
   const items = currentFiles.map((file) => ({
     label: file.label,
     description: file.isPinned ? '$(pin) Pinned' : '',
-    picked: true, // Initially all selected
+    picked: true,
     file: file,
   }))
 
@@ -29,10 +29,8 @@ async function handleRemovePicker(provider: StackProvider): Promise<void> {
     title: 'Remove Files',
   })
 
-  // undefined means cancelled
   if (!selectedItems) return
 
-  // Calculate diff: files that were in the list but are NOT in selectedItems
   const remainingUris = new Set(selectedItems.map((i) => i.file.uri.toString()))
   const filesToRemove = currentFiles.filter((f) => !remainingUris.has(f.uri.toString()))
 

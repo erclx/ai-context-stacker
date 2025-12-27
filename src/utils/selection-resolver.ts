@@ -3,15 +3,7 @@ import * as vscode from 'vscode'
 import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
 import { StackProvider } from '../providers'
 
-/**
- * Centralizes logic for determining operation targets from UI interactions.
- * Handles priority of selection (ContextMenu > Selection > All) and folder flattening.
- */
 export class SelectionResolver {
-  /**
-   * Resolves the final list of files to process.
-   * Uses a cascading priority system to determine user intent.
-   */
   public static resolve(
     clickedItem: StackTreeItem | undefined,
     selectedItems: StackTreeItem[] | undefined,
@@ -20,7 +12,6 @@ export class SelectionResolver {
   ): StagedFile[] {
     const rawSelection = this.getRawSelection(clickedItem, selectedItems, treeView)
 
-    // Fallback: Act on the entire stack if nothing is specifically selected
     if (rawSelection.length === 0) {
       return stackProvider.getFiles()
     }
@@ -28,10 +19,6 @@ export class SelectionResolver {
     return this.flattenSelection(rawSelection)
   }
 
-  /**
-   * Flattens a mix of Files and Folders into a unique list of distinct StagedFiles.
-   * Recursively unpacks folders.
-   */
   public static flattenSelection(items: StackTreeItem[]): StagedFile[] {
     const uniqueFiles = new Map<string, StagedFile>()
 
@@ -46,9 +33,6 @@ export class SelectionResolver {
     return Array.from(uniqueFiles.values())
   }
 
-  /**
-   * Generates a consistent human-readable label for feedback messages.
-   */
   public static getFeedbackLabel(files: StagedFile[], totalStagedCount: number): string {
     if (files.length === totalStagedCount && totalStagedCount > 1) {
       return 'All Staged Files'
@@ -59,12 +43,6 @@ export class SelectionResolver {
     return `${files.length} Files`
   }
 
-  /**
-   * Resolution Hierarchy:
-   * 1. Context Menu Multi-select
-   * 2. Context Menu Single-click
-   * 3. Tree View Selection
-   */
   private static getRawSelection(
     clickedItem: StackTreeItem | undefined,
     selectedItems: StackTreeItem[] | undefined,

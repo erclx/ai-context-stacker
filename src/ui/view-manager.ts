@@ -5,9 +5,6 @@ import { IgnoreManager, StackProvider, TrackManager } from '../providers'
 import { TrackProvider } from '../providers/track-provider'
 import { StackDragDropController } from './stack-drag-drop'
 
-/**
- * Manages the creation, configuration, and state synchronization of VS Code TreeViews.
- */
 export class ViewManager implements vscode.Disposable {
   public readonly filesView: vscode.TreeView<StackTreeItem>
   public readonly tracksView: vscode.TreeView<ContextTrack>
@@ -20,7 +17,6 @@ export class ViewManager implements vscode.Disposable {
     trackManager: TrackManager,
     ignoreProvider: IgnoreManager,
   ) {
-    // Composition Root: Wire Controller to Provider
     const dragDropController = new StackDragDropController(stackProvider, ignoreProvider)
 
     this.filesView = vscode.window.createTreeView('aiContextStackerView', {
@@ -38,10 +34,8 @@ export class ViewManager implements vscode.Disposable {
     this.registerViewCommands()
     this.updateTitle(trackManager.getActiveTrack().name, stackProvider)
 
-    // Listen for Track Changes
     trackManager.onDidChangeTrack((track) => this.updateTitle(track.name, stackProvider), null, this._disposables)
 
-    // Listen for Filter Changes (Provider emits on filter change)
     stackProvider.onDidChangeTreeData(
       () => this.updateTitle(trackManager.getActiveTrack().name, stackProvider),
       null,
@@ -51,12 +45,8 @@ export class ViewManager implements vscode.Disposable {
     this._disposables.push(this.filesView, this.tracksView, dragDropController)
   }
 
-  /**
-   * Registers view-specific commands that proxy to internal Workbench actions.
-   */
   private registerViewCommands(): void {
     const collapseCmd = vscode.commands.registerCommand('aiContextStacker.collapseAll', () =>
-      // Proxy to the internal VS Code command to handle recursive collapsing
       vscode.commands.executeCommand('workbench.actions.treeView.aiContextStackerView.collapseAll'),
     )
 

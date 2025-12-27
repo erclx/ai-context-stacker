@@ -2,18 +2,10 @@ import * as vscode from 'vscode'
 
 import { isStagedFolder, StackTreeItem, StagedFile, StagedFolder } from '../models'
 
-/**
- * Orchestrates the transformation of internal Stack models into VS Code TreeItems.
- * Handles conditional formatting, icon attribution, and token-count visualization.
- */
 export class StackItemRenderer {
   private readonly EMPTY_URI_SCHEME = 'ai-stack'
   private readonly EMPTY_ID = 'emptyState'
 
-  /**
-   * Primary entry point for the TreeDataProvider to resolve UI elements.
-   * @param element The model element to be rendered.
-   */
   public render(element: StackTreeItem): vscode.TreeItem {
     if (isStagedFolder(element)) {
       return this.renderFolder(element)
@@ -26,9 +18,6 @@ export class StackItemRenderer {
     return this.renderFile(element)
   }
 
-  /**
-   * Creates a virtual item used to guide users when the stack is empty.
-   */
   public createPlaceholderItem(): StagedFile {
     return {
       type: 'file',
@@ -37,9 +26,6 @@ export class StackItemRenderer {
     }
   }
 
-  /**
-   * Converts raw token numbers into a human-readable shorthand (e.g., 1.2k).
-   */
   public formatTokenCount(count: number): string {
     if (count < 0 || isNaN(count)) return '~0'
     return count >= 1000 ? `~${(count / 1000).toFixed(1)}k` : `~${count}`
@@ -59,9 +45,6 @@ export class StackItemRenderer {
     return item
   }
 
-  /**
-   * Aggregates tokens from children.
-   */
   private sumFolderTokens(folder: StagedFolder): number {
     return folder.containedFiles.reduce((sum, file) => {
       return sum + (file.stats?.tokenCount ?? 0)
@@ -97,9 +80,6 @@ export class StackItemRenderer {
     return item
   }
 
-  /**
-   * Branches decoration logic based on file characteristics.
-   */
   private applyContextualDecorations(item: vscode.TreeItem, file: StagedFile): void {
     if (file.isBinary) {
       this.applyBinaryDecorations(item)
@@ -120,10 +100,6 @@ export class StackItemRenderer {
     item.tooltip = 'Binary file detected; content cannot be parsed for tokens.'
   }
 
-  /**
-   * Logic to visually warn users if a file is unusually large.
-   * Priority: Pinned > Critical (Red) > Warning (Orange).
-   */
   private resolveFileIcon(file: StagedFile, tokens: number, threshold: number): vscode.ThemeIcon {
     const isCritical = tokens >= threshold * 2
     const isWarning = tokens >= threshold
@@ -131,11 +107,9 @@ export class StackItemRenderer {
     let iconId = 'file'
     let color: vscode.ThemeColor | undefined
 
-    // Determine Icon Shape
     if (file.isPinned) iconId = 'pin'
     else if (isCritical) iconId = 'warning'
 
-    // Determine Color (Heatmap)
     if (isCritical) color = new vscode.ThemeColor('charts.red')
     else if (isWarning) color = new vscode.ThemeColor('charts.orange')
 

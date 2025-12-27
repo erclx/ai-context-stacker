@@ -3,10 +3,6 @@ import * as vscode from 'vscode'
 export class Logger {
   private static _outputChannel: vscode.OutputChannel | undefined
 
-  /**
-   * Initializes the shared output channel. Must be called on extension activation.
-   * @param name - Display name for the Output tab
-   */
   public static configure(name: string): void {
     this._outputChannel?.dispose()
     this._outputChannel = vscode.window.createOutputChannel(name)
@@ -20,12 +16,6 @@ export class Logger {
     this.log('WARN', message)
   }
 
-  /**
-   * Logs an error and optionally notifies the user via a UI message.
-   * @param message - Technical log message
-   * @param error - The original error object
-   * @param notifyUser - If true, shows a sanitized error message to the user
-   */
   public static error(message: string, error?: unknown, notifyUser = false): void {
     this.log('ERROR', message)
 

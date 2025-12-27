@@ -31,16 +31,10 @@ interface FormatterConfig {
   maxSizeBytes: number
 }
 
-/**
- * Optimized formatter using Async Generators and iterative algorithms.
- */
 export class ContentFormatter {
-  private static readonly DEFAULT_MAX_BYTES = 100 * 1024 * 1024 // 100MB
-  private static readonly MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB Hard Cap
+  private static readonly DEFAULT_MAX_BYTES = 100 * 1024 * 1024
+  private static readonly MAX_FILE_SIZE = 5 * 1024 * 1024
 
-  /**
-   * Orchestrates the context generation stream.
-   */
   public static async *formatStream(
     files: StagedFile[],
     opts: FormatOptions = {},
@@ -50,14 +44,12 @@ export class ContentFormatter {
     const config = this.getConfig(opts)
     let currentTotalSize = 0
 
-    // 1. Process Tree Map Section
     if (config.showTreeMap) {
       const treeBlock = this.generateTreeBlock(files, config)
       currentTotalSize += treeBlock.length
       yield treeBlock
     }
 
-    // 2. Process File Contents Section (Master Toggle)
     if (config.includeFileContents) {
       if (config.showFileContentsHeader) {
         yield this.renderHeader(config.fileContentsText)
@@ -66,9 +58,6 @@ export class ContentFormatter {
     }
   }
 
-  /**
-   * Accumulates the stream into a single string.
-   */
   public static async format(files: StagedFile[], opts: FormatOptions = {}): Promise<string> {
     const parts: string[] = []
     let length = 0
@@ -82,9 +71,6 @@ export class ContentFormatter {
     return parts.join('')
   }
 
-  /**
-   * Generates a visual ASCII tree using an iterative stack approach.
-   */
   public static generateAsciiTree(files: StagedFile[]): string {
     const paths = files.map((f) => this.getDisplayPath(f.uri)).sort()
     const root: TreeNode = {}

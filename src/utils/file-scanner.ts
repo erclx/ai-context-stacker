@@ -3,14 +3,9 @@ import * as vscode from 'vscode'
 import { IgnoreManager, StackProvider } from '../providers'
 import { Logger } from './logger'
 
-// Throughput limits optimized for VS Code Extension Host
 export const BATCH_SIZE_STAT = 50
 export const BATCH_SIZE_GLOB = 5
 
-/**
- * Separates URIs into files/folders using batched fs.stat calls.
- * @param targets - Raw selection
- */
 export async function categorizeTargets(targets: vscode.Uri[]) {
   const files: vscode.Uri[] = []
   const folders: vscode.Uri[] = []
@@ -30,9 +25,6 @@ export async function categorizeTargets(targets: vscode.Uri[]) {
   return { files, folders }
 }
 
-/**
- * Orchestrates recursive scanning with concurrency control.
- */
 export async function handleFolderScanning(
   folders: vscode.Uri[],
   provider: StackProvider,
@@ -49,7 +41,6 @@ export async function handleFolderScanning(
     async (_, token) => {
       const excludes = await ignoreProvider.getExcludePatterns()
 
-      // Delegate to the parallelized scanner
       await scanMultipleFolders(folders, excludes, (files) => provider.addFiles(files), token)
 
       if (!token.isCancellationRequested) {
@@ -59,9 +50,6 @@ export async function handleFolderScanning(
   )
 }
 
-/**
- * Scans multiple folders in parallel batches to avoid I/O saturation.
- */
 export async function scanMultipleFolders(
   folders: vscode.Uri[],
   excludes: string,
@@ -75,8 +63,6 @@ export async function scanMultipleFolders(
     await processScanBatch(batch, excludes, onFound, token)
   }
 }
-
-// --- Helpers ---
 
 async function processStatBatch(batch: vscode.Uri[], files: vscode.Uri[], folders: vscode.Uri[]): Promise<void> {
   await Promise.all(

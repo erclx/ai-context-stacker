@@ -4,21 +4,12 @@ import * as vscode from 'vscode'
 import { ContentStats, StagedFile } from '../models'
 import { Logger, TokenEstimator } from '../utils'
 
-/**
- * Handles bulk analysis of file metadata and token counts.
- * Implements a tiered batching strategy to process large file sets without
- * blocking the VS Code extension host or exhausting the V8 heap.
- */
 export class StatsProcessor {
   private readonly decoder = new TextDecoder()
   private readonly CONCURRENCY_LIMIT = 5
   private readonly MAX_ANALYSIS_SIZE = 1024 * 1024
   private readonly MAX_BATCH_SIZE = 100
 
-  /**
-   * Primary entry point for calculating statistics for a list of staged files.
-   * Processes files in batches to allow for Garbage Collection between cycles.
-   */
   public async enrichFileStats(targets: StagedFile[]): Promise<void> {
     const queue = targets.filter((f) => !f.stats)
     if (queue.length === 0) return
@@ -27,7 +18,6 @@ export class StatsProcessor {
       const batch = queue.slice(batchStart, batchStart + this.MAX_BATCH_SIZE)
       await this.processBatch(batch)
 
-      // Prevent event loop starvation during massive directory scans
       await this.yieldToEventLoop()
     }
   }
@@ -59,7 +49,6 @@ export class StatsProcessor {
   private async dispatchAnalysis(file: StagedFile): Promise<void> {
     const size = await this.getFileSize(file.uri)
 
-    // Use fast heuristics for large files to avoid reading massive buffers into memory
     if (size > this.MAX_ANALYSIS_SIZE) {
       this.applyHeuristicStats(file, size)
     } else {
@@ -70,7 +59,6 @@ export class StatsProcessor {
   private async analyzeSmallFile(file: StagedFile, size: number): Promise<void> {
     const content = await this.readTextContent(file.uri)
 
-    // Release control to UI thread after I/O pressure
     await this.yieldToEventLoop()
 
     if (content === null) {
@@ -86,7 +74,6 @@ export class StatsProcessor {
   private applyHeuristicStats(file: StagedFile, size: number): void {
     file.isBinary = false
     file.stats = {
-      // Standard heuristic: 1 token is roughly 4 characters
       tokenCount: Math.ceil(size / 4),
       charCount: size,
     }
@@ -109,7 +96,6 @@ export class StatsProcessor {
   private async readTextContent(uri: vscode.Uri): Promise<string | null> {
     const uint8Array = await vscode.workspace.fs.readFile(uri)
 
-    // Check first 512 bytes for null characters (binary detection)
     const checkLength = Math.min(uint8Array.length, 512)
     const isBinary = uint8Array.slice(0, checkLength).some((b) => b === 0)
 

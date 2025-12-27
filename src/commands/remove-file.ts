@@ -13,7 +13,6 @@ export function registerRemoveFileCommand(
     (item?: StackTreeItem, selectedItems?: StackTreeItem[]) => {
       let targets: StackTreeItem[] = []
 
-      // Normalize selection source (right-click vs keyboard selection)
       if (selectedItems && selectedItems.length > 0) {
         targets = selectedItems
       } else if (item) {

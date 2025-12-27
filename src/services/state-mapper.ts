@@ -2,14 +2,7 @@ import * as vscode from 'vscode'
 
 import { ContextTrack, SerializedState, SerializedTrack, StagedFile } from '../models'
 
-/**
- * Handles serialization and deserialization of the context state.
- * Isolates the domain model from the persistence format.
- */
 export class StateMapper {
-  /**
-   * Maps memory Map of tracks to a serializable object for VS Code workspace storage.
-   */
   public static toSerialized(
     tracks: Map<string, ContextTrack>,
     activeTrackId: string,
@@ -35,9 +28,6 @@ export class StateMapper {
     return state
   }
 
-  /**
-   * Hydrates the domain model from workspace storage data.
-   */
   public static fromSerialized(state: SerializedState | undefined): {
     tracks: Map<string, ContextTrack>
     activeTrackId: string

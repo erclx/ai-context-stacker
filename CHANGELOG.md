@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Cleaned up codebase by removing legacy JSDoc comments and redundant inline documentation.
+
 ## [0.0.2] - 2025-12-27
 
 ### Added

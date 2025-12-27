@@ -5,10 +5,6 @@ import { IgnoreManager, StackProvider } from '../providers'
 import { categorizeTargets, handleFolderScanning, Logger } from '../utils'
 import { extractUrisFromTransfer } from '../utils/drag-drop'
 
-/**
- * Handles Drag & Drop interactions for the Staged Files view.
- * Decouples input handling from data provision.
- */
 export class StackDragDropController implements vscode.TreeDragAndDropController<StackTreeItem>, vscode.Disposable {
   public readonly dragMimeTypes: readonly string[] = ['text/uri-list']
   public readonly dropMimeTypes: readonly string[] = ['text/uri-list']
@@ -81,7 +77,5 @@ export class StackDragDropController implements vscode.TreeDragAndDropController
     }
   }
 
-  dispose() {
-    // No specific resources to dispose currently, but satisfied interface
-  }
+  dispose() {}
 }

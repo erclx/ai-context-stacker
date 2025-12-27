@@ -13,9 +13,6 @@ export class IgnoreManager implements vscode.Disposable {
     this.initWatchers()
   }
 
-  /**
-   * Returns combined exclusion patterns for vscode.workspace.findFiles.
-   */
   public async getExcludePatterns(): Promise<string> {
     if (this._cachedPatterns) {
       Logger.info('Ignore patterns cache hit.')

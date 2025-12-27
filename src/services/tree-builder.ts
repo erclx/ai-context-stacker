@@ -2,13 +2,7 @@ import * as vscode from 'vscode'
 
 import { isStagedFolder, StackTreeItem, StagedFile, StagedFolder } from '../models'
 
-/**
- * Service responsible for constructing the hierarchical view model from flat file lists.
- */
 export class TreeBuilder {
-  /**
-   * Transforms a flat list of StagedFiles into a hierarchical tree based on relative paths.
-   */
   public build(files: StagedFile[]): StackTreeItem[] {
     const rootItems: StackTreeItem[] = []
     const folderMap = new Map<string, StagedFolder>()
