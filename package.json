@@ -2,7 +2,7 @@
   "name": "ai-context-stacker",
   "displayName": "AI Context Stacker",
   "publisher": "erclx",
-  "description": "Stage and copy multiple files for AI prompts without context switching.",
+  "description": "Collect, organize, and copy multiple files and directory structures for use in AI prompts.",
   "version": "0.0.1",
   "license": "MIT",
   "icon": "assets/icon.png",
