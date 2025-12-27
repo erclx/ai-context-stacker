@@ -1,0 +1,54 @@
+name: Publish Extension
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers on tags like v1.0.0, v2.1.3
+
+jobs:
+  test:
+    name: Run Tests
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # Use xvfb-run on Linux to simulate a display
+      - name: Run Tests (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: xvfb-run -a npm test
+
+      # Standard run for Windows/macOS
+      - name: Run Tests (Windows & macOS)
+        if: matrix.os != 'ubuntu-latest'
+        run: npm test
+
+  publish:
+    name: Publish to Marketplace
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Publish
+        run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }}
