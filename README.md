@@ -219,20 +219,20 @@ All configuration is managed natively via VS Code Settings.
 
 ## Tips
 
-- **Model Context**: Adjust `largeFileThreshold` based on your model's context window to match your specific LLM's token limits.
-- **Iteration**: Use **Copy and Clear Stack** (<kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd>) to quickly grab context and reset for your next prompt.
-- **Smart Copying**: Pressing <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>C</kbd> in the Staged Files view is selection-aware. Select specific files to copy only those, or copy the entire visible stack when nothing is selected.
-- **Bulk Operations**: Use <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd> to select all files, then <kbd>Space</kbd> to toggle pin on multiple files at once.
-- **Remote Work**: Optimized for GitHub Codespaces, WSL2, and SSH sessions with clipboard and file operations.
+- **Sidebar Placement**: Keeping the extension in the **left Activity Bar** improves drag-and-drop from the Explorer.
+- **Model Limits**: Adjust `largeFileThreshold` to match your model’s context window.
+- **Fast Iteration**: Use **Copy and Clear Stack** (<kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd>) to reset quickly between prompts.
+- **Selective Copy**: Copy respects selection—select files to copy only those, or copy everything when nothing is selected.
+- **Bulk Actions**: Use <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> then <kbd>Space</kbd> to pin or unpin multiple files at once.
 
 ## Known Limitations
 
-- **Clipboard Safeguard**: Payload is capped at 100MB to prevent V8 engine crashes and system lag. Operations exceeding this limit return empty to protect IDE stability.
-- **Large File Shield**: Files over 5MB are excluded from context to prevent model rejection. Files over 1MB use high-speed statistical estimation instead of full buffer scanning to maintain UI responsiveness.
-- **Binary Files**: Automatically detected and skipped via null-byte scanning.
-- **Token Accuracy**: Estimates use character/word density heuristics optimized for speed. While highly accurate, they may vary slightly from specific model tokenizers.
-- **Bulk Safety**: Adding folders with more than 200 files triggers a confirmation warning.
-- **Clipboard API**: In web-based VS Code environments (e.g., vscode.dev), clipboard access requires a secure HTTPS context.
+- **Clipboard Size**: Output is capped at 100MB to protect VS Code stability.
+- **Large Files**: Files over 5MB are excluded from context.
+- **Token Estimates**: Counts are approximate and may differ slightly from model-specific tokenizers.
+- **Binary Files**: Binary assets are automatically skipped.
+- **Large Folders**: Adding folders with more than 200 files requires confirmation.
+- **Web VS Code**: Clipboard access in browser-based VS Code requires a secure HTTPS context.
 
 ## Support
 
