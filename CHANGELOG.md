@@ -7,48 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3] - 2025-12-27
+
+### Added
+
+- **Warmup Indicator**: Loading spinner and "Warming up..." label displayed in sidebar during startup.
+- **Progress Bar**: VS Code progress bar shown during background token analysis.
+- **Status Bar Updates**: "Calculating..." message shown while the extension initializes.
+
 ### Changed
 
-- Cleaned up codebase by removing legacy JSDoc comments and redundant inline documentation.
+- **Sidebar Rendering**: Sidebar now appears immediately on VS Code startup.
+- **Token Counting**: Improved performance for large stacks and deep folder structures.
+- **Startup Behavior**: Extension no longer blocks VS Code activation.
 
 ## [0.0.2] - 2025-12-27
 
 ### Added
 
-- **Automated CI/CD**: Implemented GitHub Actions to automatically run cross-platform tests (Windows, macOS, Ubuntu) and publish to the Marketplace on version tags.
-- **Issue Templates**: Added structured forms for Bug Reports and Feature Requests to streamline community feedback.
-- **Community Infrastructure**: Enabled GitHub Discussions and configured `config.yml` to redirect support questions and documentation requests.
+- **CI/CD Pipeline**: GitHub Actions for cross-platform testing and Marketplace publishing on version tags.
+- **Issue Templates**: Bug Report and Feature Request forms.
+- **Project Support Setup**: GitHub Discussions enabled and support links configured via `config.yml`.
 
 ## [0.0.1] - 2025-12-27
 
 ### Added
 
-- **File Staging System**: Drag-and-drop files or folders into the staging area to build context for LLM prompts without tab-switching.
-- **Context Tracks**: Create and manage multiple isolated staging environments (e.g., "Refactor Auth," "Bug Fix #102") to stay organized across tasks.
-- **Smart Clipboard Operations**: Selection-aware copying that automatically detects user intent—copies specifically selected items or the entire stack if no selection is active.
-- **Live Token Counting**: Real-time token estimation with a 400ms debounce to ensure the UI remains responsive even during heavy document edits.
-- **Visual Warning System**: Color-coded indicators for large files (Amber at 5k tokens, Red at 10k tokens) to help manage model context window limits.
-- **Pin & Filter**: Protect specific files from "Clear Stack" operations and toggle a "Pinned Only" view to focus on core project context.
-- **ASCII Context Map**: Optionally include a visual directory tree structure in your clipboard output to help LLMs understand your project's architecture.
-- **Multi-root Workspace Support**: Automatic project folder grouping and path disambiguation for professional multi-repo workflows.
-- **Remote Environment Support**: Fully optimized for VS Code Remote (SSH, WSL2) and GitHub Codespaces.
-- **Live Preview System**: Dedicated Markdown preview (`Ctrl+Shift+V`) that live-syncs with your stack, allowing verification before you copy.
-- **Bulk Productivity Tools**: "Add All Open Files," recursive folder scanning, and "Select All" for batch removal or pinning.
-- **Navigation Shortcuts**: "Reveal in Explorer" and "Reveal in AI Stack" commands to bridge the gap between your workspace and your staged context.
+- **File Staging**: Drag-and-drop files and folders into a staging area.
+- **Context Tracks**: Multiple independent stacks for different tasks.
+- **Clipboard Copying**: Copies selected items or the full stack when no selection is active.
+- **Token Counting**: Live token estimates with debounce.
+- **File Warnings**: Visual indicators for large files.
+- **Pinning & Filtering**: Pin files and filter to pinned-only view.
+- **Context Tree**: Optional ASCII directory tree in clipboard output.
+- **Multi-root Support**: Handles multi-folder workspaces correctly.
+- **Remote Support**: Works in SSH, WSL, and Codespaces environments.
+- **Markdown Preview**: Live preview synced with the stack.
+- **Batch Actions**: Add all open files, recursive folder add, bulk select.
+- **Navigation Commands**: Reveal files in Explorer or AI Stack.
 
 ### Performance & Safety
 
-- **Memory Guard**: Implemented a **100MB clipboard cap** to protect the VS Code Extension Host and V8 engine from memory exhaustion.
-- **File Size Shields**:
-  - Automatically excludes files **>5MB** from context to prevent LLM rejection.
-  - Implemented high-speed statistical heuristics for token counts on files **>1MB** to maintain IDE fluidity.
-- **Binary Detection**: Integrated a null-byte head-scan (512-byte buffer) to detect and automatically skip binary assets.
-- **Batch Safeguard**: Added a confirmation threshold for folder additions exceeding 200 files to prevent accidental I/O saturation.
+- **Clipboard Limit**: 100MB maximum clipboard output.
+- **File Limits**:
+  - Files over 5MB are excluded.
+  - Approximate token counting for files over 1MB.
+- **Binary Skipping**: Binary files are automatically ignored.
+- **Folder Guard**: Confirmation required when adding more than 200 files.
 
 ### Security
 
-- All processing and context generation occur **strictly locally** on your machine.
-- No code data is ever transmitted to external servers by this extension.
+- All processing is local.
+- No data is sent externally.
 
-[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/erclx/ai-context-stacker/compare/v0.0.2...v0.0.3
+[0.0.2]: https://github.com/erclx/ai-context-stacker/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/erclx/ai-context-stacker/releases/tag/v0.0.1

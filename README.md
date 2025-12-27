@@ -43,6 +43,8 @@ Drag files or folders into the staging area. Right-click any file in the Explore
 
 **Live Token Updates**: Token counts refresh automatically as you edit (400ms debounce). Files over 1MB use optimized statistical estimation to keep the editor responsive during rapid typing.
 
+**Startup Behavior**: The sidebar appears immediately when VS Code opens. Token analysis runs in the background during a brief warmup period, showing a loading spinner and "Calculating..." in the Status Bar until complete.
+
 **Manual Refresh**: Use the dedicated **Refresh Stack** command (found in the `...` menu or press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd>) to force a re-scan of the filesystem and re-calculate all token counts.
 
 ### Context Tracks
@@ -112,6 +114,10 @@ This makes both targeted and bulk operations intuitive without separate commands
 - Right-click files in the Explorer to add them or reveal them in the stack
 - Right-click staged files to reveal them in your system file manager
 - Use **Reveal in AI Stack** to locate and highlight any file within your staged context
+
+## Performance
+
+The extension handles large stacks without blocking VS Code. The sidebar renders immediately on startup while token counting happens in the background. Folder trees with hundreds of files build quickly, and long operations show progress using VS Code's native progress bar.
 
 ## Commands
 
