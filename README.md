@@ -24,14 +24,16 @@ This gets tedious fast—especially with larger codebases or multi-file tasks.
 
 ## Quick Start
 
-1. Install the extension from the VS Code Marketplace.
-2. Open the **AI Context Stacker** view in the Activity Bar.
-3. Drag files into the **Staged Files** panel.
-   - Or right-click → **Add to AI Context Stack**.
-4. Use **`Ctrl+Alt+A`** (`Cmd+Alt+A` on Mac) to search and add files from anywhere in the editor.
-5. Click **Copy Stack** or press **`Ctrl+Shift+C`** when focused on the Staged Files view.
-6. Use **`Ctrl+Shift+V`** (`Cmd+Shift+V` on Mac, except in Markdown files) to preview your context before copying.
-7. Paste into your LLM.
+1. **Install** the extension from the VS Code Marketplace.
+2. **Open** the AI Context Stacker view in the Activity Bar.
+3. **Stage Files** by dragging them into the Staged Files panel.
+   - Or right-click any file in the Explorer → **Add to AI Context Stack**.
+4. **Quick Add** files from anywhere using <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> (<kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> on Mac).
+5. **Preview** your context with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> on Mac, except in Markdown files).
+6. **Copy Stack** by clicking the copy icon or pressing <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> on Mac) when focused on the Staged Files view.
+7. **Paste** into your LLM.
+
+> **Tip**: Press <kbd>F1</kbd> or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> on Mac) and type "AI Context Stacker" to discover all available commands.
 
 ## Key Features
 
@@ -41,15 +43,15 @@ Drag files or folders into the staging area. Right-click any file in the Explore
 
 **Live Token Updates**: Token counts refresh automatically as you edit (400ms debounce). Files over 1MB use optimized statistical estimation to keep the editor responsive during rapid typing.
 
-**Manual Refresh**: Use the dedicated **Refresh Stack** command (found in the `...` menu or press **`Ctrl+Alt+U`**) to force a re-scan of the filesystem and re-calculate all token counts.
+**Manual Refresh**: Use the dedicated **Refresh Stack** command (found in the `...` menu or press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd>) to force a re-scan of the filesystem and re-calculate all token counts.
 
 ### Context Tracks
 
 Create separate tracks for different tasks (e.g. _Bug Fix #123_, _Refactor Auth_). Each track maintains its own list of staged files.
 
-- Reorder tracks by dragging or using **Alt + Up / Down**
-- Rename tracks inline with **F2**
-- Quickly switch between tracks with **`Ctrl+Alt+S`** (`Cmd+Alt+S` on Mac)
+- Reorder tracks by dragging or using <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd>
+- Rename tracks inline with <kbd>F2</kbd>
+- Quickly switch between tracks with <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> (<kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> on Mac)
 
 Note: The extension always maintains at least one active track. The last remaining track cannot be deleted.
 
@@ -76,7 +78,7 @@ This helps you spot large files before hitting model limits.
 - Pin files to protect them from **Clear Stack**
 - Toggle **Show Pinned Files Only** to filter the view
 - Copy commands respect the active filter
-- Use **Space** to quickly toggle pin on selected files
+- Use <kbd>Space</kbd> to quickly toggle pin on selected files
 
 Pinned files persist across clears and workflow resets.
 
@@ -115,29 +117,29 @@ This makes both targeted and bulk operations intuitive without separate commands
 
 ### Stack Operations
 
-| Command                   | Description                                                               | Keybinding                  |
-| :------------------------ | :------------------------------------------------------------------------ | :-------------------------- |
-| `Add Files...`            | Pick files to add to the stack (includes **Add All** option).             | `Ctrl+Alt+A` / `Cmd+Alt+A`  |
-| `Add Folder...`           | Recursively scan and add an entire directory.                             | `Ctrl+Alt+F` / `Cmd+Alt+F`  |
-| `Remove Files...`         | Bulk-remove selected files from the stack.                                |                             |
-| `Add All Open Files`      | Stage all currently open text editors.                                    |                             |
-| `Add Current File`        | Stage the active editor.                                                  |                             |
-| `Add to AI Context Stack` | Add file from Explorer context menu.                                      |                             |
-| `Reveal in AI Stack`      | Locate and highlight any file within your staged context.                 |                             |
-| `Clear Stack`             | Remove all **unpinned** files from the current track.                     | `Shift+Del` (when focused)  |
-| `Toggle Pin`              | Pin or unpin selected file(s) for bulk protection.                        | `Space` (when focused)      |
-| `Unpin All`               | Instantly unpin all files in the current track (found in the `...` menu). |                             |
-| `Refresh Stack`           | Manually re-calculate token counts and sync file metadata from disk.      | `Ctrl+Alt+U` (when focused) |
-| `Select All`              | Select all staged files for bulk operations (Pin/Remove).                 | `Ctrl+A` / `Cmd+A`          |
+| Command                   | Description                                                               | Keybinding                                                                               |
+| :------------------------ | :------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------- |
+| `Add Files...`            | Pick files to add to the stack (includes **Add All** option).             | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> |
+| `Add Folder...`           | Recursively scan and add an entire directory.                             | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> |
+| `Remove Files...`         | Bulk-remove selected files from the stack.                                |                                                                                          |
+| `Add All Open Files`      | Stage all currently open text editors.                                    |                                                                                          |
+| `Add Current File`        | Stage the active editor.                                                  |                                                                                          |
+| `Add to AI Context Stack` | Add file from Explorer context menu.                                      |                                                                                          |
+| `Reveal in AI Stack`      | Locate and highlight any file within your staged context.                 |                                                                                          |
+| `Clear Stack`             | Remove all **unpinned** files from the current track.                     | <kbd>Shift</kbd>+<kbd>Del</kbd> (when focused)                                           |
+| `Toggle Pin`              | Pin or unpin selected file(s) for bulk protection.                        | <kbd>Space</kbd> (when focused)                                                          |
+| `Unpin All`               | Instantly unpin all files in the current track (found in the `...` menu). |                                                                                          |
+| `Refresh Stack`           | Manually re-calculate token counts and sync file metadata from disk.      | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> (when focused)                               |
+| `Select All`              | Select all staged files for bulk operations (Pin/Remove).                 | <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd>                               |
 
 ### Output & Clipboard
 
-| Command                | Description                                                        | Keybinding                             |
-| :--------------------- | :----------------------------------------------------------------- | :------------------------------------- |
-| `Copy Stack`           | Copy all staged content based on your active settings and filters. | `Ctrl+Shift+C` / `Cmd+Shift+C`         |
-| `Copy and Clear Stack` | Copy context and immediately clear all unpinned files in one step. | `Ctrl+X` / `Cmd+X` (when focused)      |
-| `Copy Content`         | Copy individual file or folder content.                            | `Ctrl+C` / `Cmd+C` (when item focused) |
-| `Preview Context`      | Open a live-syncing Markdown preview of your current stack.        | `Ctrl+Shift+V` / `Cmd+Shift+V`         |
+| Command                | Description                                                        | Keybinding                                                                                   |
+| :--------------------- | :----------------------------------------------------------------- | :------------------------------------------------------------------------------------------- |
+| `Copy Stack`           | Copy all staged content based on your active settings and filters. | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> |
+| `Copy and Clear Stack` | Copy context and immediately clear all unpinned files in one step. | <kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd> (when focused)                    |
+| `Copy Content`         | Copy individual file or folder content.                            | <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>C</kbd> (when item focused)               |
+| `Preview Context`      | Open a live-syncing Markdown preview of your current stack.        | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> |
 
 ### View & Filtering
 
@@ -151,48 +153,48 @@ This makes both targeted and bulk operations intuitive without separate commands
 
 ### Track Management
 
-| Command              | Description                                           | Keybinding                             |
-| :------------------- | :---------------------------------------------------- | :------------------------------------- |
-| `New Track...`       | Create a new isolated context track.                  | `Ctrl+Alt+K` / `Cmd+Alt+K`             |
-| `Switch Track...`    | Switch between your saved tracks.                     | `Ctrl+Alt+S` / `Cmd+Alt+S`             |
-| `Rename Track...`    | Rename the selected track.                            | `F2` (when focused on track)           |
-| `Delete Track`       | Delete the selected track (except for the last one).  | `Del` / `Cmd+Backspace` (when focused) |
-| `Reset All Tracks`   | Reset the extension state (removes all tracks/files). | `Shift+Del` / `Shift+Cmd+Backspace`    |
-| `Move Track Up/Down` | Reorder tracks in the sidebar.                        | `Alt+Up` / `Alt+Down` (when focused)   |
+| Command              | Description                                           | Keybinding                                                                               |
+| :------------------- | :---------------------------------------------------- | :--------------------------------------------------------------------------------------- |
+| `New Track...`       | Create a new isolated context track.                  | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> |
+| `Switch Track...`    | Switch between your saved tracks.                     | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> |
+| `Rename Track...`    | Rename the selected track.                            | <kbd>F2</kbd> (when focused on track)                                                    |
+| `Delete Track`       | Delete the selected track (except for the last one).  | <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd> (when focused)                      |
+| `Reset All Tracks`   | Reset the extension state (removes all tracks/files). | <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd>   |
+| `Move Track Up/Down` | Reorder tracks in the sidebar.                        | <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd> (when focused)                 |
 
 ## Keyboard Shortcuts
 
 ### Global Shortcuts
 
-| Shortcut                       | Command           |
-| :----------------------------- | :---------------- |
-| `Ctrl+Alt+A` / `Cmd+Alt+A`     | Add Files Picker  |
-| `Ctrl+Alt+F` / `Cmd+Alt+F`     | Add Folder Picker |
-| `Ctrl+Alt+K` / `Cmd+Alt+K`     | New Track         |
-| `Ctrl+Alt+S` / `Cmd+Alt+S`     | Switch Track      |
-| `Ctrl+Shift+V` / `Cmd+Shift+V` | Preview Context   |
+| Shortcut                                                                                     | Command           |
+| :------------------------------------------------------------------------------------------- | :---------------- |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd>     | Add Files Picker  |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd>     | Add Folder Picker |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd>     | New Track         |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd>     | Switch Track      |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> | Preview Context   |
 
 ### Staged Files View (when focused)
 
-| Shortcut                            | Command              |
-| :---------------------------------- | :------------------- |
-| `Ctrl+Alt+U` / `Cmd+Alt+U`          | Refresh Stack        |
-| `Ctrl+Shift+C` / `Cmd+Shift+C`      | Copy Stack           |
-| `Ctrl+X` / `Cmd+X`                  | Copy and Clear Stack |
-| `Ctrl+C` / `Cmd+C`                  | Copy File            |
-| `Ctrl+A` / `Cmd+A`                  | Select All           |
-| `Space`                             | Toggle Pin           |
-| `Del` / `Cmd+Backspace`             | Remove File          |
-| `Shift+Del` / `Shift+Cmd+Backspace` | Clear Stack          |
+| Shortcut                                                                                     | Command              |
+| :------------------------------------------------------------------------------------------- | :------------------- |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd>     | Refresh Stack        |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | Copy Stack           |
+| <kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd>                                   | Copy and Clear Stack |
+| <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>C</kbd>                                   | Copy File            |
+| <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd>                                   | Select All           |
+| <kbd>Space</kbd>                                                                             | Toggle Pin           |
+| <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                         | Remove File          |
+| <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd>       | Clear Stack          |
 
 ### Context Tracks View (when focused)
 
-| Shortcut                            | Command          |
-| :---------------------------------- | :--------------- |
-| `F2`                                | Rename Track     |
-| `Alt+Up` / `Alt+Down`               | Move Track       |
-| `Del` / `Cmd+Backspace`             | Delete Track     |
-| `Shift+Del` / `Shift+Cmd+Backspace` | Reset All Tracks |
+| Shortcut                                                                               | Command          |
+| :------------------------------------------------------------------------------------- | :--------------- |
+| <kbd>F2</kbd>                                                                          | Rename Track     |
+| <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd>                              | Move Track       |
+| <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                   | Delete Track     |
+| <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd> | Reset All Tracks |
 
 ## Settings
 
@@ -212,9 +214,9 @@ All configuration is managed natively via VS Code Settings.
 ## Tips
 
 - **Model Context**: Adjust `largeFileThreshold` based on your model's context window to match your specific LLM's token limits.
-- **Iteration**: Use **Copy and Clear Stack** (`Ctrl+X` / `Cmd+X`) to quickly grab context and reset for your next prompt.
-- **Smart Copying**: Pressing `Ctrl+C` in the Staged Files view is selection-aware. Select specific files to copy only those, or copy the entire visible stack when nothing is selected.
-- **Bulk Operations**: Use `Ctrl+A` to select all files, then `Space` to toggle pin on multiple files at once.
+- **Iteration**: Use **Copy and Clear Stack** (<kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd>) to quickly grab context and reset for your next prompt.
+- **Smart Copying**: Pressing <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>C</kbd> in the Staged Files view is selection-aware. Select specific files to copy only those, or copy the entire visible stack when nothing is selected.
+- **Bulk Operations**: Use <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd> to select all files, then <kbd>Space</kbd> to toggle pin on multiple files at once.
 - **Remote Work**: Optimized for GitHub Codespaces, WSL2, and SSH sessions with clipboard and file operations.
 
 ## Known Limitations
