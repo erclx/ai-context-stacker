@@ -21,6 +21,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   private _cachedTotalTokens = 0
   private _treeDirty = true
   private _showPinnedOnly = false
+  private _isWarmingUp = true
 
   private treeBuilder = new TreeBuilder()
   private statsProcessor = new StatsProcessor()
@@ -32,6 +33,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     private trackManager: TrackManager,
   ) {
     this.registerListeners()
+    this.initializeWarmup()
   }
 
   public get hasActiveFilters(): boolean {
@@ -94,7 +96,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   }
 
   public getTreeItem(element: StackTreeItem): vscode.TreeItem {
-    return this.renderer.render(element)
+    return this.renderer.render(element, this._isWarmingUp)
   }
 
   public getParent(): vscode.ProviderResult<StackTreeItem> {
@@ -143,7 +145,23 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this.clearAllPendingTimers()
   }
 
-  // --- Internal Implementation ---
+  private initializeWarmup(): void {
+    this.statsProcessor.onDidWarmup(() => {
+      this._isWarmingUp = false
+      this.triggerRefresh()
+    })
+
+    void vscode.window.withProgress(
+      { location: { viewId: 'aiContextStackerView' } },
+      () =>
+        new Promise<void>((resolve) => {
+          const d = this.statsProcessor.onDidWarmup(() => {
+            d.dispose()
+            resolve()
+          })
+        }),
+    )
+  }
 
   private shouldRebuildTree(): boolean {
     return this._treeDirty || !this._cachedTree

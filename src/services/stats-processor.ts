@@ -11,9 +11,15 @@ export class StatsProcessor {
 
   private startupPromise: Promise<void>
 
+  private _onDidWarmup = new vscode.EventEmitter<void>()
+  public readonly onDidWarmup = this._onDidWarmup.event
+
   constructor() {
     this.startupPromise = new Promise((resolve) => {
-      setTimeout(resolve, this.STARTUP_DELAY_MS)
+      setTimeout(() => {
+        resolve()
+        this._onDidWarmup.fire()
+      }, this.STARTUP_DELAY_MS)
     })
   }
 

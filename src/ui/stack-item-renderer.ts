@@ -6,16 +6,16 @@ export class StackItemRenderer {
   private readonly EMPTY_URI_SCHEME = 'ai-stack'
   private readonly EMPTY_ID = 'emptyState'
 
-  public render(element: StackTreeItem): vscode.TreeItem {
+  public render(element: StackTreeItem, isWarmingUp: boolean): vscode.TreeItem {
     if (isStagedFolder(element)) {
-      return this.renderFolder(element)
+      return this.renderFolder(element, isWarmingUp)
     }
 
     if (element.uri.scheme === this.EMPTY_URI_SCHEME) {
-      return this.renderEmptyState(element)
+      return this.renderEmptyState(element, isWarmingUp)
     }
 
-    return this.renderFile(element)
+    return this.renderFile(element, isWarmingUp)
   }
 
   public createPlaceholderItem(): StagedFile {
@@ -31,7 +31,7 @@ export class StackItemRenderer {
     return count >= 1000 ? `~${(count / 1000).toFixed(1)}k` : `~${count}`
   }
 
-  private renderFolder(folder: StagedFolder): vscode.TreeItem {
+  private renderFolder(folder: StagedFolder, isWarmingUp: boolean): vscode.TreeItem {
     const item = new vscode.TreeItem(folder.label, vscode.TreeItemCollapsibleState.Expanded)
 
     item.contextValue = 'stagedFolder'
@@ -39,7 +39,9 @@ export class StackItemRenderer {
     item.resourceUri = folder.resourceUri
 
     const totalTokens = this.sumFolderTokens(folder)
-    item.description = this.formatTokenCount(totalTokens)
+    const tokenDisplay = isWarmingUp ? 'Calculating...' : this.formatTokenCount(totalTokens)
+
+    item.description = tokenDisplay
     item.tooltip = `${folder.containedFiles.length} files inside`
 
     return item
@@ -51,7 +53,7 @@ export class StackItemRenderer {
     }, 0)
   }
 
-  private renderFile(file: StagedFile): vscode.TreeItem {
+  private renderFile(file: StagedFile, isWarmingUp: boolean): vscode.TreeItem {
     const item = new vscode.TreeItem(file.label)
 
     item.resourceUri = file.uri
@@ -62,25 +64,28 @@ export class StackItemRenderer {
       arguments: [file.uri],
     }
 
-    this.applyContextualDecorations(item, file)
+    this.applyContextualDecorations(item, file, isWarmingUp)
 
     return item
   }
 
-  private renderEmptyState(element: StagedFile): vscode.TreeItem {
-    const item = new vscode.TreeItem(element.label)
+  private renderEmptyState(element: StagedFile, isWarmingUp: boolean): vscode.TreeItem {
+    const item = new vscode.TreeItem(isWarmingUp ? 'AI Stacker is warming up...' : element.label)
 
-    item.iconPath = new vscode.ThemeIcon('library')
+    item.iconPath = isWarmingUp ? new vscode.ThemeIcon('loading~spin') : new vscode.ThemeIcon('library')
     item.contextValue = this.EMPTY_ID
-    item.command = {
-      command: 'aiContextStacker.addFilePicker',
-      title: 'Add Files',
+
+    if (!isWarmingUp) {
+      item.command = {
+        command: 'aiContextStacker.addFilePicker',
+        title: 'Add Files',
+      }
     }
 
     return item
   }
 
-  private applyContextualDecorations(item: vscode.TreeItem, file: StagedFile): void {
+  private applyContextualDecorations(item: vscode.TreeItem, file: StagedFile, isWarmingUp: boolean): void {
     if (file.isBinary) {
       this.applyBinaryDecorations(item)
       return
@@ -88,6 +93,14 @@ export class StackItemRenderer {
 
     const threshold = this.getThreshold()
     const tokens = file.stats?.tokenCount ?? 0
+    const hasStats = !!file.stats
+
+    if (!hasStats && isWarmingUp) {
+      item.iconPath = new vscode.ThemeIcon('loading~spin')
+      item.description = '(calculating...)'
+      item.tooltip = 'Analysis pending...'
+      return
+    }
 
     item.iconPath = this.resolveFileIcon(file, tokens, threshold)
     item.tooltip = this.resolveTooltip(file, tokens, threshold)
