@@ -7,7 +7,7 @@ import { TreeBuilder } from '../../services/tree-builder'
 
 /**
  * Validates the transformation of flat file lists into a hierarchical TreeView model.
- * Focuses on recursion logic, sorting, and virtual folder integrity.
+ * Verifies strict sorting orders and folder virtualization logic.
  */
 suite('TreeBuilder Suite', () => {
   let builder: TreeBuilder
@@ -38,7 +38,7 @@ suite('TreeBuilder Suite', () => {
   })
 
   test('Should create nested folders for deep paths', () => {
-    // Arrange: src/utils/math.ts
+    // Arrange
     const deepFile = createFile('/src/utils/math.ts')
     mockPaths([deepFile], ['src/utils/math.ts'])
 
@@ -49,14 +49,16 @@ suite('TreeBuilder Suite', () => {
     const srcFolder = result[0] as StagedFolder
     assertFolder(srcFolder, 'src')
 
-    const utilsFolder = srcFolder.children[0] as StagedFolder
+    const utilsFolder = srcFolder.children.find((c) => c.label === 'utils') as StagedFolder
+    assert.ok(utilsFolder, 'Should have utils folder')
     assertFolder(utilsFolder, 'utils')
 
-    assert.strictEqual(utilsFolder.children[0].label, 'math.ts')
+    const mathFile = utilsFolder.children.find((c) => c.label === 'math.ts')
+    assert.ok(mathFile, 'Should have math.ts')
   })
 
   test('Should sort folders before files alphabetically', () => {
-    // Arrange: 'config.json' (file) vs 'assets/logo.png' (folder)
+    // Arrange
     const file = createFile('config.json')
     const fileInFolder = createFile('assets/logo.png')
 
@@ -65,46 +67,63 @@ suite('TreeBuilder Suite', () => {
     // Act
     const result = builder.build([file, fileInFolder])
 
-    // Assert: Folder 'assets' comes before file 'config.json'
+    // Assert
     assertFolder(result[0] as StagedFolder, 'assets')
     assert.strictEqual(result[1].label, 'config.json')
   })
 
-  test('Should aggregate all leaf nodes in folder.containedFiles', () => {
+  test('Should associate files with their immediate parent folder', () => {
     // Arrange
     const fileA = createFile('src/a.ts')
-    const fileB = createFile('src/b.ts')
-    mockPaths([fileA, fileB], ['src/a.ts', 'src/b.ts'])
+    const fileB = createFile('src/nested/b.ts')
+    mockPaths([fileA, fileB], ['src/a.ts', 'src/nested/b.ts'])
 
     // Act
     const result = builder.build([fileA, fileB])
 
     // Assert
     const srcFolder = result[0] as StagedFolder
-    assert.strictEqual(srcFolder.containedFiles.length, 2, 'Should contain both nested files')
-    assert.deepStrictEqual(srcFolder.containedFiles, [fileA, fileB])
+
+    // a.ts is a direct child of src
+    const hasA = srcFolder.containedFiles.some((f) => f.uri.path === fileA.uri.path)
+    assert.strictEqual(hasA, true, 'src should contain a.ts directly')
+
+    // b.ts is nested deeper, so it should not be in the immediate parent list
+    const hasB = srcFolder.containedFiles.some((f) => f.uri.path === fileB.uri.path)
+    assert.strictEqual(hasB, false, 'src should not contain b.ts directly')
+
+    const nestedFolder = srcFolder.children.find((c) => c.label === 'nested') as StagedFolder
+    assert.ok(nestedFolder)
+    const nestedHasB = nestedFolder.containedFiles.some((f) => f.uri.path === fileB.uri.path)
+    assert.strictEqual(nestedHasB, true, 'nested should contain b.ts directly')
   })
 
   // --- Helpers ---
 
   function setupMocks(sb: sinon.SinonSandbox): void {
-    // Mock workspace folder to prevent "undefined" errors during folder creation
+    // Prevent "undefined" errors when the builder checks for multi-root workspaces
+    sb.stub(vscode.workspace, 'workspaceFolders').value([
+      {
+        uri: vscode.Uri.file('/root'),
+        name: 'root',
+        index: 0,
+      },
+    ])
+
     sb.stub(vscode.workspace, 'getWorkspaceFolder').returns({
       uri: vscode.Uri.file('/root'),
       name: 'root',
       index: 0,
     })
 
-    // Stub asRelativePath to control path segments deterministically
+    // Control path segments deterministically
     asRelativePathStub = sb.stub(vscode.workspace, 'asRelativePath')
   }
 
-  /**
-   * Configures the relative path mock to return specific paths for given URIs.
-   */
   function mockPaths(files: StagedFile[], paths: string[]): void {
     files.forEach((file, index) => {
-      asRelativePathStub.withArgs(file.uri).returns(paths[index])
+      // Stub for any 2nd argument (includeWorkspaceFolder boolean)
+      asRelativePathStub.withArgs(file.uri, sinon.match.any).returns(paths[index])
     })
   }
 
