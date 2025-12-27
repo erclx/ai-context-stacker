@@ -6,33 +6,31 @@ import { generateId } from '../utils'
 
 export class TrackManager implements vscode.Disposable {
   private static readonly STORAGE_KEY = 'aiContextStacker.tracks.v1'
+  private readonly GHOST_TRACK: ContextTrack = { id: 'ghost', name: 'No Active Track', files: [] }
 
-  private tracks: Map<string, ContextTrack> = new Map()
+  private tracks = new Map<string, ContextTrack>()
   private activeTrackId = 'default'
   private _trackOrder: string[] = []
-
   private uriIndex = new Set<string>()
   private _isInitialized = false
-
-  private readonly GHOST_TRACK: ContextTrack = { id: 'ghost', name: 'No Active Track', files: [] }
 
   private _onDidChangeTrack = new vscode.EventEmitter<ContextTrack>()
   readonly onDidChangeTrack = this._onDidChangeTrack.event
 
   constructor(private extensionContext: vscode.ExtensionContext) {
-    this.init()
+    this.hydrate()
   }
 
   public get isInitialized(): boolean {
     return this._isInitialized
   }
 
-  public getActiveTrack(): ContextTrack {
-    return this.tracks.get(this.activeTrackId) || this.GHOST_TRACK
-  }
-
   public get allTracks(): ContextTrack[] {
     return this._trackOrder.map((id) => this.tracks.get(id)).filter((t): t is ContextTrack => t !== undefined)
+  }
+
+  public getActiveTrack(): ContextTrack {
+    return this.tracks.get(this.activeTrackId) || this.GHOST_TRACK
   }
 
   public async switchToTrack(id: string): Promise<void> {
@@ -42,10 +40,52 @@ export class TrackManager implements vscode.Disposable {
     this._onDidChangeTrack.fire(this.getActiveTrack())
   }
 
+  public createTrack(name: string): string {
+    const id = generateId('track')
+    const newTrack: ContextTrack = { id, name, files: [] }
+    this.tracks.set(id, newTrack)
+    this._trackOrder.push(id)
+    this.switchToTrack(id)
+    return id
+  }
+
+  public renameTrack(id: string, newName: string): void {
+    const track = this.tracks.get(id)
+    if (!track) return
+    track.name = newName
+    this.persistState(false)
+    this._onDidChangeTrack.fire(track)
+  }
+
+  public deleteTrack(id: string): void {
+    if (this.tracks.size <= 1) return
+    const wasActive = this.activeTrackId === id
+    this.tracks.delete(id)
+    this._trackOrder = this._trackOrder.filter((tid) => tid !== id)
+    this.rebuildIndex()
+
+    if (wasActive) {
+      const nextId = this._trackOrder[0] || 'default'
+      if (!this.tracks.has(nextId)) this.createDefaultTrack()
+      this.switchToTrack(nextId)
+    } else {
+      this.persistState(false)
+      this._onDidChangeTrack.fire(this.getActiveTrack())
+    }
+  }
+
+  public deleteAllTracks(): void {
+    this.tracks.clear()
+    this._trackOrder = []
+    this.uriIndex.clear()
+    this.createDefaultTrack()
+    this.persistState(true)
+    this._onDidChangeTrack.fire(this.getActiveTrack())
+  }
+
   public moveTrackRelative(id: string, direction: 'up' | 'down'): void {
     const index = this._trackOrder.indexOf(id)
     if (index === -1) return
-
     const newIndex = direction === 'up' ? index - 1 : index + 1
     if (newIndex < 0 || newIndex >= this._trackOrder.length) return
 
@@ -60,65 +100,21 @@ export class TrackManager implements vscode.Disposable {
   public reorderTracks(sourceId: string, targetId: string | undefined): void {
     const fromIndex = this._trackOrder.indexOf(sourceId)
     if (fromIndex === -1) return
-
     this._trackOrder.splice(fromIndex, 1)
 
     if (!targetId) {
       this._trackOrder.push(sourceId)
     } else {
-      this.insertTrackAtTarget(sourceId, targetId)
+      const toIndex = this._trackOrder.indexOf(targetId)
+      if (toIndex === -1) this._trackOrder.push(sourceId)
+      else this._trackOrder.splice(toIndex, 0, sourceId)
     }
-
     this.persistState(false)
-    this._onDidChangeTrack.fire(this.getActiveTrack())
-  }
-
-  public createTrack(name: string): string {
-    const id = generateId('track')
-    const newTrack: ContextTrack = { id, name, files: [] }
-
-    this.tracks.set(id, newTrack)
-    this._trackOrder.push(id)
-    this.switchToTrack(id)
-    return id
-  }
-
-  public renameTrack(id: string, newName: string): void {
-    const track = this.tracks.get(id)
-    if (!track) return
-
-    track.name = newName
-    this.persistState(false)
-    this._onDidChangeTrack.fire(track)
-  }
-
-  public deleteTrack(id: string): void {
-    if (this.tracks.size <= 1) return
-
-    const wasActive = this.activeTrackId === id
-    this.performDeletion(id)
-
-    if (wasActive) {
-      this.handleActiveTrackDeletion()
-    } else {
-      this.persistState(false)
-      this._onDidChangeTrack.fire(this.getActiveTrack())
-    }
-  }
-
-  public deleteAllTracks(): void {
-    this.tracks.clear()
-    this._trackOrder = []
-    this.uriIndex.clear()
-
-    this.createDefaultTrack()
-
-    this.persistState(true)
     this._onDidChangeTrack.fire(this.getActiveTrack())
   }
 
   public toggleFilesPin(files: StagedFile[]): void {
-    if (!files || files.length === 0) return
+    if (!files?.length) return
     files.forEach((f) => (f.isPinned = !f.isPinned))
     this.persistState(false)
     this._onDidChangeTrack.fire(this.getActiveTrack())
@@ -127,10 +123,6 @@ export class TrackManager implements vscode.Disposable {
   public unpinAllInActive(): void {
     const track = this.getActiveTrack()
     if (track === this.GHOST_TRACK) return
-
-    const hasPinned = track.files.some((f) => f.isPinned)
-    if (!hasPinned) return
-
     track.files.forEach((f) => (f.isPinned = false))
     this.persistState(false)
     this._onDidChangeTrack.fire(track)
@@ -143,13 +135,11 @@ export class TrackManager implements vscode.Disposable {
   public removeUriEverywhere(uri: vscode.Uri): void {
     let changed = false
     const uriStr = uri.toString()
-
     for (const track of this.tracks.values()) {
-      const initialLength = track.files.length
+      const len = track.files.length
       track.files = track.files.filter((f) => f.uri.toString() !== uriStr)
-      if (track.files.length !== initialLength) changed = true
+      if (track.files.length !== len) changed = true
     }
-
     if (changed) {
       this.rebuildIndex()
       this.persistState(false)
@@ -170,7 +160,6 @@ export class TrackManager implements vscode.Disposable {
         changed = true
       }
     }
-
     if (changed) {
       this.rebuildIndex()
       this.persistState(false)
@@ -185,9 +174,8 @@ export class TrackManager implements vscode.Disposable {
     if (newFiles.length > 0) {
       track.files.push(...newFiles)
       this.rebuildIndex()
-      this.persistState(false)
+      this.persistState()
     }
-
     return newFiles
   }
 
@@ -195,14 +183,14 @@ export class TrackManager implements vscode.Disposable {
     const track = this.getActiveTrack()
     if (track === this.GHOST_TRACK) return
 
-    const idsToRemove = new Set(filesToRemove.map((f) => f.uri.fsPath))
-    const oldLength = track.files.length
+    const targets = new Set(filesToRemove.map((f) => f.uri.toString()))
+    const initialLen = track.files.length
 
-    track.files = track.files.filter((f) => !idsToRemove.has(f.uri.fsPath))
+    track.files = track.files.filter((f) => !targets.has(f.uri.toString()))
 
-    if (track.files.length !== oldLength) {
+    if (track.files.length !== initialLen) {
       this.rebuildIndex()
-      this.persistState(false)
+      this.persistState()
     }
   }
 
@@ -210,30 +198,22 @@ export class TrackManager implements vscode.Disposable {
     const track = this.getActiveTrack()
     if (track === this.GHOST_TRACK) return
 
-    const oldLength = track.files.length
     track.files = track.files.filter((f) => f.isPinned)
-
-    if (track.files.length !== oldLength) {
-      this.rebuildIndex()
-      this.persistState(false)
-    }
+    this.rebuildIndex()
+    this.persistState()
   }
 
   public dispose(): void {
     this._onDidChangeTrack.dispose()
   }
 
-  private init(): void {
-    const rawState = this.extensionContext.workspaceState.get<SerializedState>(TrackManager.STORAGE_KEY)
-
-    if (rawState) {
-      this.restoreState(rawState)
-    }
-
-    if (this.tracks.size === 0) {
+  private hydrate(): void {
+    const raw = this.extensionContext.workspaceState.get<SerializedState>(TrackManager.STORAGE_KEY)
+    if (raw) {
+      this.restoreState(raw)
+    } else {
       this.createDefaultTrack()
     }
-
     this.rebuildIndex()
     this._isInitialized = true
     this.updateContextKeys()
@@ -244,14 +224,17 @@ export class TrackManager implements vscode.Disposable {
     this.tracks = tracks
     this.activeTrackId = activeTrackId
     this._trackOrder = trackOrder
-
-    this.syncOrderIntegrity()
-    this.ensureActiveTrackValidity()
+    this.validateStateIntegrity()
   }
 
-  private ensureActiveTrackValidity(): void {
+  private validateStateIntegrity(): void {
     if (this.tracks.size > 0 && !this.tracks.has(this.activeTrackId)) {
       this.activeTrackId = this._trackOrder[0] || 'default'
+    }
+    const trackIds = new Set(this.tracks.keys())
+    this._trackOrder = this._trackOrder.filter((id) => trackIds.has(id))
+    for (const id of trackIds) {
+      if (!this._trackOrder.includes(id)) this._trackOrder.push(id)
     }
   }
 
@@ -260,41 +243,34 @@ export class TrackManager implements vscode.Disposable {
     this.tracks.set(def.id, def)
     this._trackOrder = [def.id]
     this.activeTrackId = def.id
-    this.updateContextKeys()
     return def
+  }
+
+  private persistState(rebuildIndex = true): void {
+    if (rebuildIndex) this.rebuildIndex()
+    this.updateContextKeys()
+    const state = StateMapper.toSerialized(this.tracks, this.activeTrackId, this._trackOrder)
+    this.extensionContext.workspaceState.update(TrackManager.STORAGE_KEY, state)
+  }
+
+  private updateContextKeys(): void {
+    const hasTracks = this.tracks.size > 0
+    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasTracks', hasTracks)
+  }
+
+  private rebuildIndex(): void {
+    this.uriIndex.clear()
+    for (const track of this.tracks.values()) {
+      for (const file of track.files) {
+        this.uriIndex.add(file.uri.toString())
+      }
+    }
   }
 
   private ensureActiveTrack(): ContextTrack {
     let track = this.tracks.get(this.activeTrackId)
-    if (!track) {
-      track = this.createDefaultTrack()
-    }
+    if (!track) track = this.createDefaultTrack()
     return track
-  }
-
-  private insertTrackAtTarget(sourceId: string, targetId: string): void {
-    const toIndex = this._trackOrder.indexOf(targetId)
-    if (toIndex === -1) {
-      this._trackOrder.push(sourceId)
-    } else {
-      this._trackOrder.splice(toIndex, 0, sourceId)
-    }
-  }
-
-  private performDeletion(id: string): void {
-    this.tracks.delete(id)
-    this._trackOrder = this._trackOrder.filter((tid) => tid !== id)
-    this.rebuildIndex()
-  }
-
-  private handleActiveTrackDeletion(): void {
-    const nextId = this._trackOrder[0] || this.tracks.keys().next().value
-
-    if (nextId) {
-      this.switchToTrack(nextId)
-    } else {
-      this.createDefaultTrack()
-    }
   }
 
   private filterNewFiles(track: ContextTrack, uris: vscode.Uri[]): StagedFile[] {
@@ -307,52 +283,5 @@ export class TrackManager implements vscode.Disposable {
         label: uri.path.split('/').pop() || 'unknown',
         isPinned: false,
       }))
-  }
-
-  private persistState(rebuildIndexBeforeSave = true): void {
-    if (rebuildIndexBeforeSave) {
-      this.rebuildIndex()
-    }
-
-    this.updateContextKeys()
-    const state = StateMapper.toSerialized(this.tracks, this.activeTrackId, this._trackOrder)
-    this.extensionContext.workspaceState.update(TrackManager.STORAGE_KEY, state)
-  }
-
-  private syncOrderIntegrity(): void {
-    const trackIds = new Set(this.tracks.keys())
-    const orderedIds = new Set(this._trackOrder)
-
-    // Remove deleted IDs and add missing ones
-    this._trackOrder = this._trackOrder.filter((id) => trackIds.has(id))
-    for (const id of trackIds) {
-      if (!orderedIds.has(id)) {
-        this._trackOrder.push(id)
-      }
-    }
-  }
-
-  private updateContextKeys(): void {
-    const hasTracks = this.tracks.size > 0
-    const hasMultipleTracks = this.tracks.size > 1
-
-    const activeTrack = this.getActiveTrack()
-    const isPristine = this.tracks.size === 1 && activeTrack.files.length === 0
-    const canReset = !isPristine
-    const hasPinnedFiles = activeTrack.files.some((f) => f.isPinned)
-
-    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasTracks', hasTracks)
-    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasMultipleTracks', hasMultipleTracks)
-    void vscode.commands.executeCommand('setContext', 'aiContextStacker.canReset', canReset)
-    void vscode.commands.executeCommand('setContext', 'aiContextStacker.hasPinnedFiles', hasPinnedFiles)
-  }
-
-  private rebuildIndex(): void {
-    this.uriIndex.clear()
-    for (const track of this.tracks.values()) {
-      for (const file of track.files) {
-        this.uriIndex.add(file.uri.toString())
-      }
-    }
   }
 }

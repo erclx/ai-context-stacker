@@ -6,18 +6,26 @@ import { Logger, TokenEstimator } from '../utils'
 
 export class StatsProcessor {
   private readonly decoder = new TextDecoder()
-  private readonly CONCURRENCY_LIMIT = 5
-  private readonly MAX_ANALYSIS_SIZE = 1024 * 1024
-  private readonly MAX_BATCH_SIZE = 100
+  private readonly STARTUP_DELAY_MS = 2500
+  private readonly MAX_BATCH_SIZE = 50
+
+  private startupPromise: Promise<void>
+
+  constructor() {
+    this.startupPromise = new Promise((resolve) => {
+      setTimeout(resolve, this.STARTUP_DELAY_MS)
+    })
+  }
 
   public async enrichFileStats(targets: StagedFile[]): Promise<void> {
+    await this.startupPromise
+
     const queue = targets.filter((f) => !f.stats)
     if (queue.length === 0) return
 
-    for (let batchStart = 0; batchStart < queue.length; batchStart += this.MAX_BATCH_SIZE) {
-      const batch = queue.slice(batchStart, batchStart + this.MAX_BATCH_SIZE)
+    for (let i = 0; i < queue.length; i += this.MAX_BATCH_SIZE) {
+      const batch = queue.slice(i, i + this.MAX_BATCH_SIZE)
       await this.processBatch(batch)
-
       await this.yieldToEventLoop()
     }
   }
@@ -31,35 +39,27 @@ export class StatsProcessor {
   }
 
   private async processBatch(batch: StagedFile[]): Promise<void> {
-    for (let i = 0; i < batch.length; i += this.CONCURRENCY_LIMIT) {
-      const chunk = batch.slice(i, i + this.CONCURRENCY_LIMIT)
-      await Promise.all(chunk.map((file) => this.processFile(file)))
-    }
+    const promises = batch.map((file) => this.processFile(file))
+    await Promise.all(promises)
   }
 
   private async processFile(file: StagedFile): Promise<void> {
     try {
-      await this.dispatchAnalysis(file)
+      const size = await this.getFileSize(file.uri)
+
+      if (size > 1024 * 1024) {
+        this.applyHeuristicStats(file, size)
+      } else {
+        await this.analyzeExactStats(file)
+      }
     } catch (error) {
-      Logger.warn(`Failed to read stats for ${file.uri.fsPath}`)
+      Logger.warn(`Stats read failed: ${file.uri.fsPath}`)
       this.setEmptyStats(file)
     }
   }
 
-  private async dispatchAnalysis(file: StagedFile): Promise<void> {
-    const size = await this.getFileSize(file.uri)
-
-    if (size > this.MAX_ANALYSIS_SIZE) {
-      this.applyHeuristicStats(file, size)
-    } else {
-      await this.analyzeSmallFile(file, size)
-    }
-  }
-
-  private async analyzeSmallFile(file: StagedFile, size: number): Promise<void> {
+  private async analyzeExactStats(file: StagedFile): Promise<void> {
     const content = await this.readTextContent(file.uri)
-
-    await this.yieldToEventLoop()
 
     if (content === null) {
       file.isBinary = true
@@ -87,29 +87,23 @@ export class StatsProcessor {
     try {
       const stat = await vscode.workspace.fs.stat(uri)
       return stat.size
-    } catch (e) {
-      Logger.error(`FS Stat failed: ${uri.fsPath}`, e)
+    } catch {
       return 0
     }
   }
 
   private async readTextContent(uri: vscode.Uri): Promise<string | null> {
-    const uint8Array = await vscode.workspace.fs.readFile(uri)
+    const buffer = await vscode.workspace.fs.readFile(uri)
 
-    const checkLength = Math.min(uint8Array.length, 512)
-    const isBinary = uint8Array.slice(0, checkLength).some((b) => b === 0)
+    const checkLen = Math.min(buffer.length, 512)
+    for (let i = 0; i < checkLen; i++) {
+      if (buffer[i] === 0) return null
+    }
 
-    if (isBinary) return null
-    return this.decoder.decode(uint8Array)
+    return this.decoder.decode(buffer)
   }
 
   private yieldToEventLoop(): Promise<void> {
-    return new Promise((resolve) => {
-      if (typeof setImmediate === 'function') {
-        setImmediate(resolve)
-      } else {
-        setTimeout(resolve, 0)
-      }
-    })
+    return new Promise((resolve) => setTimeout(resolve, 0))
   }
 }
