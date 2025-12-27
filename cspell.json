@@ -5,12 +5,15 @@
     "APOS",
     "cloudern",
     "codicons",
+    "commitlint",
     "cutcopypaste",
     "disposables",
     "erclx",
-    "eslintrc",
     "esbenp",
+    "esbuild",
+    "eslintrc",
     "l10n",
+    "lintstagedrc",
     "prettierrc",
     "pycache",
     "quickpick",
@@ -19,7 +22,8 @@
     "venv",
     "vscode",
     "vsix",
-    "webview"
+    "webview",
+    "yarnrc"
   ],
   "ignorePaths": ["node_modules", "out", "dist", "package-lock.json", ".vscode-test", "**/*.vsix", "**/*.svg"]
 }
