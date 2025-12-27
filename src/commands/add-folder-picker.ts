@@ -33,7 +33,7 @@ async function executeAddFolderPicker(provider: StackProvider, ignore: IgnoreMan
     }
 
     const selected = await showFolderPicker(folders)
-    if (!selected?.length) return
+    if (!selected || selected.length === 0) return
 
     await processSelection(selected, provider, ignore)
   } catch (error) {
@@ -42,11 +42,8 @@ async function executeAddFolderPicker(provider: StackProvider, ignore: IgnoreMan
   }
 }
 
-// --- Discovery Logic ---
-
 async function findUniqueFolders(ignore: IgnoreManager): Promise<vscode.Uri[]> {
   const excludes = await ignore.getExcludePatterns()
-
   const [shallow, deep] = await Promise.all([discoverShallowFolders(), discoverDeepFolders(excludes)])
 
   return mergeFolderLists(shallow, deep)
@@ -58,16 +55,22 @@ async function discoverShallowFolders(): Promise<vscode.Uri[]> {
 
   for (const root of roots) {
     results.push(root.uri)
-    try {
-      const children = await vscode.workspace.fs.readDirectory(root.uri)
-      children.forEach(([name, type]) => {
-        if (type === vscode.FileType.Directory) {
-          results.push(vscode.Uri.joinPath(root.uri, name))
-        }
-      })
-    } catch {}
+    await safeReadDirectory(root.uri, results)
   }
   return results
+}
+
+async function safeReadDirectory(rootUri: vscode.Uri, results: vscode.Uri[]): Promise<void> {
+  try {
+    const children = await vscode.workspace.fs.readDirectory(rootUri)
+    children.forEach(([name, type]) => {
+      if (type === vscode.FileType.Directory) {
+        results.push(vscode.Uri.joinPath(rootUri, name))
+      }
+    })
+  } catch {
+    // Suppress errors for inaccessible directories
+  }
 }
 
 async function discoverDeepFolders(excludes: string): Promise<vscode.Uri[]> {
@@ -77,15 +80,13 @@ async function discoverDeepFolders(excludes: string): Promise<vscode.Uri[]> {
 
 function mergeFolderLists(listA: vscode.Uri[], listB: vscode.Uri[]): vscode.Uri[] {
   const unique = new Map<string, vscode.Uri>()
-
   const add = (uri: vscode.Uri) => unique.set(uri.fsPath, uri)
+
   listA.forEach(add)
   listB.forEach(add)
 
   return Array.from(unique.values()).sort((a, b) => a.fsPath.localeCompare(b.fsPath))
 }
-
-// --- Processing Logic ---
 
 async function processSelection(
   items: FolderQuickPickItem[],
@@ -103,7 +104,6 @@ async function processSelection(
     },
     async (_, token) => {
       await scanMultipleFolders(distinctRoots, excludes, (files) => provider.addFiles(files), token)
-
       if (!token.isCancellationRequested) {
         void vscode.window.showInformationMessage(`Processed ${distinctRoots.length} folders.`)
       }
@@ -129,35 +129,55 @@ function isChildOf(parent: vscode.Uri, child: vscode.Uri): boolean {
   return !relative.startsWith('..') && !path.isAbsolute(relative)
 }
 
-// --- UI Helpers ---
+function showFolderPicker(folders: vscode.Uri[]): Promise<FolderQuickPickItem[] | undefined> {
+  return new Promise((resolve) => {
+    const picker = vscode.window.createQuickPick<FolderQuickPickItem>()
+    const items = folders.map(createPickerItem)
 
-async function showFolderPicker(folders: vscode.Uri[]): Promise<FolderQuickPickItem[] | undefined> {
-  const items = folders.map(createPickerItem)
-  return vscode.window.showQuickPick(items, {
-    canPickMany: true,
-    placeHolder: 'Select folders to add...',
-    matchOnDescription: true,
+    configurePicker(picker, items)
+    bindPickerEvents(picker, resolve)
+
+    picker.show()
+  })
+}
+
+function configurePicker(picker: vscode.QuickPick<FolderQuickPickItem>, items: FolderQuickPickItem[]): void {
+  picker.items = items
+  picker.canSelectMany = true
+  picker.placeholder = 'Search and select folders to add...'
+  picker.title = 'Add Folders to Context Stack'
+  picker.matchOnDescription = false
+}
+
+function bindPickerEvents(
+  picker: vscode.QuickPick<FolderQuickPickItem>,
+  resolve: (value: FolderQuickPickItem[] | undefined) => void,
+): void {
+  picker.onDidAccept(() => {
+    resolve(Array.from(picker.selectedItems))
+    picker.hide()
+  })
+
+  picker.onDidHide(() => {
+    resolve(undefined)
+    picker.dispose()
   })
 }
 
 function createPickerItem(uri: vscode.Uri): FolderQuickPickItem {
   const wsFolder = vscode.workspace.getWorkspaceFolder(uri)
   const isRoot = wsFolder ? uri.fsPath === wsFolder.uri.fsPath : false
-  const name = path.basename(uri.fsPath)
-
-  let description: string
 
   if (isRoot) {
-    description = '(Workspace Root)'
-  } else {
-    const relative = vscode.workspace.asRelativePath(uri, false)
-
-    description = relative === uri.fsPath ? '' : relative
+    return {
+      label: `$(root-folder) ${wsFolder?.name ?? path.basename(uri.fsPath)}`,
+      description: 'Project Root',
+      uri,
+    }
   }
 
   return {
-    label: isRoot ? `$(root-folder) ${wsFolder?.name ?? name}` : `$(folder) ${name}`,
-    description,
+    label: `$(folder) ${vscode.workspace.asRelativePath(uri)}`,
     uri,
   }
 }
