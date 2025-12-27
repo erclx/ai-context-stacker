@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2] - 2025-12-27
+
+### Added
+
+- **Automated CI/CD**: Implemented GitHub Actions to automatically run cross-platform tests (Windows, macOS, Ubuntu) and publish to the Marketplace on version tags.
+- **Issue Templates**: Added structured forms for Bug Reports and Feature Requests to streamline community feedback.
+- **Community Infrastructure**: Enabled GitHub Discussions and configured `config.yml` to redirect support questions and documentation requests.
+
 ## [0.0.1] - 2025-12-27
 
 ### Added
