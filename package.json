@@ -34,6 +34,17 @@
     "configuration": {
       "title": "AI Context Stacker",
       "properties": {
+        "aiContextStacker.logLevel": {
+          "type": "string",
+          "enum": [
+            "DEBUG",
+            "INFO",
+            "WARN",
+            "ERROR"
+          ],
+          "default": "INFO",
+          "description": "The minimum level of logs to record in the output channel."
+        },
         "aiContextStacker.excludes": {
           "type": "array",
           "default": [],

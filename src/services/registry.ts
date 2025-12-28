@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { IgnoreManager, StackProvider, TrackManager, TrackProvider } from '../providers'
-import { Logger } from '../utils'
+import { Logger, LogLevel } from '../utils'
 import { FileWatcherService } from './file-watcher'
 
 export class ServiceRegistry implements vscode.Disposable {
@@ -17,6 +17,8 @@ export class ServiceRegistry implements vscode.Disposable {
 
   constructor(private context: vscode.ExtensionContext) {
     ServiceRegistry._instance = this
+
+    this.initializeLogger()
 
     this.ignoreManager = new IgnoreManager()
     this.trackManager = new TrackManager(context)
@@ -59,6 +61,21 @@ export class ServiceRegistry implements vscode.Disposable {
       this.stackProvider,
       this.trackProvider,
       this.fileWatcher,
+      vscode.workspace.onDidChangeConfiguration((e) => this.handleConfigChange(e)),
     )
+  }
+
+  private initializeLogger(): void {
+    const config = vscode.workspace.getConfiguration('aiContextStacker')
+    const level = config.get<LogLevel>('logLevel') || 'INFO'
+    Logger.configure('AI Context Stacker', level)
+  }
+
+  private handleConfigChange(e: vscode.ConfigurationChangeEvent): void {
+    if (e.affectsConfiguration('aiContextStacker.logLevel')) {
+      const config = vscode.workspace.getConfiguration('aiContextStacker')
+      const level = config.get<LogLevel>('logLevel') || 'INFO'
+      Logger.setLevel(level)
+    }
   }
 }
