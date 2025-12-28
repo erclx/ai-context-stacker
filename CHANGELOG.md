@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5] - 2025-12-28
+
+### Added
+
+- **Recursive Stats**: Folder descriptions now show aggregated token counts for entire subtrees.
+- **Rename and Delete Sync**: Uses native VS Code events for rename and delete operations.
+
+### Changed
+
+- **Activation**: Extension now activates immediately using direct state loading.
+- **File Watching**: Switched from low-level file system watchers to VS Code's high-level events.
+- **Process Management**: Added cleanup to terminate background processes on startup.
+- **Storage**: Limited workspace state to 100KB to reduce startup time.
+
+### Fixed
+
+- **UI Freeze**: Fixed freeze caused by async loops persisting across window reloads.
+- **Resource Leak**: Fixed CPU spikes from undisposed timers and token calculators.
+- **Rename Detection**: Fixed issues with rename operations not updating in the Explorer.
+
 ## [0.0.4] - 2025-12-28
 
 ### Added
@@ -73,7 +93,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All processing is local.
 - No data is sent externally.
 
-[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/erclx/ai-context-stacker/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/erclx/ai-context-stacker/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/erclx/ai-context-stacker/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/erclx/ai-context-stacker/compare/v0.0.1...v0.0.2

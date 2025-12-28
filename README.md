@@ -41,7 +41,7 @@ This gets tedious fast—especially with larger codebases or multi-file tasks.
 
 Drag files or folders into the staging area. Right-click any file in the Explorer to add it. The extension shows what's staged and lets you copy everything in one go.
 
-**Live Token Updates**: Token counts refresh automatically as you edit (400ms debounce). Files over 1MB use optimized statistical estimation to keep the editor responsive during rapid typing.
+**Live Token Updates**: Token counts refresh automatically as you edit (400ms debounce). Folders show the aggregated token count of all files inside them (recursive sum). Files over 1MB use optimized statistical estimation to keep the editor responsive during rapid typing.
 
 **Startup Behavior**: The sidebar appears immediately when VS Code opens. Token analysis runs in the background during a brief warmup period, showing a loading spinner and "Calculating..." in the Status Bar until complete.
 
@@ -64,6 +64,15 @@ Designed for professional workflows, AI Context Stacker fully supports **Multi-r
 Staged files are grouped by their project folder name so the LLM understands which project each file belongs to—even when multiple projects contain identical paths like `src/index.ts`.
 
 Works seamlessly across GitHub Codespaces, WSL2, and SSH Remote sessions with optimized clipboard and drag-and-drop handling for remote environments.
+
+### Robust Tracking
+
+Refactor with confidence. AI Context Stacker uses native VS Code events to track your files and keep your stack in sync.
+
+- **Renames**: Renaming a staged file in the Explorer automatically updates its path in the stack
+- **Deletes**: Deleting a file removes it from the stack to keep your context clean
+
+The extension adapts to your workflow so you can reorganize your project without breaking your prepared context.
 
 ### Token Warnings
 
@@ -117,7 +126,9 @@ This makes both targeted and bulk operations intuitive without separate commands
 
 ## Performance
 
-The extension handles large stacks without blocking VS Code. The sidebar renders immediately on startup while token counting happens in the background. Folder trees with hundreds of files build quickly, and long operations show progress using VS Code's native progress bar.
+The extension handles large stacks without blocking VS Code. The sidebar renders immediately on startup while token counting happens in the background.
+
+File system tracking uses native VS Code events instead of low-level watchers to reduce resource usage in remote environments like WSL, SSH, and Dev Containers. Background processes are cleaned up automatically on window reload to prevent lingering tasks. Folder trees with hundreds of files build quickly, and long operations show progress using VS Code's native progress bar.
 
 ## Commands
 
@@ -220,7 +231,7 @@ All configuration is managed natively via VS Code Settings.
 ## Tips
 
 - **Sidebar Placement**: Keeping the extension in the **left Activity Bar** improves drag-and-drop from the Explorer.
-- **Model Limits**: Adjust `largeFileThreshold` to match your model’s context window.
+- **Model Limits**: Adjust `largeFileThreshold` to match your model's context window.
 - **Fast Iteration**: Use **Copy and Clear Stack** (<kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd>) to reset quickly between prompts.
 - **Selective Copy**: Copy respects selection—select files to copy only those, or copy everything when nothing is selected.
 - **Bulk Actions**: Use <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> then <kbd>Space</kbd> to pin or unpin multiple files at once.
