@@ -79,8 +79,6 @@ export class ContentFormatter {
     return this.renderHierarchyIterative(root)
   }
 
-  // --- Configuration ---
-
   private static getConfig(opts: FormatOptions): FormatterConfig {
     const cfg = vscode.workspace.getConfiguration('aiContextStacker')
     const userTreeMap = cfg.get<boolean>('showTreeMap', true)
@@ -114,8 +112,6 @@ export class ContentFormatter {
     return `${text}\n\n`
   }
 
-  // --- Streaming Logic ---
-
   private static async *streamFileContent(
     files: StagedFile[],
     config: FormatterConfig,
@@ -139,8 +135,6 @@ export class ContentFormatter {
       }
     }
   }
-
-  // --- File Processing ---
 
   private static async processFile(file: StagedFile): Promise<string | null> {
     const validationError = await this.validateFile(file)
@@ -203,8 +197,6 @@ export class ContentFormatter {
     const isMultiRoot = (vscode.workspace.workspaceFolders?.length ?? 0) > 1
     return vscode.workspace.asRelativePath(uri, isMultiRoot)
   }
-
-  // --- Tree Logic (Iterative) ---
 
   private static buildHierarchy(paths: string[], root: TreeNode): void {
     for (const path of paths) {

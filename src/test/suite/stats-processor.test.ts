@@ -28,7 +28,6 @@ suite('StatsProcessor Performance & Logic Tests', () => {
   setup(() => {
     sandbox = sinon.createSandbox()
 
-    // Take over the clock to manually advance through the 2.5s startup delay
     clock = sandbox.useFakeTimers({
       shouldAdvanceTime: true,
       shouldClearNativeTimers: true,
@@ -36,7 +35,6 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     processor = new StatsProcessor()
 
-    // Stub FS methods to avoid actual disk I/O
     fsStatStub = sandbox.stub()
     fsReadFileStub = sandbox.stub()
 
@@ -52,7 +50,6 @@ suite('StatsProcessor Performance & Logic Tests', () => {
       isWritableFileSystem: () => true,
     }
 
-    // Inject mock FS via defineProperty since workspace.fs is readonly
     originalFs = vscode.workspace.fs
     Object.defineProperty(vscode.workspace, 'fs', {
       writable: true,
@@ -78,7 +75,6 @@ suite('StatsProcessor Performance & Logic Tests', () => {
   })
 
   test('Should yield to event loop between batches (Anti-Freeze Check)', async () => {
-    // Force multiple batches by lowering the limit
     ;(processor as any).MAX_BATCH_SIZE = 2
 
     const files = Array.from({ length: 5 }, (_, i) => createFile(`/file_${i}.ts`))
@@ -92,10 +88,8 @@ suite('StatsProcessor Performance & Logic Tests', () => {
       executionLog.push('Processing Complete')
     })
 
-    // Fast-forward past the warmup circuit breaker
     await clock.tickAsync(2600)
 
-    // Schedule a macro task to simulate a UI render event
     setTimeout(() => {
       executionLog.push('UI Render Event')
     }, 0)
@@ -103,7 +97,6 @@ suite('StatsProcessor Performance & Logic Tests', () => {
     await clock.runAllAsync()
     await processingPromise
 
-    // The UI event must occur before processing finishes to prove we yielded
     assert.ok(executionLog.includes('UI Render Event'), 'UI Event should have executed during processing window')
   })
 
@@ -130,7 +123,6 @@ suite('StatsProcessor Performance & Logic Tests', () => {
     const bigFile = createFile('/big.ts')
     const smallFile = createFile('/small.ts')
 
-    // 1MB + 4 bytes
     fsStatStub.withArgs(bigFile.uri).resolves({ size: 1024 * 1024 + 4 })
     fsStatStub.withArgs(smallFile.uri).resolves({ size: 500 })
 
@@ -142,10 +134,8 @@ suite('StatsProcessor Performance & Logic Tests', () => {
     await clock.runAllAsync()
     await promise
 
-    // Heavy tokenizer should only run on the small file
     assert.strictEqual(measureSpy.callCount, 1)
 
-    // Verify heuristic: (1MB + 4) / 4 ~ 262145 tokens
     const expectedTokens = Math.ceil((1024 * 1024 + 4) / 4)
 
     assert.deepStrictEqual(bigFile.stats, {

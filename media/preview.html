@@ -26,7 +26,6 @@
         const btn = document.getElementById('copy-btn')
         const pre = document.getElementById('content')
 
-        // Attempt to acquire API with silent UI-only fallback
         try {
           vscode = acquireVsCodeApi()
         } catch (e) {
@@ -37,17 +36,14 @@
           return
         }
 
-        // Guard against missing DOM elements
         if (!btn || !pre) {
           return
         }
 
-        // If content is empty/whitespace, hide button and show placeholder
         if (!pre.textContent.trim()) {
           btn.classList.add('hidden')
           pre.textContent = 'No files staged. Add files to see a preview.'
           pre.classList.add('placeholder')
-          // Exit early; no copy functionality needed
           return
         }
 
@@ -56,10 +52,8 @@
 
           if (!text) return
 
-          // 1. Send message to extension
           vscode.postMessage({ command: 'copy', text: text })
 
-          // 2. Optimistic UI Feedback
           const originalText = btn.textContent
           btn.textContent = 'Copied!'
           btn.disabled = true

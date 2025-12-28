@@ -31,8 +31,6 @@ export class TrackProvider
     this._onDidChangeTreeData.fire()
   }
 
-  // --- Drag and Drop Implementation ---
-
   public handleDrag(
     source: readonly ContextTrack[],
     dataTransfer: vscode.DataTransfer,
@@ -60,8 +58,6 @@ export class TrackProvider
 
     this.contextTrackManager.reorderTracks(sourceId, targetId)
   }
-
-  // --- TreeDataProvider Implementation ---
 
   public getTreeItem(element: ContextTrack): vscode.TreeItem {
     const isActive = element.id === this.contextTrackManager.getActiveTrack().id
@@ -91,8 +87,6 @@ export class TrackProvider
     this.disposable.dispose()
     this._onDidChangeTreeData.dispose()
   }
-
-  // --- Helpers ---
 
   private getTrackContextValue(element: ContextTrack, isActive: boolean): string {
     const allTracks = this.contextTrackManager.allTracks
