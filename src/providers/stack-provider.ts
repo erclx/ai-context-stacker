@@ -149,6 +149,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this._onDidChangeTreeData.dispose()
     this.disposables.forEach((d) => d.dispose())
     this.clearAllPendingTimers()
+    this.statsProcessor.dispose()
   }
 
   private initializeWarmup(): void {

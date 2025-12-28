@@ -4,24 +4,41 @@ import * as vscode from 'vscode'
 import { ContentStats, StagedFile } from '../models'
 import { Logger, TokenEstimator } from '../utils'
 
-export class StatsProcessor {
+export class StatsProcessor implements vscode.Disposable {
   private readonly decoder = new TextDecoder()
   private readonly STARTUP_DELAY_MS = 2500
 
+  private startupTimer: NodeJS.Timeout | undefined
   private startupPromise: Promise<void>
   private _onDidWarmup = new vscode.EventEmitter<void>()
+
+  private _isDisposed = false
+
   public readonly onDidWarmup = this._onDidWarmup.event
 
   constructor() {
     this.startupPromise = new Promise((resolve) => {
-      setTimeout(() => {
+      this.startupTimer = setTimeout(() => {
+        if (this._isDisposed) return
         resolve()
         this._onDidWarmup.fire()
+        this.startupTimer = undefined
       }, this.STARTUP_DELAY_MS)
     })
   }
 
+  public dispose(): void {
+    this._isDisposed = true
+
+    if (this.startupTimer) {
+      clearTimeout(this.startupTimer)
+      this.startupTimer = undefined
+    }
+    this._onDidWarmup.dispose()
+  }
+
   public async enrichFileStats(targets: StagedFile[]): Promise<void> {
+    if (this._isDisposed) return
     await this.startupPromise
 
     const queue = targets.filter((f) => !f.stats)
@@ -40,12 +57,15 @@ export class StatsProcessor {
 
   private async processQueue(queue: StagedFile[]): Promise<void> {
     for (const file of queue) {
+      if (this._isDisposed) break
+
       await this.processFile(file)
       await this.yieldToEventLoop()
     }
   }
 
   private async processFile(file: StagedFile): Promise<void> {
+    if (this._isDisposed) return
     try {
       const size = await this.getFileSize(file.uri)
       if (size > 1024 * 1024) {
@@ -93,9 +113,13 @@ export class StatsProcessor {
   }
 
   private async readTextContent(uri: vscode.Uri): Promise<string | null> {
-    const buffer = await vscode.workspace.fs.readFile(uri)
-    if (this.isBinaryBuffer(buffer)) return null
-    return this.decoder.decode(buffer)
+    try {
+      const buffer = await vscode.workspace.fs.readFile(uri)
+      if (this.isBinaryBuffer(buffer)) return null
+      return this.decoder.decode(buffer)
+    } catch {
+      return null
+    }
   }
 
   private isBinaryBuffer(buffer: Uint8Array): boolean {

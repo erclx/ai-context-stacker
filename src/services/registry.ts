@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 
 import { IgnoreManager, StackProvider, TrackManager, TrackProvider } from '../providers'
+import { Logger } from '../utils'
 import { FileWatcherService } from './file-watcher'
 
 export class ServiceRegistry implements vscode.Disposable {
@@ -21,7 +22,6 @@ export class ServiceRegistry implements vscode.Disposable {
     this.trackManager = new TrackManager(context)
     this.stackProvider = new StackProvider(context, this.ignoreManager, this.trackManager)
     this.trackProvider = new TrackProvider(this.trackManager)
-
     this.fileWatcher = new FileWatcherService(this.trackManager)
 
     this.wireDependencies()
@@ -30,11 +30,10 @@ export class ServiceRegistry implements vscode.Disposable {
 
   public static disposeExisting(): void {
     if (!ServiceRegistry._instance) return
-
     try {
       ServiceRegistry._instance.dispose()
     } catch (error) {
-      console.error('Failed to kill zombie registry:', error)
+      Logger.error('Failed to kill zombie registry', error as Error)
     } finally {
       ServiceRegistry._instance = undefined
     }

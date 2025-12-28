@@ -70,7 +70,6 @@ async function executeHardReset(services: ServiceRegistry): Promise<void> {
 }
 
 export function deactivate(): void {
-  Logger.info('Deactivation requested.')
   ServiceRegistry.disposeExisting()
   Logger.dispose()
 }

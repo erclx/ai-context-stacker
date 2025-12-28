@@ -6,39 +6,36 @@ import { Logger } from '../utils'
 
 export class IgnoreManager implements vscode.Disposable {
   private _cachedPatterns: string | undefined
-  private _fsWatcher: vscode.FileSystemWatcher | undefined
-  private _configListener: vscode.Disposable | undefined
+  private _disposables: vscode.Disposable[] = []
 
   constructor() {
-    this.initWatchers()
+    this.initSafeWatchers()
   }
 
   public async getExcludePatterns(): Promise<string> {
     if (this._cachedPatterns) {
-      Logger.info('Ignore patterns cache hit.')
       return this._cachedPatterns
     }
 
-    Logger.info('Ignore patterns cache miss. Regenerating...')
     await this.refreshPatterns()
     return this._cachedPatterns ?? IgnoreParser.DEFAULT_EXCLUDES
   }
 
   public dispose(): void {
-    this._fsWatcher?.dispose()
-    this._configListener?.dispose()
-    Logger.info('IgnoreManager disposed.')
+    this._disposables.forEach((d) => d.dispose())
+    this._disposables = []
   }
 
   private async refreshPatterns(): Promise<void> {
     try {
-      const gitIgnoreContent = await this.readGitIgnoreContent()
-      const userSettings = this.getUserSettings()
+      const [gitIgnoreContent, userSettings] = await Promise.all([
+        this.readGitIgnoreContent(),
+        Promise.resolve(this.getUserSettings()),
+      ])
 
       this._cachedPatterns = IgnoreParser.generatePatternString(gitIgnoreContent, userSettings)
-      Logger.info('Exclusion patterns generated successfully.')
     } catch (error) {
-      Logger.error('Error generating patterns. Reverting to defaults.', error)
+      Logger.error('IgnoreManager: Failed to generate patterns', error as Error)
       this._cachedPatterns = IgnoreParser.DEFAULT_EXCLUDES
     }
   }
@@ -53,7 +50,6 @@ export class IgnoreManager implements vscode.Disposable {
       const uint8Array = await vscode.workspace.fs.readFile(files[0])
       return new TextDecoder('utf-8').decode(uint8Array)
     } catch (error) {
-      Logger.error('Failed to read .gitignore file', error)
       return ''
     }
   }
@@ -63,19 +59,45 @@ export class IgnoreManager implements vscode.Disposable {
     return config.get<string[]>('excludes', [])
   }
 
-  private initWatchers(): void {
-    this._fsWatcher = vscode.workspace.createFileSystemWatcher('**/.gitignore')
-    const invalidate = () => (this._cachedPatterns = undefined)
+  private initSafeWatchers(): void {
+    this.watchConfigurationChanges()
+    this.watchFileLifecycleEvents()
+    this.watchDocumentSaves()
+  }
 
-    this._fsWatcher.onDidCreate(invalidate)
-    this._fsWatcher.onDidChange(invalidate)
-    this._fsWatcher.onDidDelete(invalidate)
-
-    this._configListener = vscode.workspace.onDidChangeConfiguration((e) => {
+  private watchConfigurationChanges(): void {
+    const disposable = vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('aiContextStacker.excludes')) {
-        Logger.info('User settings changed. Invalidating cache.')
-        this._cachedPatterns = undefined
+        this.invalidateCache()
       }
     })
+    this._disposables.push(disposable)
+  }
+
+  private watchFileLifecycleEvents(): void {
+    const onCreate = vscode.workspace.onDidCreateFiles((e) => this.handleFileEvent(e.files))
+    const onDelete = vscode.workspace.onDidDeleteFiles((e) => this.handleFileEvent(e.files))
+
+    this._disposables.push(onCreate, onDelete)
+  }
+
+  private watchDocumentSaves(): void {
+    const onSave = vscode.workspace.onDidSaveTextDocument((doc) => {
+      if (doc.fileName.endsWith('.gitignore')) {
+        this.invalidateCache()
+      }
+    })
+    this._disposables.push(onSave)
+  }
+
+  private handleFileEvent(files: readonly vscode.Uri[]): void {
+    const affectsGitIgnore = files.some((uri) => uri.path.endsWith('.gitignore'))
+    if (affectsGitIgnore) {
+      this.invalidateCache()
+    }
+  }
+
+  private invalidateCache(): void {
+    this._cachedPatterns = undefined
   }
 }
