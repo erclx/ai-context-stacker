@@ -13,6 +13,22 @@ export class TreeBuilder {
     return this.finalizeTree()
   }
 
+  public calculateFolderStats(items: StackTreeItem[]): number {
+    let total = 0
+
+    for (const item of items) {
+      if (isStagedFolder(item)) {
+        const folderTotal = this.calculateFolderStats(item.children)
+        item.tokenCount = folderTotal
+        total += folderTotal
+      } else {
+        total += item.stats?.tokenCount ?? 0
+      }
+    }
+
+    return total
+  }
+
   private resetState(): void {
     this.folderMap.clear()
     this.rootItems = []
@@ -62,6 +78,7 @@ export class TreeBuilder {
       resourceUri: root ? vscode.Uri.joinPath(root.uri, id) : refUri,
       children: [],
       containedFiles: [],
+      tokenCount: 0,
     }
   }
 

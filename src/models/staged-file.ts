@@ -21,6 +21,7 @@ export interface StagedFolder {
   resourceUri: vscode.Uri
   children: StackTreeItem[]
   containedFiles: StagedFile[]
+  tokenCount?: number
 }
 
 export type StackTreeItem = StagedFile | StagedFolder

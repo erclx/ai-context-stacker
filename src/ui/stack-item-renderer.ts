@@ -38,19 +38,13 @@ export class StackItemRenderer {
     item.iconPath = vscode.ThemeIcon.Folder
     item.resourceUri = folder.resourceUri
 
-    const totalTokens = this.sumFolderTokens(folder)
+    const totalTokens = folder.tokenCount ?? 0
     const tokenDisplay = isWarmingUp ? 'Calculating...' : this.formatTokenCount(totalTokens)
 
     item.description = tokenDisplay
-    item.tooltip = `${folder.containedFiles.length} files inside`
+    item.tooltip = `${folder.containedFiles.length} files directly inside`
 
     return item
-  }
-
-  private sumFolderTokens(folder: StagedFolder): number {
-    return folder.containedFiles.reduce((sum, file) => {
-      return sum + (file.stats?.tokenCount ?? 0)
-    }, 0)
   }
 
   private renderFile(file: StagedFile, isWarmingUp: boolean): vscode.TreeItem {

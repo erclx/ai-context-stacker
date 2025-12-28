@@ -176,6 +176,9 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     if (files.length === 0) return this.handleEmptyTree()
 
     this._cachedTree = this.treeBuilder.build(files)
+
+    this.treeBuilder.calculateFolderStats(this._cachedTree)
+
     this._treeDirty = false
 
     this.postBuildUpdates()
@@ -224,7 +227,13 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     try {
       const files = this.getFiles()
       await this.statsProcessor.enrichFileStats(files)
+
       this.recalculateTotalTokens()
+
+      if (this._cachedTree) {
+        this.treeBuilder.calculateFolderStats(this._cachedTree)
+      }
+
       this._onDidChangeTreeData.fire()
     } catch (error) {
       Logger.error('Stats enrichment failed', error as Error)
@@ -264,8 +273,14 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   private performStatsUpdate(doc: vscode.TextDocument, file: StagedFile): void {
     file.stats = this.statsProcessor.measure(doc.getText())
+
     this.recalculateTotalTokens()
-    this._onDidChangeTreeData.fire(file)
+
+    if (this._cachedTree) {
+      this.treeBuilder.calculateFolderStats(this._cachedTree)
+    }
+
+    this._onDidChangeTreeData.fire()
     this.pendingUpdates.delete(doc.uri.toString())
   }
 
