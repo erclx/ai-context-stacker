@@ -67,6 +67,7 @@ suite('FileWatcherService Integration Tests', () => {
   let createWatcherStub: sinon.SinonStub
   let renameStub: sinon.SinonStub
   let deleteStub: sinon.SinonStub
+  let remoteNameStub: sinon.SinonStub
 
   let capturedRenameListener: (e: vscode.FileRenameEvent) => void
   let capturedDeleteListener: (e: vscode.FileDeleteEvent) => void
@@ -75,6 +76,8 @@ suite('FileWatcherService Integration Tests', () => {
     clock = sinon.useFakeTimers()
     mockWatcher = new MockWatcher()
     mockManager = new MockTrackManager()
+
+    remoteNameStub = sinon.stub(vscode.env, 'remoteName').get(() => undefined)
 
     createWatcherStub = sinon.stub(vscode.workspace, 'createFileSystemWatcher').returns(mockWatcher)
 
@@ -97,12 +100,15 @@ suite('FileWatcherService Integration Tests', () => {
     createWatcherStub.restore()
     renameStub.restore()
     deleteStub.restore()
+    remoteNameStub.restore()
     clock.restore()
   })
 
   test('Should Handle High-Level VS Code Rename', async () => {
     const oldUri = vscode.Uri.file('/src/old.ts')
     const newUri = vscode.Uri.file('/src/new.ts')
+
+    mockManager.trackedUris.add(oldUri.toString())
 
     capturedRenameListener({
       files: [{ oldUri, newUri }],
@@ -116,6 +122,8 @@ suite('FileWatcherService Integration Tests', () => {
   test('Should Handle High-Level VS Code Delete', async () => {
     const uri = vscode.Uri.file('/src/deleted.ts')
 
+    mockManager.trackedUris.add(uri.toString())
+
     capturedDeleteListener({
       files: [uri],
     })
@@ -127,6 +135,8 @@ suite('FileWatcherService Integration Tests', () => {
   test('Should Handle Low-Level External Delete (Fallback)', async () => {
     const uri = vscode.Uri.file('/src/external_delete.ts')
 
+    mockManager.trackedUris.add(uri.toString())
+
     mockManager.fireTrackChange({
       id: 'test',
       name: 'Test',
@@ -134,6 +144,8 @@ suite('FileWatcherService Integration Tests', () => {
     })
 
     mockWatcher.fireDelete(uri)
+
+    await clock.tickAsync(250)
 
     assert.strictEqual(mockManager.removeLog.length, 1)
     assert.strictEqual(mockManager.removeLog[0], uri.toString())
