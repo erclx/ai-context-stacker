@@ -9,11 +9,7 @@ export class TreeBuilder {
 
   public build(files: StagedFile[]): StackTreeItem[] {
     this.resetState()
-
-    for (const file of files) {
-      this.processFile(file)
-    }
-
+    files.forEach((file) => this.processFile(file))
     return this.finalizeTree()
   }
 
@@ -25,68 +21,52 @@ export class TreeBuilder {
 
   private processFile(file: StagedFile): void {
     const segments = this.getOptimizedSegments(file)
-
     if (segments.length === 1) {
       this.rootItems.push(file)
       return
     }
-
     this.mapPathToTree(file, segments)
   }
 
   private mapPathToTree(file: StagedFile, segments: string[]): void {
-    let parentPath = ''
     let parentChildren = this.rootItems
+    let currentPath = ''
 
     for (let i = 0; i < segments.length - 1; i++) {
       const segment = segments[i]
-      const currentPath = parentPath ? `${parentPath}/${segment}` : segment
-
-      const folder = this.ensureFolderExists(segment, currentPath, file.uri, parentChildren)
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment
+      const folder = this.resolveFolder(segment, currentPath, file.uri, parentChildren)
 
       parentChildren = folder.children
-      parentPath = currentPath
-
-      if (i === segments.length - 2) {
-        folder.containedFiles.push(file)
-      }
+      if (i === segments.length - 2) folder.containedFiles.push(file)
     }
-
     parentChildren.push(file)
   }
 
-  private ensureFolderExists(name: string, id: string, refUri: vscode.Uri, targetList: StackTreeItem[]): StagedFolder {
+  private resolveFolder(name: string, id: string, uri: vscode.Uri, list: StackTreeItem[]): StagedFolder {
     const existing = this.folderMap.get(id)
-    if (existing) {
-      return existing
-    }
+    if (existing) return existing
 
-    const newFolder = this.createFolderNode(name, id, refUri)
+    const newFolder = this.createFolderNode(name, id, uri)
     this.folderMap.set(id, newFolder)
-    targetList.push(newFolder)
-
+    list.push(newFolder)
     return newFolder
   }
 
   private createFolderNode(name: string, id: string, refUri: vscode.Uri): StagedFolder {
     const root = vscode.workspace.getWorkspaceFolder(refUri)
-    const resourceUri = root ? vscode.Uri.joinPath(root.uri, id) : refUri
-
     return {
       type: 'folder',
       id: `folder:${id}`,
       label: name,
-      resourceUri,
+      resourceUri: root ? vscode.Uri.joinPath(root.uri, id) : refUri,
       children: [],
       containedFiles: [],
     }
   }
 
   private getOptimizedSegments(file: StagedFile): string[] {
-    if (this.workspaceRoots.length === 0) {
-      return [file.label]
-    }
-
+    if (this.workspaceRoots.length === 0) return [file.label]
     const isMultiRoot = this.workspaceRoots.length > 1
     return vscode.workspace.asRelativePath(file.uri, isMultiRoot).split('/')
   }
@@ -97,6 +77,7 @@ export class TreeBuilder {
   }
 
   private sortRecursive(items: StackTreeItem[]): void {
+    if (items.length === 0) return
     items.sort(this.sortComparator)
 
     for (const item of items) {
@@ -110,9 +91,7 @@ export class TreeBuilder {
     const aIsFolder = isStagedFolder(a)
     const bIsFolder = isStagedFolder(b)
 
-    if (aIsFolder !== bIsFolder) {
-      return aIsFolder ? -1 : 1
-    }
+    if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1
     return a.label.localeCompare(b.label)
   }
 }

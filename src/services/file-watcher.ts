@@ -1,67 +1,114 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 
+import { ContextTrack } from '../models'
 import { TrackManager } from '../providers'
 import { Logger } from '../utils'
 
 export class FileWatcherService implements vscode.Disposable {
-  private watcher: vscode.FileSystemWatcher
+  private watcher: vscode.FileSystemWatcher | undefined
   private pendingDeletes = new Set<string>()
   private pendingCreates = new Set<string>()
 
   private batchTimer: ReturnType<typeof setTimeout> | undefined
   private _isDisposed = false
   private readonly BATCH_DELAY_MS = 200
+  private disposables: vscode.Disposable[] = []
 
-  constructor(private readonly contextTrackManager: TrackManager) {
-    this.watcher = vscode.workspace.createFileSystemWatcher('**/*')
-    this.watcher.onDidDelete((uri) => this.bufferEvent(uri, 'DELETE'))
-    this.watcher.onDidCreate((uri) => this.bufferEvent(uri, 'CREATE'))
+  constructor(private readonly trackManager: TrackManager) {
+    this.disposables.push(trackManager.onDidChangeTrack((track) => this.rebuildWatcher(track)))
+
+    this.rebuildWatcher(trackManager.getActiveTrack())
   }
 
   public dispose(): void {
+    if (this._isDisposed) return
     this._isDisposed = true
-    this.watcher.dispose()
-    if (this.batchTimer) {
-      clearTimeout(this.batchTimer)
-      this.batchTimer = undefined
-    }
+
+    this.disposeWatcher()
+    this.clearTimer()
+
+    this.disposables.forEach((d) => d.dispose())
     this.pendingDeletes.clear()
     this.pendingCreates.clear()
+
+    Logger.info('FileWatcherService: Fully terminated.')
+  }
+
+  private rebuildWatcher(track: ContextTrack): void {
+    this.disposeWatcher()
+
+    const paths = track.files.map((f) => f.uri.fsPath)
+    if (paths.length === 0) return
+
+    const globPattern = this.generateScopedGlob(paths)
+    this.createWatcher(globPattern)
+  }
+
+  private generateScopedGlob(paths: string[]): string {
+    const sanitized = paths.map((p) => p.replace(/\\/g, '/'))
+    return sanitized.length === 1 ? sanitized[0] : `{${sanitized.join(',')}}`
+  }
+
+  private createWatcher(pattern: string): void {
+    try {
+      this.watcher = vscode.workspace.createFileSystemWatcher(pattern)
+
+      this.disposables.push(
+        this.watcher.onDidDelete((uri) => this.bufferEvent(uri, 'DELETE')),
+        this.watcher.onDidCreate((uri) => this.bufferEvent(uri, 'CREATE')),
+      )
+
+      Logger.info('FileWatcherService: Scoped watcher active.')
+    } catch (err) {
+      Logger.error('Failed to create scoped watcher', err as Error)
+    }
+  }
+
+  private disposeWatcher(): void {
+    this.watcher?.dispose()
+    this.watcher = undefined
   }
 
   private bufferEvent(uri: vscode.Uri, type: 'DELETE' | 'CREATE'): void {
     if (this._isDisposed) return
     const key = uri.toString()
 
-    if (type === 'DELETE') {
-      this.pendingDeletes.add(key)
-    } else {
-      this.pendingCreates.add(key)
-    }
+    if (type === 'DELETE') this.pendingDeletes.add(key)
+    else this.pendingCreates.add(key)
 
     this.scheduleBatch()
   }
 
   private scheduleBatch(): void {
-    if (this._isDisposed || this.batchTimer) return
+    if (this.batchTimer) return
+    this.batchTimer = setTimeout(() => this.processBatch(), this.BATCH_DELAY_MS)
+  }
 
-    this.batchTimer = setTimeout(() => {
+  private processBatch(): void {
+    this.clearTimer()
+    void this.flushBuffer().catch((err) => {
+      Logger.error('Error processing watcher batch', err)
+    })
+  }
+
+  private clearTimer(): void {
+    if (this.batchTimer) {
+      clearTimeout(this.batchTimer)
       this.batchTimer = undefined
-      void this.flushBuffer().catch((err) => {
-        Logger.error('Error processing file watcher batch', err)
-      })
-    }, this.BATCH_DELAY_MS)
+    }
   }
 
   private async flushBuffer(): Promise<void> {
-    if (this._isDisposed || (this.pendingDeletes.size === 0 && this.pendingCreates.size === 0)) return
+    if (this._isDisposed) return
 
     const deletes = Array.from(this.pendingDeletes)
     const creates = new Set(this.pendingCreates)
 
     this.pendingDeletes.clear()
     this.pendingCreates.clear()
+
+    if (deletes.length === 0 && creates.size === 0) return
 
     const creationIndex = this.buildCreationIndex(creates)
     this.processDeletions(deletes, creationIndex)
@@ -70,8 +117,7 @@ export class FileWatcherService implements vscode.Disposable {
   private buildCreationIndex(creates: Set<string>): Map<string, string> {
     const map = new Map<string, string>()
     for (const createStr of creates) {
-      const uri = vscode.Uri.parse(createStr)
-      const base = path.basename(uri.fsPath)
+      const base = path.basename(vscode.Uri.parse(createStr).fsPath)
       map.set(base, createStr)
     }
     return map
@@ -79,10 +125,8 @@ export class FileWatcherService implements vscode.Disposable {
 
   private processDeletions(deletes: string[], creationIndex: Map<string, string>): void {
     for (const deleteStr of deletes) {
-      if (this._isDisposed) return
-
       const deleteUri = vscode.Uri.parse(deleteStr)
-      if (!this.contextTrackManager.hasUri(deleteUri)) continue
+      if (!this.trackManager.hasUri(deleteUri)) continue
 
       this.resolveFileChange(deleteUri, creationIndex)
     }
@@ -93,20 +137,12 @@ export class FileWatcherService implements vscode.Disposable {
     const matchStr = creationIndex.get(baseName)
 
     if (matchStr) {
-      this.executeRename(deleteUri, matchStr)
+      const newUri = vscode.Uri.parse(matchStr)
+      this.trackManager.replaceUri(deleteUri, newUri)
+      Logger.info(`Auto-rename: ${baseName}`)
     } else {
-      this.executeDelete(deleteUri)
+      this.trackManager.removeUriEverywhere(deleteUri)
+      Logger.info(`Auto-delete: ${baseName}`)
     }
-  }
-
-  private executeRename(oldUri: vscode.Uri, newStr: string): void {
-    const newUri = vscode.Uri.parse(newStr)
-    this.contextTrackManager.replaceUri(oldUri, newUri)
-    Logger.info(`Auto-updated renamed file: ${oldUri.fsPath} -> ${newUri.fsPath}`)
-  }
-
-  private executeDelete(uri: vscode.Uri): void {
-    this.contextTrackManager.removeUriEverywhere(uri)
-    Logger.info(`Auto-removed deleted file: ${uri.fsPath}`)
   }
 }

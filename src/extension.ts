@@ -5,9 +5,11 @@ import { ServiceRegistry } from './services'
 import { PreviewWebview, PreviewWebviewSerializer, StackerStatusBar, ViewManager } from './ui'
 import { Logger } from './utils'
 
-export function activate(context: vscode.ExtensionContext): ServiceRegistry {
+export async function activate(context: vscode.ExtensionContext): Promise<ServiceRegistry> {
+  ServiceRegistry.disposeExisting()
+
   Logger.configure('AI Context Stacker')
-  Logger.info('Extension is activating...')
+  Logger.info('Activation sequence started.')
 
   const services = new ServiceRegistry(context)
   services.register()
@@ -18,10 +20,23 @@ export function activate(context: vscode.ExtensionContext): ServiceRegistry {
     services.trackManager,
     services.ignoreManager,
   )
-  context.subscriptions.push(views)
 
   const statusBar = new StackerStatusBar(context, services.stackProvider)
-  context.subscriptions.push(statusBar)
+
+  registerSubscriptions(context, views, statusBar, services)
+  registerCommands(context, services, views)
+
+  Logger.info('Activation sequence complete.')
+  return services
+}
+
+function registerSubscriptions(
+  context: vscode.ExtensionContext,
+  views: ViewManager,
+  statusBar: StackerStatusBar,
+  services: ServiceRegistry,
+): void {
+  context.subscriptions.push(views, statusBar)
 
   context.subscriptions.push(
     vscode.window.registerWebviewPanelSerializer(
@@ -29,19 +44,33 @@ export function activate(context: vscode.ExtensionContext): ServiceRegistry {
       new PreviewWebviewSerializer(context.extensionUri, services.stackProvider),
     ),
   )
-
-  registerAllCommands({
-    context,
-    services,
-    views,
-  })
-
-  Logger.info('Extension is activated')
-
-  return services
 }
 
-export function deactivate() {
-  Logger.info('Extension is deactivating...')
+function registerCommands(context: vscode.ExtensionContext, services: ServiceRegistry, views: ViewManager): void {
+  registerAllCommands({ context, services, views })
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('aiContextStacker.internalPurge', async () => {
+      await executeHardReset(services)
+    }),
+  )
+}
+
+async function executeHardReset(services: ServiceRegistry): Promise<void> {
+  const choice = await vscode.window.showWarningMessage(
+    'Execute Hard Reset? This will wipe all saved tracks.',
+    { modal: true },
+    'Purge & Reset',
+  )
+
+  if (choice !== 'Purge & Reset') return
+
+  await services.trackManager.hardReset()
+  vscode.window.showInformationMessage('State purged. Please reload window.')
+}
+
+export function deactivate(): void {
+  Logger.info('Deactivation requested.')
+  ServiceRegistry.disposeExisting()
   Logger.dispose()
 }

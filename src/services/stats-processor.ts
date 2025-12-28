@@ -7,10 +7,8 @@ import { Logger, TokenEstimator } from '../utils'
 export class StatsProcessor {
   private readonly decoder = new TextDecoder()
   private readonly STARTUP_DELAY_MS = 2500
-  private readonly MAX_BATCH_SIZE = 50
 
   private startupPromise: Promise<void>
-
   private _onDidWarmup = new vscode.EventEmitter<void>()
   public readonly onDidWarmup = this._onDidWarmup.event
 
@@ -29,11 +27,7 @@ export class StatsProcessor {
     const queue = targets.filter((f) => !f.stats)
     if (queue.length === 0) return
 
-    for (let i = 0; i < queue.length; i += this.MAX_BATCH_SIZE) {
-      const batch = queue.slice(i, i + this.MAX_BATCH_SIZE)
-      await this.processBatch(batch)
-      await this.yieldToEventLoop()
-    }
+    await this.processQueue(queue)
   }
 
   public measure(content: string): ContentStats {
@@ -44,20 +38,21 @@ export class StatsProcessor {
     }
   }
 
-  private async processBatch(batch: StagedFile[]): Promise<void> {
-    const promises = batch.map((file) => this.processFile(file))
-    await Promise.all(promises)
+  private async processQueue(queue: StagedFile[]): Promise<void> {
+    for (const file of queue) {
+      await this.processFile(file)
+      await this.yieldToEventLoop()
+    }
   }
 
   private async processFile(file: StagedFile): Promise<void> {
     try {
       const size = await this.getFileSize(file.uri)
-
       if (size > 1024 * 1024) {
         this.applyHeuristicStats(file, size)
-      } else {
-        await this.analyzeExactStats(file)
+        return
       }
+      await this.analyzeExactStats(file)
     } catch (error) {
       Logger.warn(`Stats read failed: ${file.uri.fsPath}`)
       this.setEmptyStats(file)
@@ -66,7 +61,6 @@ export class StatsProcessor {
 
   private async analyzeExactStats(file: StagedFile): Promise<void> {
     const content = await this.readTextContent(file.uri)
-
     if (content === null) {
       file.isBinary = true
       this.setEmptyStats(file)
@@ -100,16 +94,19 @@ export class StatsProcessor {
 
   private async readTextContent(uri: vscode.Uri): Promise<string | null> {
     const buffer = await vscode.workspace.fs.readFile(uri)
-
-    const checkLen = Math.min(buffer.length, 512)
-    for (let i = 0; i < checkLen; i++) {
-      if (buffer[i] === 0) return null
-    }
-
+    if (this.isBinaryBuffer(buffer)) return null
     return this.decoder.decode(buffer)
   }
 
+  private isBinaryBuffer(buffer: Uint8Array): boolean {
+    const checkLen = Math.min(buffer.length, 512)
+    for (let i = 0; i < checkLen; i++) {
+      if (buffer[i] === 0) return true
+    }
+    return false
+  }
+
   private yieldToEventLoop(): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, 0))
+    return new Promise((resolve) => setTimeout(resolve, 5))
   }
 }
