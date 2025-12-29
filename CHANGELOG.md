@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Deep Refresh**: Refresh Stack now performs recursive re-scan of staged directories to discover newly created files.
 - **Recursive Tree Traversal**: Added utility to resolve all descendant files when interacting with folder nodes.
 - **Folder Pinning UI**: Pin icon and "(Pinned)" label now visible on folder items.
+- **Recursive Deletion Sync**: Deleting a folder in Explorer removes all nested staged files from the stack.
 
 ### Changed
 

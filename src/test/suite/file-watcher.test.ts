@@ -56,6 +56,12 @@ class MockTrackManager {
   removeUriEverywhere(uri: vscode.Uri): void {
     this.removeLog.push(uri.toString())
   }
+
+  async processDeletions(uris: vscode.Uri[]): Promise<void> {
+    for (const uri of uris) {
+      this.removeLog.push(uri.toString())
+    }
+  }
 }
 
 suite('FileWatcherService Integration Tests', () => {
@@ -127,6 +133,8 @@ suite('FileWatcherService Integration Tests', () => {
     capturedDeleteListener({
       files: [uri],
     })
+
+    await clock.tickAsync(250)
 
     assert.strictEqual(mockManager.removeLog.length, 1)
     assert.strictEqual(mockManager.removeLog[0], uri.toString())

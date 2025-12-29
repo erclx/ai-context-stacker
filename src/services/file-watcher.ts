@@ -51,10 +51,7 @@ export class FileWatcherService implements vscode.Disposable {
 
   private handleDelete(e: vscode.FileDeleteEvent): void {
     for (const uri of e.files) {
-      if (this.trackManager.hasUri(uri)) {
-        this.trackManager.removeUriEverywhere(uri)
-        Logger.info(`Synced delete: ${uri.fsPath}`)
-      }
+      this.bufferExternalDelete(uri)
     }
   }
 
@@ -103,15 +100,10 @@ export class FileWatcherService implements vscode.Disposable {
     this.clearTimer()
     if (this._isDisposed || this.pendingDeletes.size === 0) return
 
-    const deletes = Array.from(this.pendingDeletes)
+    const deletes = Array.from(this.pendingDeletes).map((s) => vscode.Uri.parse(s))
     this.pendingDeletes.clear()
 
-    for (const deleteStr of deletes) {
-      const uri = vscode.Uri.parse(deleteStr)
-      if (this.trackManager.hasUri(uri)) {
-        this.trackManager.removeUriEverywhere(uri)
-      }
-    }
+    void this.trackManager.processDeletions(deletes)
   }
 
   private clearTimer(): void {

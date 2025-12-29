@@ -3,6 +3,7 @@ import * as vscode from 'vscode'
 import { ContextTrack, SerializedState, StagedFile } from '../models'
 import { PersistenceService } from '../services'
 import { generateId, Logger } from '../utils'
+import { isChildOf } from '../utils/file-scanner'
 
 export class TrackManager implements vscode.Disposable {
   private readonly NULL_TRACK: ContextTrack = { id: 'ghost', name: 'No Active Track', files: [] }
@@ -151,6 +152,55 @@ export class TrackManager implements vscode.Disposable {
 
   public hasUri(uri: vscode.Uri): boolean {
     return (this.uriRefCount.get(uri.toString()) ?? 0) > 0
+  }
+
+  public async processDeletions(uris: vscode.Uri[]): Promise<void> {
+    if (this._isDisposed || uris.length === 0) return
+
+    const deletedSet = new Set(uris.map((u) => u.toString()))
+    let changed = false
+
+    for (const track of this.tracks.values()) {
+      const initialCount = track.files.length
+      if (initialCount === 0) continue
+
+      const toRemove: StagedFile[] = []
+      const toKeep: StagedFile[] = []
+
+      if (initialCount * uris.length > 2000) {
+        await this.yieldToEventLoop()
+      }
+
+      for (const file of track.files) {
+        let shouldRemove = deletedSet.has(file.uri.toString())
+
+        if (!shouldRemove) {
+          for (const deletedUri of uris) {
+            if (isChildOf(deletedUri, file.uri)) {
+              shouldRemove = true
+              break
+            }
+          }
+        }
+
+        if (shouldRemove) {
+          toRemove.push(file)
+        } else {
+          toKeep.push(file)
+        }
+      }
+
+      if (toRemove.length > 0) {
+        track.files = toKeep
+        this.decrementIndex(toRemove)
+        changed = true
+      }
+    }
+
+    if (changed) {
+      this.finalizeChange()
+      Logger.info(`Processed ${uris.length} deletion(s). Tracks updated.`)
+    }
   }
 
   public removeUriEverywhere(uri: vscode.Uri): void {
