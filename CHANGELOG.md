@@ -13,15 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hardware Scaling**: Processing automatically adjusts based on available CPU cores.
 - **Status Bar Indicator**: "Analyzing..." message shows when background token counts are calculating.
 - **Track Name Validation**: Duplicate track names are prevented with auto-incrementing suffixes (e.g., "Main (2)").
+- **Token Aggregator Service**: Centralized token calculation logic for consistent UI updates.
+- **Context Key Service**: Command state management with batched updates to reduce overhead.
+- **Persistence Service**: Debounced storage writes to minimize disk I/O.
+- **Visibility-Aware Analysis**: Token processing pauses when window is blurred or sidebar is hidden.
+- **Non-Blocking Tree Construction**: Large file groups are processed in chunks to prevent UI freezes.
 
 ### Changed
 
 - **Track Loading**: Rebuilt initialization to ensure tracks load reliably on startup.
 - **UI Refresh**: Improved list updates to reduce flickering when staging large file groups.
+- **Registry Architecture**: Eliminated circular dependencies between track and stack providers.
+- **Command Registration**: Standardized command factory pattern for maintainability.
+- **Configuration Access**: Large file thresholds are now cached to reduce settings reads.
+- **Tree Generation**: Context tree uses streaming pattern to reduce memory usage during copies.
 
 ### Fixed
 
 - **Stuck Spinner**: Resolved issue where "Warming up..." indicator remained visible after analysis completed.
+- **Provider Dependencies**: Fixed circular reference issues in internal registry.
+- **File Tracking**: Corrected reference counting logic for accurate cross-track file management.
 
 ## [0.0.5] - 2025-12-28
 

@@ -41,7 +41,7 @@ This gets tedious fast—especially with larger codebases or multi-file tasks.
 
 Drag files or folders into the staging area. Right-click any file in the Explorer to add it. The extension shows what's staged and lets you copy everything in one go.
 
-**Live Token Updates**: Token counts refresh automatically as you edit (400ms debounce). Folders show the aggregated token count of all files inside them (recursive sum). Files over 1MB use optimized statistical estimation to keep the editor responsive during rapid typing. Analysis scales dynamically based on available CPU cores to process your stack without blocking the UI thread.
+**Live Token Updates**: Token counts refresh automatically as you edit (400ms debounce). Folders show the aggregated token count of all files inside them (recursive sum). Files over 1MB use optimized statistical estimation to keep the editor responsive during rapid typing. Analysis scales dynamically based on available CPU cores and pauses automatically when the window is blurred or the sidebar is hidden to conserve system resources.
 
 **Startup Behavior**: The sidebar appears immediately when VS Code opens. Token counts are cached locally between sessions—the extension only re-analyzes files that have changed on disk. On first load or after file modifications, background analysis runs during a brief warmup period. The Status Bar displays "Analyzing..." while this work is in progress.
 
