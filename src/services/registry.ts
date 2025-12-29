@@ -5,11 +5,13 @@ import { Logger, LogLevel } from '../utils'
 import { AnalysisEngine } from './analysis-engine'
 import { ContextKeyService } from './context-key-service'
 import { FileWatcherService } from './file-watcher'
+import { PersistenceService } from './persistence-service'
 import { TokenAggregatorService } from './token-aggregator'
 
 export class ServiceRegistry implements vscode.Disposable {
   private static _instance: ServiceRegistry | undefined
 
+  public readonly persistenceService: PersistenceService
   public readonly trackManager: TrackManager
   public readonly ignoreManager: IgnoreManager
   public readonly stackProvider: StackProvider
@@ -26,9 +28,12 @@ export class ServiceRegistry implements vscode.Disposable {
 
     this.initializeLogger()
 
+    this.persistenceService = new PersistenceService(context)
     this.ignoreManager = new IgnoreManager()
     this.contextKeyService = new ContextKeyService()
-    this.trackManager = new TrackManager(context)
+
+    this.trackManager = new TrackManager(context, this.persistenceService)
+
     this.analysisEngine = new AnalysisEngine(context, this.trackManager)
     this.tokenAggregator = new TokenAggregatorService(this.trackManager, this.analysisEngine)
 
@@ -72,6 +77,7 @@ export class ServiceRegistry implements vscode.Disposable {
 
   private registerInternalDisposables(): void {
     this._disposables.push(
+      this.persistenceService,
       this.ignoreManager,
       this.contextKeyService,
       this.trackManager,
