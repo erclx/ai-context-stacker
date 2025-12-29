@@ -7,20 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6] - 2025-12-29
+
 ### Added
 
 - **Token Analysis Caching**: Analysis data is saved between sessions to eliminate repeated warmup delays.
 - **Hardware Scaling**: Processing automatically adjusts based on available CPU cores.
 - **Status Bar Indicator**: "Analyzing..." message shows when background token counts are calculating.
 - **Track Name Validation**: Real-time duplicate detection prevents creating tracks with existing names.
-- **Token Aggregator Service**: Centralized token calculation logic for consistent UI updates. d
+- **Token Aggregator Service**: Centralized token calculation logic for consistent UI updates.
 - **Context Key Service**: Command state management with batched updates to reduce overhead.
 - **Persistence Service**: Debounced storage writes to minimize disk I/O.
 - **Visibility-Aware Analysis**: Token processing pauses when window is blurred or sidebar is hidden.
 - **Non-Blocking Tree Construction**: Large file groups are processed in chunks to prevent UI freezes.
 - **Default Excludes Setting**: Added `aiContextStacker.defaultExcludes` for customizable base ignore patterns.
 - **Extension-Based Binary Detection**: Fast-path heuristic skips disk I/O for known binary and text file extensions.
-- **Constants Module**: Centralized file type sets, size limits, and exclude patterns in `src/constants.ts`.
+- **Constants Module**: Centralized file type sets, size limits, and exclude patterns.
 
 ### Changed
 
@@ -123,7 +125,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All processing is local.
 - No data is sent externally.
 
-[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/erclx/ai-context-stacker/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/erclx/ai-context-stacker/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/erclx/ai-context-stacker/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/erclx/ai-context-stacker/compare/v0.0.2...v0.0.3

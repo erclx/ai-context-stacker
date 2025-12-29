@@ -3,7 +3,7 @@
   "displayName": "AI Context Stacker",
   "publisher": "erclx",
   "description": "Collect, organize, and copy multiple files and directory structures for use in AI prompts.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "license": "MIT",
   "icon": "assets/icon.png",
   "repository": {

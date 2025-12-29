@@ -43,7 +43,7 @@ Drag files or folders into the staging area. Right-click any file in the Explore
 
 **Live Token Updates**: Token counts refresh automatically as you edit (400ms debounce). Folders show the aggregated token count of all files inside them (recursive sum). Files over 1MB use optimized statistical estimation to keep the editor responsive during rapid typing. Analysis scales dynamically based on available CPU cores and pauses automatically when the window is blurred or the sidebar is hidden to conserve system resources.
 
-**Startup Behavior**: The sidebar appears immediately when VS Code opens. Token counts are cached locally between sessions—the extension only re-analyzes files that have changed on disk. On first load or after file modifications, background analysis runs during a brief warmup period. The Status Bar displays "Analyzing..." while this work is in progress.
+**Startup Behavior**: The sidebar appears immediately when VS Code opens. Token counts are cached locally between sessions. The extension only re-analyzes files that have changed on disk. On first load or after file modifications, background analysis runs during a brief warmup period. The Status Bar displays "Analyzing..." while this work is in progress.
 
 **Manual Refresh**: Use the dedicated **Refresh Stack** command (found in the `...` menu or press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd>) to force a re-scan of the filesystem and re-calculate all token counts.
 
@@ -54,6 +54,7 @@ Create separate tracks for different tasks (e.g. _Bug Fix #123_, _Refactor Auth_
 - Reorder tracks by dragging or using <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd>
 - Rename tracks inline with <kbd>F2</kbd>
 - Quickly switch between tracks with <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> (<kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> on Mac)
+- Duplicate track names are blocked during creation
 
 Note: The extension always maintains at least one active track. The last remaining track cannot be deleted.
 
@@ -61,7 +62,7 @@ Note: The extension always maintains at least one active track. The last remaini
 
 Designed for professional workflows, AI Context Stacker fully supports **Multi-root Workspaces**.
 
-Staged files are grouped by their project folder name so the LLM understands which project each file belongs to—even when multiple projects contain identical paths like `src/index.ts`.
+Staged files are grouped by their project folder name so the LLM understands which project each file belongs to, even when multiple projects contain identical paths like `src/index.ts`.
 
 Works seamlessly across GitHub Codespaces, WSL2, and SSH Remote sessions with optimized clipboard and drag-and-drop handling for remote environments.
 
@@ -78,8 +79,8 @@ The extension adapts to your workflow so you can reorganize your project without
 
 Files are color-coded based on estimated token count:
 
-- **Amber** — over 5,000 tokens (configurable via `largeFileThreshold`)
-- **Red** — over 10,000 tokens (2x the threshold)
+- **Amber** over 5,000 tokens (configurable via `largeFileThreshold`)
+- **Red** over 10,000 tokens (2x the threshold)
 - **Pinned files** retain their pin icon while inheriting warning colors
 
 This helps you spot large files before hitting model limits.
@@ -113,8 +114,8 @@ Optionally include an ASCII directory tree in the copied output to help the LLM 
 
 Copy commands adapt to your current selection:
 
-- **Files selected** → Copies only the selected files
-- **Nothing selected** → Copies the entire visible stack (respects active filters)
+- **Files selected** copies only the selected files
+- **Nothing selected** copies the entire visible stack (respects active filters)
 
 This makes both targeted and bulk operations intuitive without separate commands.
 
@@ -226,6 +227,7 @@ All configuration is managed natively via VS Code Settings.
 | Setting                                   | Default           | Description                                                                             |
 | :---------------------------------------- | :---------------- | :-------------------------------------------------------------------------------------- |
 | `aiContextStacker.excludes`               | `[]`              | File patterns to exclude (glob patterns).                                               |
+| `aiContextStacker.defaultExcludes`        | `[]`              | Base exclude patterns applied to all tracks.                                            |
 | `aiContextStacker.largeFileThreshold`     | `5000`            | Token count for **Heavy** warning (Amber). Red at 2x this value.                        |
 | `aiContextStacker.showTreeMap`            | `true`            | Include the ASCII directory tree in output.                                             |
 | `aiContextStacker.showTreeMapHeader`      | `true`            | Show the title text above the tree map.                                                 |
