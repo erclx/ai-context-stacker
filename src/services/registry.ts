@@ -3,7 +3,9 @@ import * as vscode from 'vscode'
 import { IgnoreManager, StackProvider, TrackManager, TrackProvider } from '../providers'
 import { Logger, LogLevel } from '../utils'
 import { AnalysisEngine } from './analysis-engine'
+import { ContextKeyService } from './context-key-service'
 import { FileWatcherService } from './file-watcher'
+import { TokenAggregatorService } from './token-aggregator'
 
 export class ServiceRegistry implements vscode.Disposable {
   private static _instance: ServiceRegistry | undefined
@@ -14,6 +16,8 @@ export class ServiceRegistry implements vscode.Disposable {
   public readonly trackProvider: TrackProvider
   public readonly fileWatcher: FileWatcherService
   public readonly analysisEngine: AnalysisEngine
+  public readonly tokenAggregator: TokenAggregatorService
+  public readonly contextKeyService: ContextKeyService
 
   private _disposables: vscode.Disposable[] = []
 
@@ -23,18 +27,22 @@ export class ServiceRegistry implements vscode.Disposable {
     this.initializeLogger()
 
     this.ignoreManager = new IgnoreManager()
+    this.contextKeyService = new ContextKeyService()
     this.trackManager = new TrackManager(context)
     this.analysisEngine = new AnalysisEngine(context, this.trackManager)
+    this.tokenAggregator = new TokenAggregatorService(this.trackManager, this.analysisEngine)
+
     this.stackProvider = new StackProvider(context, this.ignoreManager, this.trackManager, this.analysisEngine)
     this.trackProvider = new TrackProvider(this.trackManager)
     this.fileWatcher = new FileWatcherService(this.trackManager)
 
-    this.wireDependencies()
     this.registerInternalDisposables()
   }
 
   public static disposeExisting(): void {
-    if (!ServiceRegistry._instance) return
+    if (!ServiceRegistry._instance) {
+      return
+    }
     try {
       ServiceRegistry._instance.dispose()
     } catch (error) {
@@ -53,15 +61,13 @@ export class ServiceRegistry implements vscode.Disposable {
     ServiceRegistry._instance = undefined
   }
 
-  private wireDependencies(): void {
-    this.trackProvider.setStackProvider(this.stackProvider)
-  }
-
   private registerInternalDisposables(): void {
     this._disposables.push(
       this.ignoreManager,
+      this.contextKeyService,
       this.trackManager,
       this.analysisEngine,
+      this.tokenAggregator,
       this.stackProvider,
       this.trackProvider,
       this.fileWatcher,
