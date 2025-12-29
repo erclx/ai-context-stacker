@@ -2,11 +2,8 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 
 import { IgnoreManager, StackProvider } from '../providers'
-import { Logger } from '../utils'
-import { scanMultipleFolders } from '../utils/file-scanner'
+import { discoverWorkspaceFolders, handleFolderScanning, Logger, pruneNestedFolders } from '../utils'
 import { Command, CommandDependencies } from './types'
-
-const MAX_DISCOVERY_RESULTS = 5000
 
 interface FolderQuickPickItem extends vscode.QuickPickItem {
   uri: vscode.Uri
@@ -26,7 +23,7 @@ export function getAddFolderPickerCommands(deps: CommandDependencies): Command[]
 
 async function executeAddFolderPicker(provider: StackProvider, ignore: IgnoreManager): Promise<void> {
   try {
-    const folders = await findUniqueFolders(ignore)
+    const folders = await discoverWorkspaceFolders(ignore)
 
     if (folders.length === 0) {
       void vscode.window.showInformationMessage('No relevant folders found.')
@@ -43,91 +40,14 @@ async function executeAddFolderPicker(provider: StackProvider, ignore: IgnoreMan
   }
 }
 
-async function findUniqueFolders(ignore: IgnoreManager): Promise<vscode.Uri[]> {
-  const excludes = await ignore.getExcludePatterns()
-  const [shallow, deep] = await Promise.all([discoverShallowFolders(), discoverDeepFolders(excludes)])
-
-  return mergeFolderLists(shallow, deep)
-}
-
-async function discoverShallowFolders(): Promise<vscode.Uri[]> {
-  const roots = vscode.workspace.workspaceFolders || []
-  const results: vscode.Uri[] = []
-
-  for (const root of roots) {
-    results.push(root.uri)
-    await safeReadDirectory(root.uri, results)
-  }
-  return results
-}
-
-async function safeReadDirectory(rootUri: vscode.Uri, results: vscode.Uri[]): Promise<void> {
-  try {
-    const children = await vscode.workspace.fs.readDirectory(rootUri)
-    children.forEach(([name, type]) => {
-      if (type === vscode.FileType.Directory) {
-        results.push(vscode.Uri.joinPath(rootUri, name))
-      }
-    })
-  } catch {
-    // Suppress errors for inaccessible directories
-  }
-}
-
-async function discoverDeepFolders(excludes: string): Promise<vscode.Uri[]> {
-  const files = await vscode.workspace.findFiles('**/*', excludes, MAX_DISCOVERY_RESULTS)
-  return files.map((f) => vscode.Uri.file(path.dirname(f.fsPath)))
-}
-
-function mergeFolderLists(listA: vscode.Uri[], listB: vscode.Uri[]): vscode.Uri[] {
-  const unique = new Map<string, vscode.Uri>()
-  const add = (uri: vscode.Uri) => unique.set(uri.fsPath, uri)
-
-  listA.forEach(add)
-  listB.forEach(add)
-
-  return Array.from(unique.values()).sort((a, b) => a.fsPath.localeCompare(b.fsPath))
-}
-
 async function processSelection(
   items: FolderQuickPickItem[],
   provider: StackProvider,
   ignore: IgnoreManager,
 ): Promise<void> {
   const distinctRoots = pruneNestedFolders(items.map((i) => i.uri))
-  const excludes = await ignore.getExcludePatterns()
 
-  await vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Notification,
-      title: `Scanning ${distinctRoots.length} folder(s)...`,
-      cancellable: true,
-    },
-    async (_, token) => {
-      await scanMultipleFolders(distinctRoots, excludes, (files) => provider.addFiles(files), token)
-      if (!token.isCancellationRequested) {
-        void vscode.window.showInformationMessage(`Processed ${distinctRoots.length} folders.`)
-      }
-    },
-  )
-}
-
-function pruneNestedFolders(uris: vscode.Uri[]): vscode.Uri[] {
-  const sorted = [...uris].sort((a, b) => a.fsPath.length - b.fsPath.length)
-  const accepted: vscode.Uri[] = []
-
-  for (const uri of sorted) {
-    const isNested = accepted.some((parent) => isChildOf(parent, uri))
-    if (!isNested) {
-      accepted.push(uri)
-    }
-  }
-  return accepted
-}
-
-function isChildOf(parent: vscode.Uri, child: vscode.Uri): boolean {
-  const relative = path.relative(parent.fsPath, child.fsPath)
-  return !relative.startsWith('..') && !path.isAbsolute(relative)
+  await handleFolderScanning(distinctRoots, provider, ignore)
 }
 
 function showFolderPicker(folders: vscode.Uri[]): Promise<FolderQuickPickItem[] | undefined> {

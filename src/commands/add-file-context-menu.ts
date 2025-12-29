@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { categorizeTargets, handleFolderScanning } from '../utils/file-scanner'
+import { categorizeTargets, handleFolderScanning } from '../utils'
 import { Command, CommandDependencies } from './types'
 
 export function getAddFileContextMenuCommands(deps: CommandDependencies): Command[] {
