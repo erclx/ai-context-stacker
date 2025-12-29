@@ -1,25 +1,4 @@
-const FALLBACK_EXCLUDE_PATTERNS = [
-  '**/.git/**',
-  '**/node_modules/**',
-  '**/build/**',
-  '**/dist/**',
-  '**/out/**',
-  '**/coverage/**',
-  '**/.cache/**',
-  '**/package-lock.json',
-  '**/yarn.lock',
-  '**/pnpm-lock.yaml',
-  '**/bun.lockb',
-  '**/.bun/**',
-  '**/__pycache__/**',
-  '**/.venv/**',
-  '**/venv/**',
-  '**/.env',
-  '**/*.pyc',
-  '**/.vscode/**',
-  '**/*.log',
-  '**/.DS_Store',
-]
+import { FALLBACK_EXCLUDE_PATTERNS } from '../constants'
 
 const RX_LEADING_SLASH = /^\//
 const RX_TRAILING_SLASH = /\/$/

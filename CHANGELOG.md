@@ -12,12 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Token Analysis Caching**: Analysis data is saved between sessions to eliminate repeated warmup delays.
 - **Hardware Scaling**: Processing automatically adjusts based on available CPU cores.
 - **Status Bar Indicator**: "Analyzing..." message shows when background token counts are calculating.
-- **Track Name Validation**: Duplicate track names are prevented with auto-incrementing suffixes (e.g., "Main (2)").
-- **Token Aggregator Service**: Centralized token calculation logic for consistent UI updates.
+- **Track Name Validation**: Real-time duplicate detection prevents creating tracks with existing names.
+- **Token Aggregator Service**: Centralized token calculation logic for consistent UI updates. d
 - **Context Key Service**: Command state management with batched updates to reduce overhead.
 - **Persistence Service**: Debounced storage writes to minimize disk I/O.
 - **Visibility-Aware Analysis**: Token processing pauses when window is blurred or sidebar is hidden.
 - **Non-Blocking Tree Construction**: Large file groups are processed in chunks to prevent UI freezes.
+- **Default Excludes Setting**: Added `aiContextStacker.defaultExcludes` for customizable base ignore patterns.
+- **Extension-Based Binary Detection**: Fast-path heuristic skips disk I/O for known binary and text file extensions.
+- **Constants Module**: Centralized file type sets, size limits, and exclude patterns in `src/constants.ts`.
 
 ### Changed
 

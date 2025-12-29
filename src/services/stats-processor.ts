@@ -1,7 +1,9 @@
 import * as os from 'os'
+import * as path from 'path'
 import { TextDecoder } from 'util'
 import * as vscode from 'vscode'
 
+import { KNOWN_BINARY_EXTENSIONS, KNOWN_TEXT_EXTENSIONS } from '../constants'
 import { ContentStats, StagedFile } from '../models'
 import { Logger, TokenEstimator } from '../utils'
 
@@ -257,8 +259,22 @@ export class StatsProcessor implements vscode.Disposable {
 
   private async readTextContent(uri: vscode.Uri): Promise<string | null> {
     try {
+      const ext = path.extname(uri.fsPath).toLowerCase()
+
+      if (KNOWN_BINARY_EXTENSIONS.has(ext)) {
+        return null
+      }
+
       const buffer = await vscode.workspace.fs.readFile(uri)
-      if (this.isBinaryBuffer(buffer)) return null
+
+      if (KNOWN_TEXT_EXTENSIONS.has(ext)) {
+        return this.decoder.decode(buffer)
+      }
+
+      if (this.isBinaryBuffer(buffer)) {
+        return null
+      }
+
       return this.decoder.decode(buffer)
     } catch {
       return null

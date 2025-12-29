@@ -53,6 +53,35 @@
             "type": "string"
           }
         },
+        "aiContextStacker.defaultExcludes": {
+          "type": "array",
+          "default": [
+            "**/.git/**",
+            "**/node_modules/**",
+            "**/build/**",
+            "**/dist/**",
+            "**/out/**",
+            "**/coverage/**",
+            "**/.cache/**",
+            "**/package-lock.json",
+            "**/yarn.lock",
+            "**/pnpm-lock.yaml",
+            "**/bun.lockb",
+            "**/.bun/**",
+            "**/__pycache__/**",
+            "**/.venv/**",
+            "**/venv/**",
+            "**/.env",
+            "**/*.pyc",
+            "**/.vscode/**",
+            "**/*.log",
+            "**/.DS_Store"
+          ],
+          "description": "Default exclusion patterns applied to all operations.",
+          "items": {
+            "type": "string"
+          }
+        },
         "aiContextStacker.largeFileThreshold": {
           "type": "integer",
           "default": 5000,

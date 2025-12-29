@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 
+import { StagedFile } from '../models'
 import { StackProvider } from '../providers'
 import { ClipboardOps, ContentFormatter, ErrorHandler } from '../utils'
 import { Command, CommandDependencies } from './types'
@@ -16,7 +17,7 @@ export function getCopyAllCommands(deps: CommandDependencies): Command[] {
 }
 
 async function handleCopyAll(provider: StackProvider): Promise<void> {
-  const files = provider.getFiles()
+  const files = provider.getFiles() as StagedFile[]
 
   if (files.length === 0) {
     void vscode.window.showInformationMessage('Context stack is empty.')

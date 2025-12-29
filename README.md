@@ -132,7 +132,7 @@ The extension writes diagnostic information to the Output Channel (`AI Context S
 
 The extension handles large stacks without blocking VS Code. The sidebar renders immediately on startup while token counting happens in the background.
 
-Token counts are cached locally. When you restart VS Code, the extension instantly restores your previous analysis, only re-scanning files that have changed on disk. This eliminates the full warmup delay on subsequent sessions.
+Token counts are cached locally. When you restart VS Code, the extension instantly restores your previous analysis, only re-scanning files that have changed on disk. For large track collections, restoration happens in batches to keep the UI responsive.
 
 File system tracking uses native VS Code events instead of low-level watchers to reduce resource usage in remote environments like WSL, SSH, and Dev Containers. Background processes are cleaned up automatically on window reload to prevent lingering tasks. Folder trees with hundreds of files build quickly, and long operations show progress using VS Code's native progress bar.
 

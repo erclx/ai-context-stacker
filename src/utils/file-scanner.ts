@@ -21,7 +21,6 @@ export async function categorizeTargets(targets: vscode.Uri[]) {
       for (let i = 0; i < targets.length; i += BATCH_SIZE_STAT) {
         const batch = targets.slice(i, i + BATCH_SIZE_STAT)
         await processStatBatch(batch, files, folders)
-        // Yield to event loop to keep UI responsive
         await new Promise((resolve) => setImmediate(resolve))
       }
     },
