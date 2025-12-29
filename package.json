@@ -260,6 +260,12 @@
         "icon": "$(list-unordered)"
       },
       {
+        "command": "aiContextStacker.removeFolderPicker",
+        "title": "Remove Folder...",
+        "category": "AI Context Stacker",
+        "icon": "$(folder-opened)"
+      },
+      {
         "command": "aiContextStacker.renameTrack",
         "title": "Rename Track...",
         "category": "AI Context Stacker",
@@ -400,19 +406,24 @@
           "group": "3_filtering@1"
         },
         {
+          "command": "aiContextStacker.removeFolderPicker",
+          "when": "view == aiContextStackerView && aiContextStacker.hasFiles",
+          "group": "3_filtering@2"
+        },
+        {
           "command": "aiContextStacker.showPinnedOnly",
           "when": "view == aiContextStackerView && !aiContextStacker.pinnedOnly && aiContextStacker.hasPinnedFiles",
-          "group": "3_filtering@2"
+          "group": "3_filtering@3"
         },
         {
           "command": "aiContextStacker.showAllFiles",
           "when": "view == aiContextStackerView && aiContextStacker.pinnedOnly",
-          "group": "3_filtering@3"
+          "group": "3_filtering@4"
         },
         {
           "command": "aiContextStacker.unpinAll",
           "when": "view == aiContextStackerView && aiContextStacker.hasPinnedFiles",
-          "group": "3_filtering@4"
+          "group": "3_filtering@5"
         },
         {
           "//": "--- Staged Files: Overflow Menu (Group 4: Config) ---",

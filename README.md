@@ -145,7 +145,7 @@ File system tracking uses native VS Code events instead of low-level watchers to
 | :------------------------ | :------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------- |
 | `Add Files...`            | Pick files to add to the stack (includes **Add All** option).             | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> |
 | `Add Folder...`           | Recursively scan and add an entire directory.                             | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> |
-| `Remove Files...`         | Bulk-remove selected files from the stack.                                |                                                                                          |
+| `Remove Files...`         | Select files to remove from the stack.                                    |                                                                                          |
 | `Add All Open Files`      | Stage all currently open text editors.                                    |                                                                                          |
 | `Add Current File`        | Stage the active editor.                                                  |                                                                                          |
 | `Add to AI Context Stack` | Add file from Explorer context menu.                                      |                                                                                          |

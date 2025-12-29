@@ -21,22 +21,24 @@ async function handleRemovePicker(provider: StackProvider): Promise<void> {
   }
 
   const items = currentFiles.map((file) => ({
-    label: file.label,
-    description: file.isPinned ? '$(pin) Pinned' : '',
-    picked: true,
+    label: vscode.workspace.asRelativePath(file.uri),
+    description: file.isPinned ? '$(pin) Pinned' : undefined,
+    picked: false,
+    iconPath: new vscode.ThemeIcon('file'),
     file: file,
   }))
 
   const selectedItems = await vscode.window.showQuickPick(items, {
     canPickMany: true,
-    placeHolder: 'Uncheck files to remove them from the stack',
+    placeHolder: 'Select files to remove from the stack',
     title: 'Remove Files',
+    matchOnDescription: true,
+    matchOnDetail: true,
   })
 
-  if (!selectedItems) return
+  if (!selectedItems || selectedItems.length === 0) return
 
-  const remainingUris = new Set(selectedItems.map((i) => i.file.uri.toString()))
-  const filesToRemove = currentFiles.filter((f) => !remainingUris.has(f.uri.toString()))
+  const filesToRemove = selectedItems.map((i) => i.file)
 
   if (filesToRemove.length > 0) {
     provider.removeFiles(filesToRemove)

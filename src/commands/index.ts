@@ -14,6 +14,7 @@ import { getPreviewContextCommands } from './preview-context'
 import { getRefreshStackCommands } from './refresh-stack'
 import { getRemoveFileCommands } from './remove-file'
 import { getRemoveFilePickerCommands } from './remove-file-picker'
+import { getRemoveFolderPickerCommands } from './remove-folder-picker'
 import { getRevealInExplorerCommands } from './reveal-in-explorer'
 import { getRevealInViewCommands } from './reveal-in-view'
 import { getSelectAllCommands } from './select-all'
@@ -34,6 +35,7 @@ export function registerAllCommands(deps: CommandDependencies): void {
     getAddOpenFilesCommands,
     getRemoveFileCommands,
     getRemoveFilePickerCommands,
+    getRemoveFolderPickerCommands,
     getTogglePinCommands,
     getUnpinAllCommands,
     getClearAllCommands,
