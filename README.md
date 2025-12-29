@@ -41,9 +41,9 @@ This gets tedious fast—especially with larger codebases or multi-file tasks.
 
 Drag files or folders into the staging area. Right-click any file in the Explorer to add it. The extension shows what's staged and lets you copy everything in one go.
 
-**Live Token Updates**: Token counts refresh automatically as you edit (400ms debounce). Folders show the aggregated token count of all files inside them (recursive sum). Files over 1MB use optimized statistical estimation to keep the editor responsive during rapid typing.
+**Live Token Updates**: Token counts refresh automatically as you edit (400ms debounce). Folders show the aggregated token count of all files inside them (recursive sum). Files over 1MB use optimized statistical estimation to keep the editor responsive during rapid typing. Analysis scales dynamically based on available CPU cores to process your stack without blocking the UI thread.
 
-**Startup Behavior**: The sidebar appears immediately when VS Code opens. Token analysis runs in the background during a brief warmup period, showing a loading spinner and "Calculating..." in the Status Bar until complete.
+**Startup Behavior**: The sidebar appears immediately when VS Code opens. Token counts are cached locally between sessions—the extension only re-analyzes files that have changed on disk. On first load or after file modifications, background analysis runs during a brief warmup period. The Status Bar displays "Analyzing..." while this work is in progress.
 
 **Manual Refresh**: Use the dedicated **Refresh Stack** command (found in the `...` menu or press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd>) to force a re-scan of the filesystem and re-calculate all token counts.
 
@@ -124,9 +124,15 @@ This makes both targeted and bulk operations intuitive without separate commands
 - Right-click staged files to reveal them in your system file manager
 - Use **Reveal in AI Stack** to locate and highlight any file within your staged context
 
+### Troubleshooting
+
+The extension writes diagnostic information to the Output Channel (`AI Context Stacker`). Use the `aiContextStacker.logLevel` setting to control verbosity. Set to `DEBUG` to view detailed performance metrics and cache behavior during development or when reporting issues.
+
 ## Performance
 
 The extension handles large stacks without blocking VS Code. The sidebar renders immediately on startup while token counting happens in the background.
+
+Token counts are cached locally. When you restart VS Code, the extension instantly restores your previous analysis, only re-scanning files that have changed on disk. This eliminates the full warmup delay on subsequent sessions.
 
 File system tracking uses native VS Code events instead of low-level watchers to reduce resource usage in remote environments like WSL, SSH, and Dev Containers. Background processes are cleaned up automatically on window reload to prevent lingering tasks. Folder trees with hundreds of files build quickly, and long operations show progress using VS Code's native progress bar.
 
@@ -217,16 +223,17 @@ File system tracking uses native VS Code events instead of low-level watchers to
 
 All configuration is managed natively via VS Code Settings.
 
-| Setting                                   | Default           | Description                                                      |
-| :---------------------------------------- | :---------------- | :--------------------------------------------------------------- |
-| `aiContextStacker.excludes`               | `[]`              | File patterns to exclude (glob patterns).                        |
-| `aiContextStacker.largeFileThreshold`     | `5000`            | Token count for **Heavy** warning (Amber). Red at 2x this value. |
-| `aiContextStacker.showTreeMap`            | `true`            | Include the ASCII directory tree in output.                      |
-| `aiContextStacker.showTreeMapHeader`      | `true`            | Show the title text above the tree map.                          |
-| `aiContextStacker.treeMapText`            | `# Context Map`   | Custom text for the map header.                                  |
-| `aiContextStacker.includeFileContents`    | `true`            | Include the actual code/text of staged files.                    |
-| `aiContextStacker.showFileContentsHeader` | `true`            | Show the title text above file contents.                         |
-| `aiContextStacker.fileContentsText`       | `# File Contents` | Custom text for the contents header.                             |
+| Setting                                   | Default           | Description                                                                             |
+| :---------------------------------------- | :---------------- | :-------------------------------------------------------------------------------------- |
+| `aiContextStacker.excludes`               | `[]`              | File patterns to exclude (glob patterns).                                               |
+| `aiContextStacker.largeFileThreshold`     | `5000`            | Token count for **Heavy** warning (Amber). Red at 2x this value.                        |
+| `aiContextStacker.showTreeMap`            | `true`            | Include the ASCII directory tree in output.                                             |
+| `aiContextStacker.showTreeMapHeader`      | `true`            | Show the title text above the tree map.                                                 |
+| `aiContextStacker.treeMapText`            | `# Context Map`   | Custom text for the map header.                                                         |
+| `aiContextStacker.includeFileContents`    | `true`            | Include the actual code/text of staged files.                                           |
+| `aiContextStacker.showFileContentsHeader` | `true`            | Show the title text above file contents.                                                |
+| `aiContextStacker.fileContentsText`       | `# File Contents` | Custom text for the contents header.                                                    |
+| `aiContextStacker.logLevel`               | `INFO`            | Control the verbosity of the Output Channel. Options: `DEBUG`, `INFO`, `WARN`, `ERROR`. |
 
 ## Tips
 

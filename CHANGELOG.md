@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Token Analysis Caching**: Analysis data is saved between sessions to eliminate repeated warmup delays.
+- **Hardware Scaling**: Processing automatically adjusts based on available CPU cores.
+- **Status Bar Indicator**: "Analyzing..." message shows when background token counts are calculating.
+- **Track Name Validation**: Duplicate track names are prevented with auto-incrementing suffixes (e.g., "Main (2)").
+
+### Changed
+
+- **Track Loading**: Rebuilt initialization to ensure tracks load reliably on startup.
+- **UI Refresh**: Improved list updates to reduce flickering when staging large file groups.
+
+### Fixed
+
+- **Stuck Spinner**: Resolved issue where "Warming up..." indicator remained visible after analysis completed.
+
 ## [0.0.5] - 2025-12-28
 
 ### Added

@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 
 import { IgnoreManager, StackProvider, TrackManager, TrackProvider } from '../providers'
 import { Logger, LogLevel } from '../utils'
+import { AnalysisEngine } from './analysis-engine'
 import { FileWatcherService } from './file-watcher'
 
 export class ServiceRegistry implements vscode.Disposable {
@@ -12,6 +13,7 @@ export class ServiceRegistry implements vscode.Disposable {
   public readonly stackProvider: StackProvider
   public readonly trackProvider: TrackProvider
   public readonly fileWatcher: FileWatcherService
+  public readonly analysisEngine: AnalysisEngine
 
   private _disposables: vscode.Disposable[] = []
 
@@ -22,7 +24,8 @@ export class ServiceRegistry implements vscode.Disposable {
 
     this.ignoreManager = new IgnoreManager()
     this.trackManager = new TrackManager(context)
-    this.stackProvider = new StackProvider(context, this.ignoreManager, this.trackManager)
+    this.analysisEngine = new AnalysisEngine(context, this.trackManager)
+    this.stackProvider = new StackProvider(context, this.ignoreManager, this.trackManager, this.analysisEngine)
     this.trackProvider = new TrackProvider(this.trackManager)
     this.fileWatcher = new FileWatcherService(this.trackManager)
 
@@ -58,6 +61,7 @@ export class ServiceRegistry implements vscode.Disposable {
     this._disposables.push(
       this.ignoreManager,
       this.trackManager,
+      this.analysisEngine,
       this.stackProvider,
       this.trackProvider,
       this.fileWatcher,

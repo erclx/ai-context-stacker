@@ -1,50 +1,127 @@
+import * as os from 'os'
 import { TextDecoder } from 'util'
 import * as vscode from 'vscode'
 
 import { ContentStats, StagedFile } from '../models'
 import { Logger, TokenEstimator } from '../utils'
 
+interface CachedFileStats {
+  mtime: number
+  size: number
+  stats: ContentStats
+}
+
+interface StatsCache {
+  [fileUri: string]: CachedFileStats
+}
+
 export class StatsProcessor implements vscode.Disposable {
   private readonly decoder = new TextDecoder()
-  private readonly STARTUP_DELAY_MS = 2500
-
-  private startupTimer: NodeJS.Timeout | undefined
-  private startupPromise: Promise<void>
-  private _onDidWarmup = new vscode.EventEmitter<void>()
+  private static readonly CACHE_KEY = 'aiContextStacker.statsCache.v1'
+  private static readonly CACHE_LIMIT_ENTRIES = 1000
 
   private _isDisposed = false
 
-  public readonly onDidWarmup = this._onDidWarmup.event
+  private statsCache: StatsCache = {}
+  private cacheHits = 0
+  private cacheMisses = 0
 
-  constructor() {
-    this.startupPromise = new Promise((resolve) => {
-      this.startupTimer = setTimeout(() => {
-        if (this._isDisposed) return
-        resolve()
-        this._onDidWarmup.fire()
-        this.startupTimer = undefined
-      }, this.STARTUP_DELAY_MS)
-    })
+  constructor(private context?: vscode.ExtensionContext) {
+    this.loadCache()
   }
 
   public dispose(): void {
     this._isDisposed = true
+    void this.saveCache()
+  }
 
-    if (this.startupTimer) {
-      clearTimeout(this.startupTimer)
-      this.startupTimer = undefined
+  private get concurrencyLimit(): number {
+    const cpus = os.cpus().length
+    return Math.min(Math.max(2, cpus * 2), 20)
+  }
+
+  private loadCache(): void {
+    if (!this.context) return
+
+    try {
+      const cached = this.context.workspaceState.get<StatsCache>(StatsProcessor.CACHE_KEY)
+      if (cached) {
+        this.statsCache = cached
+        const cacheSize = Object.keys(cached).length
+        Logger.debug(`Loaded stats cache with ${cacheSize} entries`)
+      }
+    } catch (error) {
+      Logger.error('Failed to load stats cache', error as Error)
+      this.statsCache = {}
     }
-    this._onDidWarmup.dispose()
+  }
+
+  private async saveCache(): Promise<void> {
+    if (!this.context || this._isDisposed) return
+
+    try {
+      const entries = Object.entries(this.statsCache)
+      if (entries.length > StatsProcessor.CACHE_LIMIT_ENTRIES) {
+        entries.sort((a, b) => b[1].mtime - a[1].mtime)
+        this.statsCache = Object.fromEntries(entries.slice(0, StatsProcessor.CACHE_LIMIT_ENTRIES))
+        Logger.debug(`Trimmed stats cache to ${StatsProcessor.CACHE_LIMIT_ENTRIES} entries`)
+      }
+
+      await this.context.workspaceState.update(StatsProcessor.CACHE_KEY, this.statsCache)
+
+      if (this.cacheHits + this.cacheMisses > 0) {
+        const hitRate = Math.round((this.cacheHits / (this.cacheHits + this.cacheMisses)) * 100)
+        Logger.debug(`Stats cache hit rate: ${hitRate}% (${this.cacheHits} hits, ${this.cacheMisses} misses)`)
+      }
+    } catch (error) {
+      Logger.error('Failed to save stats cache', error as Error)
+    }
   }
 
   public async enrichFileStats(targets: StagedFile[]): Promise<void> {
     if (this._isDisposed) return
-    await this.startupPromise
 
     const queue = targets.filter((f) => !f.stats)
-    if (queue.length === 0) return
 
-    await this.processQueue(queue)
+    if (queue.length === 0) {
+      Logger.debug(`All ${targets.length} files already have stats`)
+      return
+    }
+
+    Logger.debug(`Processing ${queue.length} files without stats (${targets.length} total)`)
+
+    const processStart = Date.now()
+    await this.processQueueConcurrent(queue)
+    const processTime = Date.now() - processStart
+    const avgTime = queue.length > 0 ? Math.round(processTime / queue.length) : 0
+
+    Logger.debug(
+      `File processing completed in ${processTime}ms (${avgTime}ms per file avg, ${queue.length} files processed concurrently)`,
+    )
+
+    await this.saveCache()
+  }
+
+  public async enrichFileStatsProgressive(targets: StagedFile[], onProgress: () => void): Promise<void> {
+    if (this._isDisposed) return
+
+    const queue = targets.filter((f) => !f.stats)
+
+    if (queue.length === 0) {
+      Logger.debug(`All ${targets.length} files already have stats`)
+      return
+    }
+
+    Logger.debug(`Processing ${queue.length} files without stats (${targets.length} total)`)
+
+    const processStart = Date.now()
+    await this.processQueueWithProgress(queue, onProgress)
+    const processTime = Date.now() - processStart
+    const avgTime = queue.length > 0 ? Math.round(processTime / queue.length) : 0
+
+    Logger.debug(`File processing completed in ${processTime}ms (${avgTime}ms per file avg)`)
+
+    await this.saveCache()
   }
 
   public measure(content: string): ContentStats {
@@ -55,26 +132,92 @@ export class StatsProcessor implements vscode.Disposable {
     }
   }
 
-  private async processQueue(queue: StagedFile[]): Promise<void> {
-    for (const file of queue) {
+  private async processQueueWithProgress(queue: StagedFile[], onProgress: () => void): Promise<void> {
+    const concurrency = this.concurrencyLimit
+    const progressInterval = concurrency
+
+    for (let i = 0; i < queue.length; i += concurrency) {
       if (this._isDisposed) break
 
+      const chunk = queue.slice(i, i + concurrency)
+      await Promise.all(chunk.map((file) => this.processFileWithCache(file)))
+
+      if ((i + concurrency) % progressInterval === 0 || i + concurrency >= queue.length) {
+        onProgress()
+      }
+
+      if (i + concurrency < queue.length) {
+        await this.yieldToEventLoop(1)
+      }
+    }
+  }
+
+  private async processQueueConcurrent(queue: StagedFile[]): Promise<void> {
+    const concurrency = this.concurrencyLimit
+
+    for (let i = 0; i < queue.length; i += concurrency) {
+      if (this._isDisposed) break
+
+      const chunk = queue.slice(i, i + concurrency)
+      await Promise.all(chunk.map((file) => this.processFileWithCache(file)))
+
+      if (i + concurrency < queue.length) {
+        await this.yieldToEventLoop(1)
+      }
+    }
+  }
+
+  private async processFileWithCache(file: StagedFile): Promise<void> {
+    if (this._isDisposed) return
+
+    try {
+      const uriStr = file.uri.toString()
+      const stat = await vscode.workspace.fs.stat(file.uri)
+
+      const cached = this.statsCache[uriStr]
+      if (cached && cached.mtime === stat.mtime && cached.size === stat.size) {
+        file.stats = cached.stats
+        file.isBinary = false
+        this.cacheHits++
+        return
+      }
+
+      this.cacheMisses++
+
       await this.processFile(file)
-      await this.yieldToEventLoop()
+
+      if (file.stats) {
+        this.statsCache[uriStr] = {
+          mtime: stat.mtime,
+          size: stat.size,
+          stats: file.stats,
+        }
+      }
+    } catch (error) {
+      Logger.warn(`Stats read failed: ${file.uri.fsPath}`)
+      this.setEmptyStats(file)
     }
   }
 
   private async processFile(file: StagedFile): Promise<void> {
     if (this._isDisposed) return
+
     try {
       const size = await this.getFileSize(file.uri)
+
+      if (size > 5 * 1024 * 1024) {
+        this.applyHeuristicStats(file, size)
+        return
+      }
+
       if (size > 1024 * 1024) {
         this.applyHeuristicStats(file, size)
         return
       }
+
       await this.analyzeExactStats(file)
     } catch (error) {
-      Logger.warn(`Stats read failed: ${file.uri.fsPath}`)
+      Logger.warn(`Stats processing failed: ${file.uri.fsPath}`)
       this.setEmptyStats(file)
     }
   }
@@ -130,7 +273,7 @@ export class StatsProcessor implements vscode.Disposable {
     return false
   }
 
-  private yieldToEventLoop(): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, 5))
+  private yieldToEventLoop(ms: number = 5): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 }

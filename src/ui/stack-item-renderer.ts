@@ -38,10 +38,12 @@ export class StackItemRenderer {
     item.iconPath = vscode.ThemeIcon.Folder
     item.resourceUri = folder.resourceUri
 
-    const totalTokens = folder.tokenCount ?? 0
-    const tokenDisplay = isWarmingUp ? 'Calculating...' : this.formatTokenCount(totalTokens)
+    const hasStats = folder.tokenCount !== undefined
+    const displayValue = hasStats ? folder.tokenCount! : 0
 
-    item.description = tokenDisplay
+    const showCalculating = !hasStats && isWarmingUp
+
+    item.description = showCalculating ? 'Calculating...' : this.formatTokenCount(displayValue)
     item.tooltip = `${folder.containedFiles.length} files directly inside`
 
     return item

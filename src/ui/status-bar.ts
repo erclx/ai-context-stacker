@@ -15,9 +15,10 @@ export class StackerStatusBar implements vscode.Disposable {
     this.item.command = 'aiContextStacker.copyAll'
     this.item.tooltip = 'Click to Copy Stack to Clipboard'
 
-    const changeListener = contextStackProvider.onDidChangeTreeData(() => this.update())
+    const treeListener = contextStackProvider.onDidChangeTreeData(() => this.update())
+    const analysisListener = contextStackProvider.analysisEngine.onDidStatusChange(() => this.update())
 
-    this._disposables.push(this.item, changeListener)
+    this._disposables.push(this.item, treeListener, analysisListener)
     extensionContext.subscriptions.push(this.item)
 
     this.update()
@@ -34,11 +35,17 @@ export class StackerStatusBar implements vscode.Disposable {
     const totalTokens = this.provider.getTotalTokens()
     const formattedTokens = this.provider.formatTokenCount(totalTokens)
     const trackName = this.provider.getActiveTrackName()
+    const isAnalyzing = this.provider.analysisEngine.isAnalyzing
 
-    this.item.text = `$(layers) ${trackName} (${formattedTokens})`
+    if (isAnalyzing) {
+      this.item.text = `$(sync~spin) Analyzing... ${trackName} (${formattedTokens})`
+    } else {
+      this.item.text = `$(layers) ${trackName} (${formattedTokens})`
+    }
 
     this.item.tooltip = new vscode.MarkdownString(
       `**Active Track:** ${trackName}\n\n` +
+        `**Status:** ${isAnalyzing ? 'Analyzing...' : 'Ready'}\n` +
         `**Files:** ${files.length} staged\n` +
         `**Tokens:** ${formattedTokens}\n\n` +
         `$(copy) Click to Copy All\n` +

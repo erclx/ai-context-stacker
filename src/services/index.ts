@@ -1,3 +1,4 @@
+export * from './analysis-engine'
 export * from './file-watcher'
 export * from './ignore-parser'
 export * from './registry'

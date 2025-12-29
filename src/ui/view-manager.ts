@@ -14,7 +14,7 @@ export class ViewManager implements vscode.Disposable {
   constructor(
     stackProvider: StackProvider,
     trackListProvider: TrackProvider,
-    trackManager: TrackManager,
+    private trackManager: TrackManager,
     ignoreProvider: IgnoreManager,
   ) {
     const dragDropController = new StackDragDropController(stackProvider, ignoreProvider)
@@ -46,11 +46,11 @@ export class ViewManager implements vscode.Disposable {
   }
 
   private registerViewCommands(): void {
-    const collapseCmd = vscode.commands.registerCommand('aiContextStacker.collapseAll', () =>
-      vscode.commands.executeCommand('workbench.actions.treeView.aiContextStackerView.collapseAll'),
+    this._disposables.push(
+      vscode.commands.registerCommand('aiContextStacker.collapseAll', () =>
+        vscode.commands.executeCommand('workbench.actions.treeView.aiContextStackerView.collapseAll'),
+      ),
     )
-
-    this._disposables.push(collapseCmd)
   }
 
   private updateTitle(trackName: string, provider: StackProvider) {

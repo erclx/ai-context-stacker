@@ -67,10 +67,16 @@ async function handleNewTrack(manager: TrackManager): Promise<void> {
   const name = await vscode.window.showInputBox({
     prompt: 'Enter name for new context track',
     placeHolder: 'e.g., "Refactoring Auth"',
+    validateInput: (value) => {
+      const trimmed = value.trim()
+      if (trimmed.length === 0) return 'Name cannot be empty'
+      if (manager.isNameTaken(trimmed)) return 'Track name is already taken'
+      return null
+    },
   })
 
   if (name) {
-    await manager.createTrack(name)
+    manager.createTrack(name.trim())
   }
 }
 
@@ -96,10 +102,18 @@ async function handleRenameTrack(
   const name = await vscode.window.showInputBox({
     prompt: `Rename track "${target.name}"`,
     value: target.name,
+    validateInput: (value) => {
+      const trimmed = value.trim()
+      if (trimmed.length === 0) return 'Name cannot be empty'
+      if (trimmed !== target.name && manager.isNameTaken(trimmed)) {
+        return 'Track name is already taken'
+      }
+      return null
+    },
   })
 
   if (name) {
-    manager.renameTrack(target.id, name)
+    manager.renameTrack(target.id, name.trim())
   }
 }
 
@@ -115,11 +129,16 @@ async function handleDeleteTrack(
     return
   }
 
-  const answer = await vscode.window.showWarningMessage(`Delete track "${target.name}"?`, { modal: true }, 'Delete')
-
-  if (answer === 'Delete') {
-    manager.deleteTrack(target.id)
+  if (target.files.length > 0) {
+    const answer = await vscode.window.showWarningMessage(
+      `Delete track "${target.name}" and its files?`,
+      { modal: true },
+      'Delete',
+    )
+    if (answer !== 'Delete') return
   }
+
+  manager.deleteTrack(target.id)
 }
 
 async function handleDeleteAllTracks(manager: TrackManager): Promise<void> {

@@ -4,10 +4,40 @@ import { ContextTrack, SerializedState, StagedFile } from '../models'
 import { StateMapper } from '../services'
 import { generateId, Logger } from '../utils'
 
-export class TrackManager implements vscode.Disposable {
+class TrackPersistence {
   private static readonly STORAGE_KEY = 'aiContextStacker.tracks.v1'
   private static readonly STORAGE_LIMIT_BYTES = 100_000
-  private readonly GHOST_TRACK: ContextTrack = { id: 'ghost', name: 'No Active Track', files: [] }
+
+  constructor(private context: vscode.ExtensionContext) {}
+
+  public async load(): Promise<SerializedState | undefined> {
+    const start = Date.now()
+    const raw = this.context.workspaceState.get<SerializedState>(TrackPersistence.STORAGE_KEY)
+    if (raw) {
+      Logger.debug(`Storage read in ${Date.now() - start}ms`)
+    }
+    return raw
+  }
+
+  public async save(tracks: Map<string, ContextTrack>, activeId: string, order: string[]): Promise<void> {
+    const state = StateMapper.toSerialized(tracks, activeId, order)
+    const size = JSON.stringify(state).length
+
+    if (size > TrackPersistence.STORAGE_LIMIT_BYTES) {
+      Logger.warn(`State size ${size} exceeds limit. Aborting save.`)
+      return
+    }
+
+    await this.context.workspaceState.update(TrackPersistence.STORAGE_KEY, state)
+  }
+
+  public async clear(): Promise<void> {
+    await this.context.workspaceState.update(TrackPersistence.STORAGE_KEY, undefined)
+  }
+}
+
+export class TrackManager implements vscode.Disposable {
+  private readonly NULL_TRACK: ContextTrack = { id: 'ghost', name: 'No Active Track', files: [] }
 
   private tracks = new Map<string, ContextTrack>()
   private activeTrackId = 'default'
@@ -21,7 +51,10 @@ export class TrackManager implements vscode.Disposable {
   private _onDidChangeTrack = new vscode.EventEmitter<ContextTrack>()
   readonly onDidChangeTrack = this._onDidChangeTrack.event
 
+  private persistence: TrackPersistence
+
   constructor(private context: vscode.ExtensionContext) {
+    this.persistence = new TrackPersistence(context)
     this.scheduleAsyncHydration()
   }
 
@@ -34,7 +67,7 @@ export class TrackManager implements vscode.Disposable {
   }
 
   public getActiveTrack(): ContextTrack {
-    return this.tracks.get(this.activeTrackId) || this.GHOST_TRACK
+    return this.tracks.get(this.activeTrackId) || this.NULL_TRACK
   }
 
   public dispose(): void {
@@ -47,30 +80,40 @@ export class TrackManager implements vscode.Disposable {
     }
 
     this._onDidChangeTrack.dispose()
-    Logger.info('TrackManager disposed.')
+    Logger.debug('TrackManager disposed.')
   }
 
   public async switchToTrack(id: string): Promise<void> {
     if (this._isDisposed || !this.tracks.has(id)) return
     this.activeTrackId = id
-    await this.persistState(false)
+    await this.saveState(false)
     this.fireChange()
   }
 
-  public createTrack(name: string): string {
+  public createTrack(baseName: string): string {
     const id = generateId('track')
-    this.tracks.set(id, { id, name, files: [] })
+    const uniqueName = this.ensureUniqueName(baseName)
+
+    this.tracks.set(id, { id, name: uniqueName, files: [] })
     this._trackOrder.push(id)
     void this.switchToTrack(id)
     return id
   }
 
-  public renameTrack(id: string, newName: string): void {
+  public renameTrack(id: string, newName: string): boolean {
     const track = this.tracks.get(id)
-    if (!track) return
+    if (!track) return false
+
+    if (track.name === newName) return true
+
+    if (this.isNameTaken(newName)) {
+      return false
+    }
+
     track.name = newName
-    void this.persistState(false)
+    void this.saveState(false)
     this.fireChange(track)
+    return true
   }
 
   public deleteTrack(id: string): void {
@@ -93,11 +136,11 @@ export class TrackManager implements vscode.Disposable {
     this.uriRefCount.clear()
 
     if (!this._isDisposed) {
-      await this.context.workspaceState.update(TrackManager.STORAGE_KEY, undefined)
+      await this.persistence.clear()
     }
 
     this.createDefaultTrack()
-    await this.persistState(true)
+    await this.saveState(true)
     this.fireChange()
   }
 
@@ -118,23 +161,23 @@ export class TrackManager implements vscode.Disposable {
     this._trackOrder.splice(fromIndex, 1)
     this.insertTrackAtTarget(sourceId, targetId)
 
-    void this.persistState(false)
+    void this.saveState(false)
     this.fireChange()
   }
 
   public toggleFilesPin(files: StagedFile[]): void {
     if (!files?.length) return
     files.forEach((f) => (f.isPinned = !f.isPinned))
-    void this.persistState(false)
+    void this.saveState(false)
     this.fireChange()
   }
 
   public unpinAllInActive(): void {
     const track = this.getActiveTrack()
-    if (track === this.GHOST_TRACK) return
+    if (track === this.NULL_TRACK) return
 
     track.files.forEach((f) => (f.isPinned = false))
-    void this.persistState(false)
+    void this.saveState(false)
     this.fireChange(track)
   }
 
@@ -177,31 +220,49 @@ export class TrackManager implements vscode.Disposable {
     if (newFiles.length > 0) {
       track.files.push(...newFiles)
       this.incrementIndex(newFiles)
-      void this.persistState()
+      void this.saveState()
     }
     return newFiles
   }
 
   public removeFilesFromActive(files: StagedFile[]): void {
     const track = this.getActiveTrack()
-    if (track === this.GHOST_TRACK) return
+    if (track === this.NULL_TRACK) return
 
     this.decrementIndex(files)
     const targets = new Set(files.map((f) => f.uri.toString()))
     track.files = track.files.filter((f) => !targets.has(f.uri.toString()))
 
-    void this.persistState()
+    void this.saveState()
   }
 
   public clearActive(): void {
     const track = this.getActiveTrack()
-    if (track === this.GHOST_TRACK) return
+    if (track === this.NULL_TRACK) return
 
     const removed = track.files.filter((f) => !f.isPinned)
     this.decrementIndex(removed)
     track.files = track.files.filter((f) => f.isPinned)
 
-    void this.persistState()
+    void this.saveState()
+  }
+
+  public isNameTaken(name: string): boolean {
+    for (const track of this.tracks.values()) {
+      if (track.name === name) return true
+    }
+    return false
+  }
+
+  private ensureUniqueName(baseName: string): string {
+    if (!this.isNameTaken(baseName)) return baseName
+
+    let counter = 2
+    while (true) {
+      const candidate = `${baseName} (${counter})`
+      if (!this.isNameTaken(candidate)) return candidate
+      counter++
+    }
   }
 
   private scheduleAsyncHydration(): void {
@@ -215,49 +276,104 @@ export class TrackManager implements vscode.Disposable {
   private async performHydration(): Promise<void> {
     if (this._isDisposed) return
 
-    const raw = this.context.workspaceState.get<SerializedState>(TrackManager.STORAGE_KEY)
-    if (raw) this.restoreState(raw)
-    else this.createDefaultTrack()
+    const startTime = Date.now()
 
-    this.rebuildFullIndex()
-    this._isInitialized = true
-    this.updateContextKeys()
-    this.fireChange()
+    try {
+      const raw = await this.persistence.load()
+
+      if (raw) {
+        await this.restoreStateInChunks(raw)
+      } else {
+        Logger.info('No previous state found, creating default track')
+        this.createDefaultTrack()
+      }
+
+      this.rebuildFullIndex()
+      this._isInitialized = true
+      this.updateContextKeys()
+      this.fireChange()
+
+      Logger.debug(`Total hydration completed in ${Date.now() - startTime}ms`)
+    } catch (error) {
+      Logger.error('Hydration failed catastrophically', error as Error)
+      this.createDefaultTrack()
+      this._isInitialized = true
+      this.fireChange()
+    }
   }
 
-  private restoreState(rawState: SerializedState): void {
-    const { tracks, activeTrackId, trackOrder } = StateMapper.fromSerialized(rawState)
-    this.tracks = tracks
-    this.activeTrackId = activeTrackId
-    this._trackOrder = trackOrder
+  private async restoreStateInChunks(rawState: SerializedState): Promise<void> {
+    this.activeTrackId = rawState.activeTrackId || 'default'
+    this._trackOrder = rawState.trackOrder || []
+
+    const trackEntries = Object.entries(rawState.tracks || {})
+    const CHUNK_SIZE = 5
+
+    for (let i = 0; i < trackEntries.length; i += CHUNK_SIZE) {
+      await this.yieldToEventLoop()
+
+      const chunk = trackEntries.slice(i, i + CHUNK_SIZE)
+
+      for (const [id, serializedTrack] of chunk) {
+        try {
+          const track = this.deserializeTrackOptimized(serializedTrack)
+          this.tracks.set(id, track)
+        } catch (error) {
+          Logger.error(`Failed to deserialize track ${id}`, error as Error)
+        }
+      }
+    }
+
     this.validateStateIntegrity()
   }
 
-  private async persistState(rebuildIndex = true): Promise<void> {
-    if (this._isDisposed) return
+  private deserializeTrackOptimized(trackData: any): ContextTrack {
+    const files: StagedFile[] = []
 
+    if (trackData.items && Array.isArray(trackData.items)) {
+      for (const item of trackData.items) {
+        try {
+          const uri = vscode.Uri.parse(item.uri)
+          files.push({
+            type: 'file',
+            uri,
+            label: this.extractLabel(uri),
+            isPinned: !!item.isPinned,
+          })
+        } catch (error) {
+          Logger.warn(`Skipped invalid URI: ${item.uri}`)
+        }
+      }
+    }
+
+    return {
+      id: trackData.id,
+      name: trackData.name,
+      files,
+    }
+  }
+
+  private extractLabel(uri: vscode.Uri): string {
+    const pathParts = uri.path.split('/')
+    return pathParts[pathParts.length - 1] || 'unknown'
+  }
+
+  private yieldToEventLoop(): Promise<void> {
+    return new Promise((resolve) => setImmediate(resolve))
+  }
+
+  private async saveState(rebuildIndex = true): Promise<void> {
+    if (this._isDisposed) return
     if (rebuildIndex) this.rebuildFullIndex()
     this.updateContextKeys()
 
-    const state = StateMapper.toSerialized(this.tracks, this.activeTrackId, this._trackOrder)
-
-    if (this.isStateTooLarge(state)) {
-      Logger.warn('State exceeds 100KB limit. Aborting save.')
-      return
-    }
-
-    await this.context.workspaceState.update(TrackManager.STORAGE_KEY, state)
+    await this.persistence.save(this.tracks, this.activeTrackId, this._trackOrder)
   }
 
   private fireChange(track?: ContextTrack): void {
     if (!this._isDisposed) {
       this._onDidChangeTrack.fire(track || this.getActiveTrack())
     }
-  }
-
-  private isStateTooLarge(state: SerializedState): boolean {
-    const size = JSON.stringify(state).length
-    return size > TrackManager.STORAGE_LIMIT_BYTES
   }
 
   private rebuildFullIndex(): void {
@@ -285,7 +401,7 @@ export class TrackManager implements vscode.Disposable {
 
   private finalizeChange(): void {
     this.rebuildFullIndex()
-    void this.persistState()
+    void this.saveState()
     this.fireChange()
   }
 
@@ -315,7 +431,7 @@ export class TrackManager implements vscode.Disposable {
     const temp = this._trackOrder[idxB]
     this._trackOrder[idxB] = this._trackOrder[idxA]
     this._trackOrder[idxA] = temp
-    void this.persistState(false)
+    void this.saveState(false)
     this.fireChange()
   }
 
@@ -351,7 +467,7 @@ export class TrackManager implements vscode.Disposable {
       if (!this.tracks.has(nextId)) this.createDefaultTrack()
       void this.switchToTrack(nextId)
     } else {
-      void this.persistState()
+      void this.saveState()
       this.fireChange()
     }
   }
