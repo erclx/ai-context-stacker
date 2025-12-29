@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { ContextTrack } from '../models'
-import { StackProvider } from './stack-provider'
+import { TokenAggregatorService } from '../services'
 import { TrackManager } from './track-manager'
 
 export class TrackProvider
@@ -14,17 +14,15 @@ export class TrackProvider
   public readonly dropMimeTypes = ['application/vnd.code.tree.aiContextTracks']
 
   private disposable: vscode.Disposable
-  private stackProvider?: StackProvider
 
-  constructor(private contextTrackManager: TrackManager) {
-    this.disposable = this.contextTrackManager.onDidChangeTrack(() => {
-      this.refresh()
-    })
-  }
-
-  public setStackProvider(provider: StackProvider): void {
-    this.stackProvider = provider
-    this.stackProvider.onDidChangeTreeData(() => this.refresh())
+  constructor(
+    private contextTrackManager: TrackManager,
+    private tokenAggregator: TokenAggregatorService,
+  ) {
+    this.disposable = vscode.Disposable.from(
+      this.contextTrackManager.onDidChangeTrack(() => this.refresh()),
+      this.tokenAggregator.onDidChange(() => this.refresh()),
+    )
   }
 
   public refresh(): void {
@@ -36,7 +34,9 @@ export class TrackProvider
     dataTransfer: vscode.DataTransfer,
     token: vscode.CancellationToken,
   ): void | Thenable<void> {
-    if (source.length === 0) return
+    if (source.length === 0) {
+      return
+    }
 
     const trackId = source[0].id
     const item = new vscode.DataTransferItem(trackId)
@@ -49,12 +49,16 @@ export class TrackProvider
     token: vscode.CancellationToken,
   ): void | Thenable<void> {
     const transferItem = sources.get('application/vnd.code.tree.aiContextTracks')
-    if (!transferItem) return
+    if (!transferItem) {
+      return
+    }
 
     const sourceId = transferItem.value as string
     const targetId = target?.id
 
-    if (sourceId === targetId) return
+    if (sourceId === targetId) {
+      return
+    }
 
     this.contextTrackManager.reorderTracks(sourceId, targetId)
   }
@@ -78,8 +82,12 @@ export class TrackProvider
   }
 
   public getChildren(element?: ContextTrack): ContextTrack[] {
-    if (!this.contextTrackManager.isInitialized) return []
-    if (element) return []
+    if (!this.contextTrackManager.isInitialized) {
+      return []
+    }
+    if (element) {
+      return []
+    }
     return this.contextTrackManager.allTracks
   }
 
@@ -101,18 +109,24 @@ export class TrackProvider
     const isLast = index === allTracks.length - 1
 
     const contextParts = ['contextTrack']
-    if (isActive) contextParts.push('active')
-    if (isFirst) contextParts.push('first')
-    if (isLast) contextParts.push('last')
+    if (isActive) {
+      contextParts.push('active')
+    }
+    if (isFirst) {
+      contextParts.push('first')
+    }
+    if (isLast) {
+      contextParts.push('last')
+    }
 
     return contextParts.join(':')
   }
 
   private getTrackDescription(element: ContextTrack, isActive: boolean): string {
-    if (isActive && this.stackProvider) {
+    if (isActive) {
       const fileCount = element.files.length
-      const tokenCount = this.stackProvider.getTotalTokens()
-      const formattedTokens = this.stackProvider.formatTokenCount(tokenCount)
+      const tokenCount = this.tokenAggregator.totalTokens
+      const formattedTokens = this.tokenAggregator.format(tokenCount)
 
       return `(Active) • ${fileCount} files • ${formattedTokens} tokens`
     }

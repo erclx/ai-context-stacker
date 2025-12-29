@@ -32,8 +32,17 @@ export class ServiceRegistry implements vscode.Disposable {
     this.analysisEngine = new AnalysisEngine(context, this.trackManager)
     this.tokenAggregator = new TokenAggregatorService(this.trackManager, this.analysisEngine)
 
-    this.stackProvider = new StackProvider(context, this.ignoreManager, this.trackManager, this.analysisEngine)
-    this.trackProvider = new TrackProvider(this.trackManager)
+    this.stackProvider = new StackProvider(
+      context,
+      this.ignoreManager,
+      this.trackManager,
+      this.analysisEngine,
+      this.tokenAggregator,
+      this.contextKeyService,
+    )
+
+    this.trackProvider = new TrackProvider(this.trackManager, this.tokenAggregator)
+
     this.fileWatcher = new FileWatcherService(this.trackManager)
 
     this.registerInternalDisposables()

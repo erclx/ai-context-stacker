@@ -1,34 +1,11 @@
 import * as vscode from 'vscode'
 
 import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
-import { AnalysisEngine, TreeBuilder } from '../services'
+import { AnalysisEngine, ContextKeyService, TokenAggregatorService, TreeBuilder } from '../services'
 import { StackItemRenderer } from '../ui'
 import { Logger } from '../utils'
 import { IgnoreManager } from './ignore-manager'
 import { TrackManager } from './track-manager'
-
-class ContextKeyBatcher {
-  private pending = new Map<string, unknown>()
-  private timer: NodeJS.Timeout | undefined
-
-  public set(key: string, value: unknown): void {
-    this.pending.set(key, value)
-    this.scheduleFlush()
-  }
-
-  private scheduleFlush(): void {
-    if (this.timer) return
-    this.timer = setTimeout(() => this.flush(), 50)
-  }
-
-  private flush(): void {
-    this.timer = undefined
-    this.pending.forEach((val, key) => {
-      void vscode.commands.executeCommand('setContext', key, val)
-    })
-    this.pending.clear()
-  }
-}
 
 export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vscode.Disposable {
   private _onDidChangeTreeData = new vscode.EventEmitter<StackTreeItem | undefined | void>()
@@ -37,19 +14,19 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   private disposables: vscode.Disposable[] = []
 
   private _cachedTree: StackTreeItem[] | undefined
-  private _cachedTotalTokens = 0
   private _treeDirty = true
   private _showPinnedOnly = false
 
   private treeBuilder = new TreeBuilder()
   private renderer = new StackItemRenderer()
-  private contextBatcher = new ContextKeyBatcher()
 
   constructor(
     private context: vscode.ExtensionContext,
     private ignoreManager: IgnoreManager,
     private trackManager: TrackManager,
     public readonly analysisEngine: AnalysisEngine,
+    private tokenAggregator: TokenAggregatorService,
+    private contextKeyService: ContextKeyService,
   ) {
     this.registerListeners()
 
@@ -65,7 +42,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   public togglePinnedOnly(): boolean {
     this._showPinnedOnly = !this._showPinnedOnly
-    this.contextBatcher.set('aiContextStacker.pinnedOnly', this._showPinnedOnly)
+    this.contextKeyService.updatePinnedFilter(this._showPinnedOnly)
     this._treeDirty = true
     this.triggerRefresh()
     return this._showPinnedOnly
@@ -93,16 +70,20 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   }
 
   public getTotalTokens(): number {
-    return this._cachedTotalTokens
+    return this.tokenAggregator.totalTokens
   }
 
   public formatTokenCount(count: number): string {
-    return this.renderer.formatTokenCount(count)
+    return this.tokenAggregator.format(count)
   }
 
   public getChildren(element?: StackTreeItem): StackTreeItem[] {
-    if (element && isStagedFolder(element)) return element.children
-    if (this.shouldRebuildTree()) return this.rebuildTreeCache()
+    if (element && isStagedFolder(element)) {
+      return element.children
+    }
+    if (this.shouldRebuildTree()) {
+      return this.rebuildTreeCache()
+    }
     return this._cachedTree ?? []
   }
 
@@ -121,7 +102,9 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   public async addFiles(uris: vscode.Uri[]): Promise<boolean> {
     const newFiles = this.trackManager.addFilesToActive(uris)
-    if (newFiles.length === 0) return false
+    if (newFiles.length === 0) {
+      return false
+    }
 
     this._treeDirty = true
     this.triggerRefresh()
@@ -161,7 +144,9 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   }
 
   private triggerRefresh(): void {
-    if (!this.trackManager.isInitialized) return
+    if (!this.trackManager.isInitialized) {
+      return
+    }
 
     this._onDidChangeTreeData.fire()
     this.refreshSmartVisibility()
@@ -171,7 +156,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     const rebuildStart = Date.now()
     const files = this.getFiles()
 
-    this.syncFastContextKeys(this.trackManager.getActiveTrack().files)
+    this.contextKeyService.updateStackState(this.trackManager.getActiveTrack().files)
 
     if (files.length === 0) {
       return this.handleEmptyTree()
@@ -201,14 +186,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   private postBuildUpdates(tree: StackTreeItem[]): void {
     const hasFolders = tree.some((i) => isStagedFolder(i))
-    this.contextBatcher.set('aiContextStacker.hasFolders', hasFolders)
-    this.recalculateTotalTokens()
-  }
-
-  private syncFastContextKeys(rawFiles: StagedFile[]): void {
-    const hasPinned = rawFiles.some((f) => f.isPinned)
-    this.contextBatcher.set('aiContextStacker.hasPinnedFiles', hasPinned)
-    this.contextBatcher.set('aiContextStacker.hasFiles', rawFiles.length > 0)
+    this.contextKeyService.updateFolderState(hasFolders)
   }
 
   private generateEmptyState(): StackTreeItem[] {
@@ -224,24 +202,20 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     return [this.renderer.createPlaceholderItem()]
   }
 
-  private recalculateTotalTokens(): void {
-    const files = this.getFiles()
-    this._cachedTotalTokens = files.reduce((sum, f) => sum + (f.stats?.tokenCount ?? 0), 0)
-  }
-
   private registerListeners(): void {
     this.trackManager.onDidChangeTrack(() => {
       this._treeDirty = true
       this.triggerRefresh()
     })
 
-    this.analysisEngine.onDidUpdateStats(() => {
-      this.recalculateTotalTokens()
-
+    this.tokenAggregator.onDidChange(() => {
       if (this._cachedTree) {
         this.treeBuilder.calculateFolderStats(this._cachedTree)
       }
+      this._onDidChangeTreeData.fire()
+    })
 
+    this.analysisEngine.onDidUpdateStats(() => {
       this._onDidChangeTreeData.fire()
     })
 
@@ -258,17 +232,21 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   private findRecursive(nodes: StackTreeItem[], targetKey: string): StackTreeItem | undefined {
     for (const node of nodes) {
       const uri = isStagedFolder(node) ? node.resourceUri : node.uri
-      if (uri.toString() === targetKey) return node
+      if (uri.toString() === targetKey) {
+        return node
+      }
 
       if (isStagedFolder(node)) {
         const found = this.findRecursive(node.children, targetKey)
-        if (found) return found
+        if (found) {
+          return found
+        }
       }
     }
     return undefined
   }
 
   private refreshSmartVisibility(): void {
-    this.contextBatcher.set('aiContextStacker.isTextEditorActive', !!vscode.window.activeTextEditor)
+    this.contextKeyService.updateEditorState()
   }
 }
