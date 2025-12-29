@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { StagedFile } from '../models'
-import { TrackManager } from '../providers/track-manager'
+import { TrackManager } from '../providers'
 import { Logger } from '../utils'
 import { StatsProcessor } from './stats-processor'
 
@@ -17,7 +17,11 @@ export class AnalysisEngine implements vscode.Disposable {
   private _enrichmentInProgress = false
   private pendingUpdates = new Map<string, NodeJS.Timeout>()
   private disposables: vscode.Disposable[] = []
-  private readonly DEBOUNCE_MS = 400
+
+  private readonly HIGH_PRIORITY_DEBOUNCE_MS = 400
+  private readonly LOW_PRIORITY_DEBOUNCE_MS = 2000
+  private currentDebounceMs = this.HIGH_PRIORITY_DEBOUNCE_MS
+
   private lastUiUpdate = 0
   private readonly UI_THROTTLE_MS = 100
 
@@ -43,6 +47,10 @@ export class AnalysisEngine implements vscode.Disposable {
     this.statsProcessor.dispose()
     this.disposables.forEach((d) => d.dispose())
     this.clearAllPendingTimers()
+  }
+
+  public setExecutionPriority(isHighPriority: boolean): void {
+    this.currentDebounceMs = isHighPriority ? this.HIGH_PRIORITY_DEBOUNCE_MS : this.LOW_PRIORITY_DEBOUNCE_MS
   }
 
   public notifyFilesAdded(): void {
@@ -90,6 +98,13 @@ export class AnalysisEngine implements vscode.Disposable {
       this.trackManager.onDidChangeTrack(() => {
         void this.enrichActiveTrack()
       }),
+      vscode.window.onDidChangeWindowState((state) => {
+        if (state.focused) {
+          void this.enrichActiveTrack()
+        } else {
+          this.clearAllPendingTimers()
+        }
+      }),
     )
   }
 
@@ -103,7 +118,7 @@ export class AnalysisEngine implements vscode.Disposable {
     const key = doc.uri.toString()
     if (this.pendingUpdates.has(key)) clearTimeout(this.pendingUpdates.get(key)!)
 
-    const timer = setTimeout(() => this.performStatsUpdate(doc, file), this.DEBOUNCE_MS)
+    const timer = setTimeout(() => this.performStatsUpdate(doc, file), this.currentDebounceMs)
     this.pendingUpdates.set(key, timer)
   }
 

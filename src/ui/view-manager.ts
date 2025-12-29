@@ -1,8 +1,8 @@
 import * as vscode from 'vscode'
 
 import { ContextTrack, StackTreeItem } from '../models'
-import { IgnoreManager, StackProvider, TrackManager } from '../providers'
-import { TrackProvider } from '../providers/track-provider'
+import { IgnoreManager, StackProvider, TrackManager, TrackProvider } from '../providers'
+import { AnalysisEngine } from '../services'
 import { StackDragDropController } from './stack-drag-drop'
 
 export class ViewManager implements vscode.Disposable {
@@ -16,6 +16,7 @@ export class ViewManager implements vscode.Disposable {
     trackListProvider: TrackProvider,
     private trackManager: TrackManager,
     ignoreProvider: IgnoreManager,
+    private analysisEngine: AnalysisEngine,
   ) {
     const dragDropController = new StackDragDropController(stackProvider, ignoreProvider)
 
@@ -32,6 +33,8 @@ export class ViewManager implements vscode.Disposable {
     })
 
     this.registerViewCommands()
+    this.registerVisibilityHooks()
+
     this.updateTitle(trackManager.getActiveTrack().name, stackProvider)
 
     trackManager.onDidChangeTrack((track) => this.updateTitle(track.name, stackProvider), null, this._disposables)
@@ -50,6 +53,14 @@ export class ViewManager implements vscode.Disposable {
       vscode.commands.registerCommand('aiContextStacker.collapseAll', () =>
         vscode.commands.executeCommand('workbench.actions.treeView.aiContextStackerView.collapseAll'),
       ),
+    )
+  }
+
+  private registerVisibilityHooks(): void {
+    this._disposables.push(
+      this.filesView.onDidChangeVisibility((e) => {
+        this.analysisEngine.setExecutionPriority(e.visible)
+      }),
     )
   }
 

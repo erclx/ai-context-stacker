@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import { StagedFile } from '../models'
-import { TrackManager } from '../providers/track-manager'
+import { TrackManager } from '../providers'
 import { AnalysisEngine } from './analysis-engine'
 
 export class TokenAggregatorService implements vscode.Disposable {
@@ -45,7 +45,17 @@ export class TokenAggregatorService implements vscode.Disposable {
   }
 
   private recalculate(): void {
-    const files = this.trackManager.getActiveTrack().files
+    const activeTrack = this.trackManager.getActiveTrack()
+
+    if (activeTrack.id === 'ghost') {
+      if (this._totalTokens !== 0) {
+        this._totalTokens = 0
+        this._onDidChange.fire(0)
+      }
+      return
+    }
+
+    const files = activeTrack.files
     const newTotal = this.sumTokens(files)
 
     if (newTotal !== this._totalTokens) {

@@ -19,6 +19,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Servic
     services.trackProvider,
     services.trackManager,
     services.ignoreManager,
+    services.analysisEngine,
   )
 
   const statusBar = new StackerStatusBar(context, services.stackProvider)
