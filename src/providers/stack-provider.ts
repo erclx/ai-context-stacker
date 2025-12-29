@@ -152,6 +152,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
     this._onDidChangeTreeData.fire()
     this.refreshSmartVisibility()
+    this.checkUnstagedOpenFiles()
   }
 
   private async rebuildTreeCache(): Promise<StackTreeItem[]> {
@@ -181,6 +182,8 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   }
 
   private handleEmptyTree(): StackTreeItem[] {
+    this.contextKeyService.updateFolderState(false)
+
     this._cachedTree = this.generateEmptyState()
     this._treeDirty = false
     return this._cachedTree
@@ -222,6 +225,9 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     })
 
     this.disposables.push(vscode.workspace.onDidChangeConfiguration((e) => this.handleConfigChange(e)))
+    this.disposables.push(vscode.window.onDidChangeActiveTextEditor(() => this.refreshSmartVisibility()))
+
+    this.disposables.push(vscode.window.tabGroups.onDidChangeTabs(() => this.checkUnstagedOpenFiles()))
   }
 
   private handleConfigChange(e: vscode.ConfigurationChangeEvent): void {
@@ -257,5 +263,31 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   private refreshSmartVisibility(): void {
     this.contextKeyService.updateEditorState()
+
+    const editor = vscode.window.activeTextEditor
+    if (editor) {
+      const isStaged = this.hasTrackedPath(editor.document.uri)
+      this.contextKeyService.updateEditorContext(editor.document.uri, isStaged)
+    } else {
+      this.contextKeyService.updateEditorContext(undefined, false)
+    }
+  }
+
+  private checkUnstagedOpenFiles(): void {
+    const stagedSet = new Set(this.trackManager.getActiveTrack().files.map((f) => f.uri.toString()))
+    let hasUnstaged = false
+
+    outerLoop: for (const group of vscode.window.tabGroups.all) {
+      for (const tab of group.tabs) {
+        if (tab.input instanceof vscode.TabInputText) {
+          if (!stagedSet.has(tab.input.uri.toString())) {
+            hasUnstaged = true
+            break outerLoop
+          }
+        }
+      }
+    }
+
+    this.contextKeyService.updateUnstagedFilesState(hasUnstaged)
   }
 }

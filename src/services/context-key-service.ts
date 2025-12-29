@@ -12,6 +12,10 @@ export class ContextKeyService implements vscode.Disposable {
 
     this.set('aiContextStacker.hasFiles', hasFiles)
     this.set('aiContextStacker.hasPinnedFiles', hasPinned)
+
+    if (!hasFiles) {
+      this.set('aiContextStacker.hasFolders', false)
+    }
   }
 
   public updatePinnedFilter(active: boolean): void {
@@ -25,6 +29,14 @@ export class ContextKeyService implements vscode.Disposable {
   public updateEditorState(): void {
     const isActive = !!vscode.window.activeTextEditor
     this.set('aiContextStacker.isTextEditorActive', isActive)
+  }
+
+  public updateEditorContext(uri: vscode.Uri | undefined, isStaged: boolean): void {
+    this.set('aiContextStacker.isCurrentFileInStack', isStaged)
+  }
+
+  public updateUnstagedFilesState(hasUnstaged: boolean): void {
+    this.set('aiContextStacker.hasUnstagedOpenFiles', hasUnstaged)
   }
 
   public dispose(): void {
