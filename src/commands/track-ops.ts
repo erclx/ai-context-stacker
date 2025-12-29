@@ -3,64 +3,61 @@ import * as vscode from 'vscode'
 import { ContextTrack } from '../models'
 import { TrackManager } from '../providers'
 import { ErrorHandler } from '../utils'
+import { Command, CommandDependencies } from './types'
 
 interface TrackQuickPick extends vscode.QuickPickItem {
   id: string
 }
 
-export function registerTrackCommands(
-  context: vscode.ExtensionContext,
-  trackManager: TrackManager,
-  filesView: vscode.TreeView<ContextTrack>,
-): void {
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      'aiContextStacker.newTrack',
-      ErrorHandler.safeExecute('New Track', () => handleNewTrack(trackManager)),
-    ),
-  )
+export function getTrackCommands(deps: CommandDependencies): Command[] {
+  const { trackManager } = deps.services
+  const { tracksView } = deps.views
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand('aiContextStacker.switchTrack', (arg?: string | ContextTrack) => {
-      const action = () => handleSwitchTrack(trackManager, arg)
-      return ErrorHandler.safeExecute('Switch Track', action)()
-    }),
-  )
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('aiContextStacker.renameTrack', (item?: ContextTrack) => {
-      const action = () => handleRenameTrack(trackManager, filesView, item)
-      return ErrorHandler.safeExecute('Rename Track', action)()
-    }),
-  )
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('aiContextStacker.deleteTrack', (item?: ContextTrack) => {
-      const action = () => handleDeleteTrack(trackManager, filesView, item)
-      return ErrorHandler.safeExecute('Delete Track', action)()
-    }),
-  )
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      'aiContextStacker.deleteAllTracks',
-      ErrorHandler.safeExecute('Delete All Tracks', () => handleDeleteAllTracks(trackManager)),
-    ),
-  )
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('aiContextStacker.moveTrackUp', (item?: ContextTrack) => {
-      const action = () => handleMoveTrack(trackManager, filesView, item, 'up')
-      return ErrorHandler.safeExecute('Move Track Up', action)()
-    }),
-  )
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('aiContextStacker.moveTrackDown', (item?: ContextTrack) => {
-      const action = () => handleMoveTrack(trackManager, filesView, item, 'down')
-      return ErrorHandler.safeExecute('Move Track Down', action)()
-    }),
-  )
+  return [
+    {
+      id: 'aiContextStacker.newTrack',
+      execute: ErrorHandler.safeExecute('New Track', () => handleNewTrack(trackManager)),
+    },
+    {
+      id: 'aiContextStacker.switchTrack',
+      execute: (arg?: string | ContextTrack) => {
+        const action = () => handleSwitchTrack(trackManager, arg)
+        return ErrorHandler.safeExecute('Switch Track', action)()
+      },
+    },
+    {
+      id: 'aiContextStacker.renameTrack',
+      execute: (item?: ContextTrack) => {
+        const action = () => handleRenameTrack(trackManager, tracksView, item)
+        return ErrorHandler.safeExecute('Rename Track', action)()
+      },
+    },
+    {
+      id: 'aiContextStacker.deleteTrack',
+      execute: (item?: ContextTrack) => {
+        const action = () => handleDeleteTrack(trackManager, tracksView, item)
+        return ErrorHandler.safeExecute('Delete Track', action)()
+      },
+    },
+    {
+      id: 'aiContextStacker.deleteAllTracks',
+      execute: ErrorHandler.safeExecute('Delete All Tracks', () => handleDeleteAllTracks(trackManager)),
+    },
+    {
+      id: 'aiContextStacker.moveTrackUp',
+      execute: (item?: ContextTrack) => {
+        const action = () => handleMoveTrack(trackManager, tracksView, item, 'up')
+        return ErrorHandler.safeExecute('Move Track Up', action)()
+      },
+    },
+    {
+      id: 'aiContextStacker.moveTrackDown',
+      execute: (item?: ContextTrack) => {
+        const action = () => handleMoveTrack(trackManager, tracksView, item, 'down')
+        return ErrorHandler.safeExecute('Move Track Down', action)()
+      },
+    },
+  ]
 }
 
 async function handleNewTrack(manager: TrackManager): Promise<void> {

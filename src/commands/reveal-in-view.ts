@@ -3,17 +3,17 @@ import * as vscode from 'vscode'
 import { StackTreeItem } from '../models'
 import { StackProvider } from '../providers/stack-provider'
 import { Logger } from '../utils'
+import { Command, CommandDependencies } from './types'
 
-export function registerRevealInViewCommand(
-  context: vscode.ExtensionContext,
-  provider: StackProvider,
-  view: vscode.TreeView<StackTreeItem>,
-) {
-  context.subscriptions.push(
-    vscode.commands.registerCommand('aiContextStacker.revealInView', (uri?: vscode.Uri) => {
-      void handleReveal(uri, provider, view)
-    }),
-  )
+export function getRevealInViewCommands(deps: CommandDependencies): Command[] {
+  return [
+    {
+      id: 'aiContextStacker.revealInView',
+      execute: (uri?: vscode.Uri) => {
+        void handleReveal(uri, deps.services.stackProvider, deps.views.filesView)
+      },
+    },
+  ]
 }
 
 async function handleReveal(

@@ -2,16 +2,17 @@ import * as vscode from 'vscode'
 
 import { StackProvider } from '../providers'
 import { ClipboardOps, ContentFormatter, ErrorHandler } from '../utils'
+import { Command, CommandDependencies } from './types'
 
-export function registerCopyAllCommand(context: vscode.ExtensionContext, stackProvider: StackProvider): void {
-  const command = vscode.commands.registerCommand(
-    'aiContextStacker.copyAll',
-    ErrorHandler.safeExecute('Copy All Files', async () => {
-      await handleCopyAll(stackProvider)
-    }),
-  )
-
-  context.subscriptions.push(command)
+export function getCopyAllCommands(deps: CommandDependencies): Command[] {
+  return [
+    {
+      id: 'aiContextStacker.copyAll',
+      execute: ErrorHandler.safeExecute('Copy All Files', async () => {
+        await handleCopyAll(deps.services.stackProvider)
+      }),
+    },
+  ]
 }
 
 async function handleCopyAll(provider: StackProvider): Promise<void> {

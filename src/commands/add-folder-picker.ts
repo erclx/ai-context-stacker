@@ -4,6 +4,7 @@ import * as vscode from 'vscode'
 import { IgnoreManager, StackProvider } from '../providers'
 import { Logger } from '../utils'
 import { scanMultipleFolders } from '../utils/file-scanner'
+import { Command, CommandDependencies } from './types'
 
 const MAX_DISCOVERY_RESULTS = 5000
 
@@ -11,16 +12,16 @@ interface FolderQuickPickItem extends vscode.QuickPickItem {
   uri: vscode.Uri
 }
 
-export function registerAddFolderPickerCommand(
-  context: vscode.ExtensionContext,
-  stackProvider: StackProvider,
-  ignoreManager: IgnoreManager,
-): void {
-  const command = vscode.commands.registerCommand('aiContextStacker.addFolderPicker', async () => {
-    await executeAddFolderPicker(stackProvider, ignoreManager)
-  })
-
-  context.subscriptions.push(command)
+export function getAddFolderPickerCommands(deps: CommandDependencies): Command[] {
+  const { stackProvider, ignoreManager } = deps.services
+  return [
+    {
+      id: 'aiContextStacker.addFolderPicker',
+      execute: async () => {
+        await executeAddFolderPicker(stackProvider, ignoreManager)
+      },
+    },
+  ]
 }
 
 async function executeAddFolderPicker(provider: StackProvider, ignore: IgnoreManager): Promise<void> {

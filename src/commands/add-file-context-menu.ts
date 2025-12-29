@@ -1,37 +1,34 @@
 import * as vscode from 'vscode'
 
-import { IgnoreManager, StackProvider } from '../providers'
 import { categorizeTargets, handleFolderScanning } from '../utils/file-scanner'
+import { Command, CommandDependencies } from './types'
 
-export function registerAddFileContextMenuCommand(
-  context: vscode.ExtensionContext,
-  stackProvider: StackProvider,
-  ignoreManager: IgnoreManager,
-): void {
-  const command = vscode.commands.registerCommand(
-    'aiContextStacker.addFileToStack',
-    async (clickedUri?: vscode.Uri, selectedUris?: vscode.Uri[]) => {
-      const targets = resolveTargets(clickedUri, selectedUris)
-      if (targets.length === 0) {
-        vscode.window.showWarningMessage('No selection found.')
-        return
-      }
+export function getAddFileContextMenuCommands(deps: CommandDependencies): Command[] {
+  const { stackProvider, ignoreManager } = deps.services
+  return [
+    {
+      id: 'aiContextStacker.addFileToStack',
+      execute: async (clickedUri?: vscode.Uri, selectedUris?: vscode.Uri[]) => {
+        const targets = resolveTargets(clickedUri, selectedUris)
+        if (targets.length === 0) {
+          vscode.window.showWarningMessage('No selection found.')
+          return
+        }
 
-      const { files, folders } = await categorizeTargets(targets)
+        const { files, folders } = await categorizeTargets(targets)
 
-      if (files.length > 0) {
-        stackProvider.addFiles(files)
-      }
+        if (files.length > 0) {
+          stackProvider.addFiles(files)
+        }
 
-      if (folders.length > 0) {
-        await handleFolderScanning(folders, stackProvider, ignoreManager)
-      } else if (files.length > 0) {
-        vscode.window.setStatusBarMessage(`Added ${files.length} files.`, 2000)
-      }
+        if (folders.length > 0) {
+          await handleFolderScanning(folders, stackProvider, ignoreManager)
+        } else if (files.length > 0) {
+          vscode.window.setStatusBarMessage(`Added ${files.length} files.`, 2000)
+        }
+      },
     },
-  )
-
-  context.subscriptions.push(command)
+  ]
 }
 
 function resolveTargets(clickedUri?: vscode.Uri, selectedUris?: vscode.Uri[]): vscode.Uri[] {

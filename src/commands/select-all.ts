@@ -1,9 +1,14 @@
 import * as vscode from 'vscode'
 
-export function registerSelectAllCommand(context: vscode.ExtensionContext): void {
-  const command = vscode.commands.registerCommand('aiContextStacker.selectAll', async () => {
-    await vscode.commands.executeCommand('list.selectAll')
-  })
+import { Command, CommandDependencies } from './types'
 
-  context.subscriptions.push(command)
+export function getSelectAllCommands(deps: CommandDependencies): Command[] {
+  return [
+    {
+      id: 'aiContextStacker.selectAll',
+      execute: async () => {
+        await vscode.commands.executeCommand('list.selectAll')
+      },
+    },
+  ]
 }

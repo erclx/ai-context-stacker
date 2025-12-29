@@ -3,16 +3,17 @@ import * as vscode from 'vscode'
 import { StackProvider } from '../providers'
 import { ErrorHandler } from '../utils'
 import { generateContext } from './copy-all'
+import { Command, CommandDependencies } from './types'
 
-export function registerCopyAndClearCommand(context: vscode.ExtensionContext, stackProvider: StackProvider): void {
-  const command = vscode.commands.registerCommand(
-    'aiContextStacker.copyAndClear',
-    ErrorHandler.safeExecute('Copy and Clear', async () => {
-      await handleCopyAndClear(stackProvider)
-    }),
-  )
-
-  context.subscriptions.push(command)
+export function getCopyAndClearCommands(deps: CommandDependencies): Command[] {
+  return [
+    {
+      id: 'aiContextStacker.copyAndClear',
+      execute: ErrorHandler.safeExecute('Copy and Clear', async () => {
+        await handleCopyAndClear(deps.services.stackProvider)
+      }),
+    },
+  ]
 }
 
 async function handleCopyAndClear(provider: StackProvider): Promise<void> {

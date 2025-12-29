@@ -3,24 +3,23 @@ import * as vscode from 'vscode'
 import { StackTreeItem } from '../models'
 import { StackProvider } from '../providers'
 import { ClipboardOps, Logger, SelectionResolver } from '../utils'
+import { Command, CommandDependencies } from './types'
 
-export function registerCopyFileCommand(
-  context: vscode.ExtensionContext,
-  stackProvider: StackProvider,
-  filesView: vscode.TreeView<StackTreeItem>,
-): void {
-  const command = vscode.commands.registerCommand(
-    'aiContextStacker.copyFile',
-    async (item?: StackTreeItem, nodes?: StackTreeItem[]) => {
-      try {
-        await executeCopy(item, nodes, stackProvider, filesView)
-      } catch (error) {
-        Logger.error('Copy failed', error, true)
-      }
+export function getCopyFileCommands(deps: CommandDependencies): Command[] {
+  const { stackProvider } = deps.services
+  const { filesView } = deps.views
+  return [
+    {
+      id: 'aiContextStacker.copyFile',
+      execute: async (item?: StackTreeItem, nodes?: StackTreeItem[]) => {
+        try {
+          await executeCopy(item, nodes, stackProvider, filesView)
+        } catch (error) {
+          Logger.error('Copy failed', error, true)
+        }
+      },
     },
-  )
-
-  context.subscriptions.push(command)
+  ]
 }
 
 async function executeCopy(

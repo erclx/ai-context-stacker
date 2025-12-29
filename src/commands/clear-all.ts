@@ -3,21 +3,22 @@ import * as vscode from 'vscode'
 import { StagedFile } from '../models'
 import { StackProvider } from '../providers'
 import { ErrorHandler } from '../utils'
+import { Command, CommandDependencies } from './types'
 
 type ClearAction =
   | { type: 'empty'; message: string }
   | { type: 'allPinned'; message: string }
   | { type: 'confirm'; message: string }
 
-export function registerClearAllCommand(context: vscode.ExtensionContext, stackProvider: StackProvider): void {
-  const command = vscode.commands.registerCommand(
-    'aiContextStacker.clearAll',
-    ErrorHandler.safeExecute('Clear All', async () => {
-      await handleClearAll(stackProvider)
-    }),
-  )
-
-  context.subscriptions.push(command)
+export function getClearAllCommands(deps: CommandDependencies): Command[] {
+  return [
+    {
+      id: 'aiContextStacker.clearAll',
+      execute: ErrorHandler.safeExecute('Clear All', async () => {
+        await handleClearAll(deps.services.stackProvider)
+      }),
+    },
+  ]
 }
 
 async function handleClearAll(provider: StackProvider): Promise<void> {

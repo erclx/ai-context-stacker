@@ -1,17 +1,20 @@
 import * as vscode from 'vscode'
 
-import { StackProvider } from '../providers'
 import { PreviewWebview } from '../ui/preview-webview'
+import { Command, CommandDependencies } from './types'
 
-export function registerPreviewContextCommand(context: vscode.ExtensionContext, stackProvider: StackProvider): void {
-  const command = vscode.commands.registerCommand('aiContextStacker.previewContext', () => {
-    if (stackProvider.getFiles().length === 0) {
-      void vscode.window.showWarningMessage('No files in stack to preview.')
-      return
-    }
+export function getPreviewContextCommands(deps: CommandDependencies): Command[] {
+  return [
+    {
+      id: 'aiContextStacker.previewContext',
+      execute: () => {
+        if (deps.services.stackProvider.getFiles().length === 0) {
+          void vscode.window.showWarningMessage('No files in stack to preview.')
+          return
+        }
 
-    PreviewWebview.createOrShow(context.extensionUri, stackProvider)
-  })
-
-  context.subscriptions.push(command)
+        PreviewWebview.createOrShow(deps.context.extensionUri, deps.services.stackProvider)
+      },
+    },
+  ]
 }

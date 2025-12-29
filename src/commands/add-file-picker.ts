@@ -1,26 +1,27 @@
 import * as vscode from 'vscode'
 
 import { IgnoreManager, StackProvider } from '../providers'
+import { Command, CommandDependencies } from './types'
 
 interface FileQuickPickItem extends vscode.QuickPickItem {
   uri?: vscode.Uri
   id: 'file' | 'action'
 }
 
-export function registerAddFilePickerCommand(
-  context: vscode.ExtensionContext,
-  stackProvider: StackProvider,
-  ignoreManager: IgnoreManager,
-): void {
-  const command = vscode.commands.registerCommand('aiContextStacker.addFilePicker', async () => {
-    try {
-      await executePickerFlow(stackProvider, ignoreManager)
-    } catch (error) {
-      vscode.window.showErrorMessage(`Picker Error: ${error instanceof Error ? error.message : String(error)}`)
-    }
-  })
-
-  context.subscriptions.push(command)
+export function getAddFilePickerCommands(deps: CommandDependencies): Command[] {
+  const { stackProvider, ignoreManager } = deps.services
+  return [
+    {
+      id: 'aiContextStacker.addFilePicker',
+      execute: async () => {
+        try {
+          await executePickerFlow(stackProvider, ignoreManager)
+        } catch (error) {
+          vscode.window.showErrorMessage(`Picker Error: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      },
+    },
+  ]
 }
 
 async function executePickerFlow(stackProvider: StackProvider, ignoreManager: IgnoreManager): Promise<void> {

@@ -1,34 +1,29 @@
-import * as vscode from 'vscode'
-
 import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
-import { TrackManager } from '../providers'
+import { Command, CommandDependencies } from './types'
 
-export function registerTogglePinCommand(
-  context: vscode.ExtensionContext,
-  trackManager: TrackManager,
-  filesView: vscode.TreeView<StackTreeItem>,
-): void {
-  const command = vscode.commands.registerCommand(
-    'aiContextStacker.togglePin',
-    (item?: StackTreeItem, selectedItems?: StackTreeItem[]) => {
-      let targets: StackTreeItem[] = []
+export function getTogglePinCommands(deps: CommandDependencies): Command[] {
+  return [
+    {
+      id: 'aiContextStacker.togglePin',
+      execute: (item?: StackTreeItem, selectedItems?: StackTreeItem[]) => {
+        let targets: StackTreeItem[] = []
+        const filesView = deps.views.filesView
 
-      if (selectedItems && selectedItems.length > 0) {
-        targets = selectedItems
-      } else if (item) {
-        targets = [item]
-      } else if (filesView.selection.length > 0) {
-        targets = [...filesView.selection]
-      }
+        if (selectedItems && selectedItems.length > 0) {
+          targets = selectedItems
+        } else if (item) {
+          targets = [item]
+        } else if (filesView.selection.length > 0) {
+          targets = [...filesView.selection]
+        }
 
-      if (targets.length === 0) return
+        if (targets.length === 0) return
 
-      const filesToToggle = resolveFilesToToggle(targets)
-      trackManager.toggleFilesPin(filesToToggle)
+        const filesToToggle = resolveFilesToToggle(targets)
+        deps.services.trackManager.toggleFilesPin(filesToToggle)
+      },
     },
-  )
-
-  context.subscriptions.push(command)
+  ]
 }
 
 function resolveFilesToToggle(items: StackTreeItem[]): StagedFile[] {

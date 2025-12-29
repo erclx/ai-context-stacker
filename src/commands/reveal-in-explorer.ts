@@ -2,13 +2,17 @@ import * as vscode from 'vscode'
 
 import { isStagedFolder, StackTreeItem } from '../models'
 import { Logger } from '../utils'
+import { Command, CommandDependencies } from './types'
 
-export function registerRevealInExplorerCommand(context: vscode.ExtensionContext) {
-  context.subscriptions.push(
-    vscode.commands.registerCommand('aiContextStacker.revealInExplorer', (item?: StackTreeItem) => {
-      void handleReveal(item)
-    }),
-  )
+export function getRevealInExplorerCommands(deps: CommandDependencies): Command[] {
+  return [
+    {
+      id: 'aiContextStacker.revealInExplorer',
+      execute: (item?: StackTreeItem) => {
+        void handleReveal(item)
+      },
+    },
+  ]
 }
 
 async function handleReveal(item?: StackTreeItem): Promise<void> {

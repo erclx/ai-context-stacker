@@ -1,11 +1,15 @@
 import * as vscode from 'vscode'
 
 import { StackProvider } from '../providers'
+import { Command, CommandDependencies } from './types'
 
-export function registerRemoveFilePickerCommand(context: vscode.ExtensionContext, provider: StackProvider): void {
-  context.subscriptions.push(
-    vscode.commands.registerCommand('aiContextStacker.removeFilePicker', () => handleRemovePicker(provider)),
-  )
+export function getRemoveFilePickerCommands(deps: CommandDependencies): Command[] {
+  return [
+    {
+      id: 'aiContextStacker.removeFilePicker',
+      execute: () => handleRemovePicker(deps.services.stackProvider),
+    },
+  ]
 }
 
 async function handleRemovePicker(provider: StackProvider): Promise<void> {
