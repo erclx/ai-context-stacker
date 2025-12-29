@@ -16,6 +16,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   private _cachedTree: StackTreeItem[] | undefined
   private _treeDirty = true
   private _showPinnedOnly = false
+  private _largeFileThreshold = 5000
 
   private treeBuilder = new TreeBuilder()
   private renderer = new StackItemRenderer()
@@ -28,6 +29,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     private tokenAggregator: TokenAggregatorService,
     private contextKeyService: ContextKeyService,
   ) {
+    this.refreshConfigCache()
     this.registerListeners()
 
     if (this.trackManager.isInitialized) {
@@ -77,7 +79,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     return this.tokenAggregator.format(count)
   }
 
-  public getChildren(element?: StackTreeItem): StackTreeItem[] {
+  public getChildren(element?: StackTreeItem): vscode.ProviderResult<StackTreeItem[]> {
     if (element && isStagedFolder(element)) {
       return element.children
     }
@@ -89,7 +91,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   public getTreeItem(element: StackTreeItem): vscode.TreeItem {
     const isBusy = this.analysisEngine.isWarmingUp || this.analysisEngine.isAnalyzing
-    return this.renderer.render(element, isBusy)
+    return this.renderer.render(element, isBusy, this._largeFileThreshold)
   }
 
   public getParent(): vscode.ProviderResult<StackTreeItem> {
@@ -152,7 +154,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this.refreshSmartVisibility()
   }
 
-  private rebuildTreeCache(): StackTreeItem[] {
+  private async rebuildTreeCache(): Promise<StackTreeItem[]> {
     const rebuildStart = Date.now()
     const files = this.getFiles()
 
@@ -162,7 +164,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
       return this.handleEmptyTree()
     }
 
-    this._cachedTree = this.executeTreeBuild(files)
+    this._cachedTree = await this.executeTreeBuild(files)
     this._treeDirty = false
 
     const totalRebuildTime = Date.now() - rebuildStart
@@ -171,8 +173,8 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     return this._cachedTree
   }
 
-  private executeTreeBuild(files: StagedFile[]): StackTreeItem[] {
-    const tree = this.treeBuilder.build(files)
+  private async executeTreeBuild(files: StagedFile[]): Promise<StackTreeItem[]> {
+    const tree = await this.treeBuilder.buildAsync(files)
     this.treeBuilder.calculateFolderStats(tree)
     this.postBuildUpdates(tree)
     return tree
@@ -224,9 +226,16 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   private handleConfigChange(e: vscode.ConfigurationChangeEvent): void {
     if (e.affectsConfiguration('aiContextStacker')) {
+      this.refreshConfigCache()
       this._treeDirty = true
       this.triggerRefresh()
     }
+  }
+
+  private refreshConfigCache(): void {
+    this._largeFileThreshold = vscode.workspace
+      .getConfiguration('aiContextStacker')
+      .get<number>('largeFileThreshold', 5000)
   }
 
   private findRecursive(nodes: StackTreeItem[], targetKey: string): StackTreeItem | undefined {

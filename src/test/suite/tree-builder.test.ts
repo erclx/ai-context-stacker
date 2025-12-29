@@ -20,21 +20,21 @@ suite('TreeBuilder Suite', () => {
     sandbox.restore()
   })
 
-  test('Should maintain flat structure for files in root', () => {
+  test('Should maintain flat structure for files in root', async () => {
     const files = [createFile('README.md'), createFile('LICENSE')]
     mockPaths(files, ['README.md', 'LICENSE'])
 
-    const result = builder.build(files)
+    const result = await builder.buildAsync(files)
 
     assert.strictEqual(result.length, 2)
     assert.ok(result.every((item) => item.type === 'file'))
   })
 
-  test('Should create nested folders for deep paths', () => {
+  test('Should create nested folders for deep paths', async () => {
     const deepFile = createFile('/src/utils/math.ts')
     mockPaths([deepFile], ['src/utils/math.ts'])
 
-    const result = builder.build([deepFile])
+    const result = await builder.buildAsync([deepFile])
 
     const srcFolder = result[0] as StagedFolder
     assertFolder(srcFolder, 'src')
@@ -47,24 +47,24 @@ suite('TreeBuilder Suite', () => {
     assert.ok(mathFile, 'Should have math.ts')
   })
 
-  test('Should sort folders before files alphabetically', () => {
+  test('Should sort folders before files alphabetically', async () => {
     const file = createFile('config.json')
     const fileInFolder = createFile('assets/logo.png')
 
     mockPaths([file, fileInFolder], ['config.json', 'assets/logo.png'])
 
-    const result = builder.build([file, fileInFolder])
+    const result = await builder.buildAsync([file, fileInFolder])
 
     assertFolder(result[0] as StagedFolder, 'assets')
     assert.strictEqual(result[1].label, 'config.json')
   })
 
-  test('Should associate files with their immediate parent folder', () => {
+  test('Should associate files with their immediate parent folder', async () => {
     const fileA = createFile('src/a.ts')
     const fileB = createFile('src/nested/b.ts')
     mockPaths([fileA, fileB], ['src/a.ts', 'src/nested/b.ts'])
 
-    const result = builder.build([fileA, fileB])
+    const result = await builder.buildAsync([fileA, fileB])
 
     const srcFolder = result[0] as StagedFolder
 

@@ -45,9 +45,10 @@ export class ContentFormatter {
     let currentTotalSize = 0
 
     if (config.showTreeMap) {
-      const treeBlock = this.generateTreeBlock(files, config)
-      currentTotalSize += treeBlock.length
-      yield treeBlock
+      for (const line of this.generateTreeBlock(files, config)) {
+        currentTotalSize += line.length
+        yield line
+      }
     }
 
     if (config.includeFileContents) {
@@ -71,12 +72,12 @@ export class ContentFormatter {
     return parts.join('')
   }
 
-  public static generateAsciiTree(files: StagedFile[]): string {
+  public static *generateAsciiTree(files: StagedFile[]): Generator<string> {
     const paths = files.map((f) => this.getDisplayPath(f.uri)).sort()
     const root: TreeNode = {}
 
     this.buildHierarchy(paths, root)
-    return this.renderHierarchyIterative(root)
+    yield* this.renderHierarchyIterative(root)
   }
 
   private static getConfig(opts: FormatOptions): FormatterConfig {
@@ -94,15 +95,14 @@ export class ContentFormatter {
     }
   }
 
-  private static generateTreeBlock(files: StagedFile[], config: FormatterConfig): string {
-    const tree = this.generateAsciiTree(files)
-
-    let header = ''
+  private static *generateTreeBlock(files: StagedFile[], config: FormatterConfig): Generator<string> {
     if (config.showTreeMapHeader) {
-      header = this.renderHeader(config.treeMapText)
+      yield this.renderHeader(config.treeMapText)
     }
 
-    return `${header}\`\`\`\n${tree}\`\`\`\n\n`
+    yield '```\n'
+    yield* this.generateAsciiTree(files)
+    yield '```\n\n'
   }
 
   private static renderHeader(text: string): string {
@@ -210,44 +210,38 @@ export class ContentFormatter {
     }
   }
 
-  private static renderHierarchyIterative(root: TreeNode): string {
-    const parts: string[] = []
+  private static *renderHierarchyIterative(root: TreeNode): Generator<string> {
     const rootEntries = Object.keys(root).sort(this.sortNodes(root))
+    if (rootEntries.length === 0) return
 
     const stack: TreeStackItem[] = [{ node: root, prefix: '', entries: rootEntries, index: 0 }]
 
     while (stack.length > 0) {
-      this.processStackItem(stack, parts)
-    }
+      const current = stack[stack.length - 1]
 
-    return parts.join('')
-  }
+      if (current.index >= current.entries.length) {
+        stack.pop()
+        continue
+      }
 
-  private static processStackItem(stack: TreeStackItem[], parts: string[]): void {
-    const current = stack[stack.length - 1]
+      const key = current.entries[current.index]
+      const isLast = current.index === current.entries.length - 1
+      current.index++
 
-    if (current.index >= current.entries.length) {
-      stack.pop()
-      return
-    }
+      yield `${current.prefix}${isLast ? '└── ' : '├── '}${key}\n`
 
-    const key = current.entries[current.index]
-    const isLast = current.index === current.entries.length - 1
-    current.index++
+      const childNode = current.node[key]
+      const childEntries = Object.keys(childNode).sort(this.sortNodes(childNode))
 
-    parts.push(`${current.prefix}${isLast ? '└── ' : '├── '}${key}\n`)
-
-    const childNode = current.node[key]
-    const childEntries = Object.keys(childNode).sort(this.sortNodes(childNode))
-
-    if (childEntries.length > 0) {
-      const childPrefix = current.prefix + (isLast ? '    ' : '│   ')
-      stack.push({
-        node: childNode,
-        prefix: childPrefix,
-        entries: childEntries,
-        index: 0,
-      })
+      if (childEntries.length > 0) {
+        const childPrefix = current.prefix + (isLast ? '    ' : '│   ')
+        stack.push({
+          node: childNode,
+          prefix: childPrefix,
+          entries: childEntries,
+          index: 0,
+        })
+      }
     }
   }
 

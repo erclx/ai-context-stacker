@@ -6,10 +6,21 @@ export class TreeBuilder {
   private folderMap = new Map<string, StagedFolder>()
   private rootItems: StackTreeItem[] = []
   private workspaceRoots: vscode.WorkspaceFolder[] = []
+  private readonly YIELD_THRESHOLD = 250
 
-  public build(files: StagedFile[]): StackTreeItem[] {
+  public async buildAsync(files: StagedFile[]): Promise<StackTreeItem[]> {
     this.resetState()
-    files.forEach((file) => this.processFile(file))
+
+    let opCount = 0
+    for (const file of files) {
+      await this.processFile(file)
+      opCount++
+      if (opCount >= this.YIELD_THRESHOLD) {
+        opCount = 0
+        await new Promise((resolve) => setImmediate(resolve))
+      }
+    }
+
     return this.finalizeTree()
   }
 
@@ -35,7 +46,7 @@ export class TreeBuilder {
     this.workspaceRoots = vscode.workspace.workspaceFolders ? [...vscode.workspace.workspaceFolders] : []
   }
 
-  private processFile(file: StagedFile): void {
+  private async processFile(file: StagedFile): Promise<void> {
     const segments = this.getOptimizedSegments(file)
     if (segments.length === 1) {
       this.rootItems.push(file)
@@ -88,18 +99,34 @@ export class TreeBuilder {
     return vscode.workspace.asRelativePath(file.uri, isMultiRoot).split('/')
   }
 
-  private finalizeTree(): StackTreeItem[] {
-    this.sortRecursive(this.rootItems)
+  private async finalizeTree(): Promise<StackTreeItem[]> {
+    await this.sortIterative(this.rootItems)
     return this.rootItems
   }
 
-  private sortRecursive(items: StackTreeItem[]): void {
-    if (items.length === 0) return
-    items.sort(this.sortComparator)
+  private async sortIterative(rootItems: StackTreeItem[]): Promise<void> {
+    if (rootItems.length === 0) return
 
-    for (const item of items) {
-      if (isStagedFolder(item)) {
-        this.sortRecursive(item.children)
+    // Sort roots first
+    rootItems.sort(this.sortComparator)
+
+    const stack = [...rootItems]
+    let opCount = 0
+
+    while (stack.length > 0) {
+      const item = stack.pop()
+
+      opCount++
+      if (opCount >= this.YIELD_THRESHOLD) {
+        opCount = 0
+        await new Promise((resolve) => setImmediate(resolve))
+      }
+
+      if (item && isStagedFolder(item) && item.children.length > 0) {
+        item.children.sort(this.sortComparator)
+        for (let i = item.children.length - 1; i >= 0; i--) {
+          stack.push(item.children[i])
+        }
       }
     }
   }

@@ -6,7 +6,7 @@ export class StackItemRenderer {
   private readonly EMPTY_URI_SCHEME = 'ai-stack'
   private readonly EMPTY_ID = 'emptyState'
 
-  public render(element: StackTreeItem, isWarmingUp: boolean): vscode.TreeItem {
+  public render(element: StackTreeItem, isWarmingUp: boolean, largeFileThreshold: number): vscode.TreeItem {
     if (isStagedFolder(element)) {
       return this.renderFolder(element, isWarmingUp)
     }
@@ -15,7 +15,7 @@ export class StackItemRenderer {
       return this.renderEmptyState(element, isWarmingUp)
     }
 
-    return this.renderFile(element, isWarmingUp)
+    return this.renderFile(element, isWarmingUp, largeFileThreshold)
   }
 
   public createPlaceholderItem(): StagedFile {
@@ -49,7 +49,7 @@ export class StackItemRenderer {
     return item
   }
 
-  private renderFile(file: StagedFile, isWarmingUp: boolean): vscode.TreeItem {
+  private renderFile(file: StagedFile, isWarmingUp: boolean, threshold: number): vscode.TreeItem {
     const item = new vscode.TreeItem(file.label)
 
     item.resourceUri = file.uri
@@ -60,7 +60,7 @@ export class StackItemRenderer {
       arguments: [file.uri],
     }
 
-    this.applyContextualDecorations(item, file, isWarmingUp)
+    this.applyContextualDecorations(item, file, isWarmingUp, threshold)
 
     return item
   }
@@ -81,13 +81,17 @@ export class StackItemRenderer {
     return item
   }
 
-  private applyContextualDecorations(item: vscode.TreeItem, file: StagedFile, isWarmingUp: boolean): void {
+  private applyContextualDecorations(
+    item: vscode.TreeItem,
+    file: StagedFile,
+    isWarmingUp: boolean,
+    threshold: number,
+  ): void {
     if (file.isBinary) {
       this.applyBinaryDecorations(item)
       return
     }
 
-    const threshold = this.getThreshold()
     const tokens = file.stats?.tokenCount ?? 0
     const hasStats = !!file.stats
 
@@ -134,10 +138,6 @@ export class StackItemRenderer {
       return `${base}\n\nHeavy: Exceeds ${this.formatTokenCount(threshold)} tokens`
     }
     return base
-  }
-
-  private getThreshold(): number {
-    return vscode.workspace.getConfiguration('aiContextStacker').get<number>('largeFileThreshold', 5000)
   }
 
   private buildFileDescription(file: StagedFile): string {
