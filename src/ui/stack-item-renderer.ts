@@ -34,16 +34,31 @@ export class StackItemRenderer {
   private renderFolder(folder: StagedFolder, isWarmingUp: boolean): vscode.TreeItem {
     const item = new vscode.TreeItem(folder.label, vscode.TreeItemCollapsibleState.Expanded)
 
-    item.contextValue = 'stagedFolder'
-    item.iconPath = vscode.ThemeIcon.Folder
+    item.contextValue = folder.isPinned ? 'stagedFolder:pinned' : 'stagedFolder'
     item.resourceUri = folder.resourceUri
+
+    if (folder.isPinned) {
+      item.iconPath = new vscode.ThemeIcon('pin')
+    } else {
+      item.iconPath = vscode.ThemeIcon.Folder
+    }
 
     const hasStats = folder.tokenCount !== undefined
     const displayValue = hasStats ? folder.tokenCount! : 0
-
     const showCalculating = !hasStats && isWarmingUp
 
-    item.description = showCalculating ? 'Calculating...' : this.formatTokenCount(displayValue)
+    const parts: string[] = []
+    if (showCalculating) {
+      parts.push('Calculating...')
+    } else {
+      parts.push(this.formatTokenCount(displayValue))
+    }
+
+    if (folder.isPinned) {
+      parts.push('(Pinned)')
+    }
+
+    item.description = parts.join(' • ')
     item.tooltip = `${folder.containedFiles.length} files directly inside`
 
     return item

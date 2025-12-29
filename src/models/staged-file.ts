@@ -22,6 +22,7 @@ export interface StagedFolder {
   children: StackTreeItem[]
   containedFiles: StagedFile[]
   tokenCount?: number
+  isPinned?: boolean
 }
 
 export type StackTreeItem = StagedFile | StagedFolder

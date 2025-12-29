@@ -54,6 +54,19 @@ export async function handleFolderScanning(
   )
 }
 
+export async function collectFilesFromFolders(
+  folders: vscode.Uri[],
+  ignoreProvider: IgnoreManager,
+  token?: vscode.CancellationToken,
+): Promise<vscode.Uri[]> {
+  const excludes = await ignoreProvider.getExcludePatterns()
+  const results: vscode.Uri[] = []
+
+  await scanMultipleFolders(folders, excludes, (batch) => results.push(...batch), token)
+
+  return results
+}
+
 export async function scanMultipleFolders(
   folders: vscode.Uri[],
   excludes: string,
@@ -84,6 +97,15 @@ export async function discoverWorkspaceFolders(ignore: IgnoreManager): Promise<v
   const [shallow, deep] = await Promise.all([discoverShallowFolders(), discoverDeepFolders(excludes)])
 
   return mergeFolderLists(shallow, deep)
+}
+
+export function resolveScanRoots(fileUris: vscode.Uri[]): vscode.Uri[] {
+  const parents = fileUris.map((uri) => vscode.Uri.joinPath(uri, '..'))
+
+  const uniquePaths = new Set(parents.map((p) => p.toString()))
+  const uniqueUris = Array.from(uniquePaths).map((s) => vscode.Uri.parse(s))
+
+  return pruneNestedFolders(uniqueUris)
 }
 
 export function pruneNestedFolders(uris: vscode.Uri[]): vscode.Uri[] {

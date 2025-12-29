@@ -479,7 +479,7 @@
         {
           "//": "--- Files: Hover Icons ---",
           "command": "aiContextStacker.togglePin",
-          "when": "view == aiContextStackerView && viewItem =~ /stagedFile/",
+          "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
           "group": "inline@1"
         },
         {

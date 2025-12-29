@@ -2,6 +2,13 @@ import * as vscode from 'vscode'
 
 import { isStagedFolder, StackTreeItem, StagedFile, StagedFolder } from '../models'
 
+export function getDescendantFiles(item: StackTreeItem): StagedFile[] {
+  if (isStagedFolder(item)) {
+    return item.children.flatMap((child) => getDescendantFiles(child))
+  }
+  return [item as StagedFile]
+}
+
 export class TreeBuilder {
   private folderMap = new Map<string, StagedFolder>()
   private rootItems: StackTreeItem[] = []
@@ -107,7 +114,6 @@ export class TreeBuilder {
   private async sortIterative(rootItems: StackTreeItem[]): Promise<void> {
     if (rootItems.length === 0) return
 
-    // Sort roots first
     rootItems.sort(this.sortComparator)
 
     const stack = [...rootItems]

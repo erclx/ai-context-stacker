@@ -7,9 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Deep Refresh**: Refresh Stack now performs recursive re-scan of staged directories to discover newly created files.
+- **Recursive Tree Traversal**: Added utility to resolve all descendant files when interacting with folder nodes.
+- **Folder Pinning UI**: Pin icon and "(Pinned)" label now visible on folder items.
+
 ### Changed
 
 - **Removal Pickers**: Standardized to check-to-remove pattern with full relative paths displayed.
+- **Scan Root Optimization**: Prune nested paths to scan file system at the highest level and reduce I/O overhead.
+
+### Fixed
+
+- **Zombie Folder Bug**: Removing or pinning folders now correctly targets all nested files in the sub-tree.
+- **Stale UI State**: Tree reconstruction accurately reflects deletions by flushing recursive folder mappings.
+- **Folder Context Menus**: Pin/Remove actions now enabled on folder nodes.
 
 ## [0.0.6] - 2025-12-29
 

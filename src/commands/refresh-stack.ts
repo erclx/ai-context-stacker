@@ -9,7 +9,7 @@ export function getRefreshStackCommands(deps: CommandDependencies): Command[] {
       id: 'aiContextStacker.refreshStack',
       execute: async () => {
         try {
-          await deps.services.stackProvider.forceRefresh()
+          await deps.services.stackProvider.reScanFileSystem()
           vscode.window.setStatusBarMessage('$(check) AI Context Stack refreshed', 3000)
         } catch (error) {
           Logger.error('Failed to refresh stack', error as Error)

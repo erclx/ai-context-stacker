@@ -3,7 +3,7 @@ import * as vscode from 'vscode'
 import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
 import { AnalysisEngine, ContextKeyService, TokenAggregatorService, TreeBuilder } from '../services'
 import { StackItemRenderer } from '../ui'
-import { Logger } from '../utils'
+import { collectFilesFromFolders, Logger, resolveScanRoots } from '../utils'
 import { IgnoreManager } from './ignore-manager'
 import { TrackManager } from './track-manager'
 
@@ -134,6 +134,40 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this._treeDirty = true
     this.triggerRefresh()
     void this.analysisEngine.enrichActiveTrack()
+  }
+
+  public async reScanFileSystem(): Promise<void> {
+    const currentFiles = this.getFiles()
+    if (currentFiles.length === 0) {
+      return this.forceRefresh()
+    }
+
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Syncing stack with file system...',
+        cancellable: true,
+      },
+      async (_, token) => {
+        const scanRoots = resolveScanRoots(currentFiles.map((f) => f.uri))
+
+        const foundUris = await collectFilesFromFolders(scanRoots, this.ignoreManager, token)
+
+        if (token.isCancellationRequested) return
+
+        const currentSet = new Set(currentFiles.map((f) => f.uri.toString()))
+        const newUris = foundUris.filter((uri) => !currentSet.has(uri.toString()))
+
+        if (newUris.length > 0) {
+          this.trackManager.addFilesToActive(newUris)
+          vscode.window.setStatusBarMessage(`Found ${newUris.length} new files.`, 3000)
+        } else {
+          vscode.window.setStatusBarMessage('No new files found.', 3000)
+        }
+
+        await this.forceRefresh()
+      },
+    )
   }
 
   public dispose(): void {

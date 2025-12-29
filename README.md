@@ -153,7 +153,7 @@ File system tracking uses native VS Code events instead of low-level watchers to
 | `Clear Stack`             | Remove all **unpinned** files from the current track.                     | <kbd>Shift</kbd>+<kbd>Del</kbd> (when focused)                                           |
 | `Toggle Pin`              | Pin or unpin selected file(s) for bulk protection.                        | <kbd>Space</kbd> (when focused)                                                          |
 | `Unpin All`               | Instantly unpin all files in the current track (found in the `...` menu). |                                                                                          |
-| `Refresh Stack`           | Manually re-calculate token counts and sync file metadata from disk.      | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> (when focused)                               |
+| `Refresh Stack`           | Re-scan filesystem and discover new files in staged folders.              | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> (when focused)                               |
 | `Select All`              | Select all staged files for bulk operations (Pin/Remove).                 | <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd>                               |
 
 ### Output & Clipboard

@@ -1,4 +1,5 @@
-import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
+import { StackTreeItem, StagedFile } from '../models'
+import { getDescendantFiles } from '../services'
 import { Command, CommandDependencies } from './types'
 
 export function getTogglePinCommands(deps: CommandDependencies): Command[] {
@@ -30,11 +31,8 @@ function resolveFilesToToggle(items: StackTreeItem[]): StagedFile[] {
   const fileMap = new Map<string, StagedFile>()
 
   for (const item of items) {
-    if (isStagedFolder(item)) {
-      item.containedFiles.forEach((f) => fileMap.set(f.uri.toString(), f))
-    } else {
-      fileMap.set(item.uri.toString(), item)
-    }
+    const descendants = getDescendantFiles(item)
+    descendants.forEach((f) => fileMap.set(f.uri.toString(), f))
   }
 
   return Array.from(fileMap.values())
