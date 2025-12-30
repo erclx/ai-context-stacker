@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.8] - 2025-12-30
+
 ### Added
 
 - **Track Loading Service**: Tracks now load in smaller chunks to avoid blocking VS Code on startup.
@@ -159,7 +161,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All processing is local.
 - No data is sent externally.
 
-[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.7...HEAD
+[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/erclx/ai-context-stacker/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/erclx/ai-context-stacker/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/erclx/ai-context-stacker/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/erclx/ai-context-stacker/compare/v0.0.4...v0.0.5
