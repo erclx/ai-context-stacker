@@ -80,7 +80,7 @@ export class StatsProcessor implements vscode.Disposable {
     }
   }
 
-  public async enrichFileStats(targets: StagedFile[]): Promise<void> {
+  public async enrichFileStats(targets: StagedFile[], token?: vscode.CancellationToken): Promise<void> {
     if (this._isDisposed) return
 
     const queue = targets.filter((f) => !f.stats)
@@ -93,7 +93,7 @@ export class StatsProcessor implements vscode.Disposable {
     Logger.debug(`Processing ${queue.length} files without stats (${targets.length} total)`)
 
     const processStart = Date.now()
-    await this.processQueueConcurrent(queue)
+    await this.processQueueConcurrent(queue, token)
     const processTime = Date.now() - processStart
     const avgTime = queue.length > 0 ? Math.round(processTime / queue.length) : 0
 
@@ -104,7 +104,11 @@ export class StatsProcessor implements vscode.Disposable {
     await this.saveCache()
   }
 
-  public async enrichFileStatsProgressive(targets: StagedFile[], onProgress: () => void): Promise<void> {
+  public async enrichFileStatsProgressive(
+    targets: StagedFile[],
+    onProgress: () => void,
+    token?: vscode.CancellationToken,
+  ): Promise<void> {
     if (this._isDisposed) return
 
     const queue = targets.filter((f) => !f.stats)
@@ -117,7 +121,7 @@ export class StatsProcessor implements vscode.Disposable {
     Logger.debug(`Processing ${queue.length} files without stats (${targets.length} total)`)
 
     const processStart = Date.now()
-    await this.processQueueWithProgress(queue, onProgress)
+    await this.processQueueWithProgress(queue, onProgress, token)
     const processTime = Date.now() - processStart
     const avgTime = queue.length > 0 ? Math.round(processTime / queue.length) : 0
 
@@ -134,12 +138,16 @@ export class StatsProcessor implements vscode.Disposable {
     }
   }
 
-  private async processQueueWithProgress(queue: StagedFile[], onProgress: () => void): Promise<void> {
+  private async processQueueWithProgress(
+    queue: StagedFile[],
+    onProgress: () => void,
+    token?: vscode.CancellationToken,
+  ): Promise<void> {
     const concurrency = this.concurrencyLimit
     const progressInterval = concurrency
 
     for (let i = 0; i < queue.length; i += concurrency) {
-      if (this._isDisposed) break
+      if (this._isDisposed || token?.isCancellationRequested) break
 
       const chunk = queue.slice(i, i + concurrency)
       await Promise.all(chunk.map((file) => this.processFileWithCache(file)))
@@ -154,11 +162,11 @@ export class StatsProcessor implements vscode.Disposable {
     }
   }
 
-  private async processQueueConcurrent(queue: StagedFile[]): Promise<void> {
+  private async processQueueConcurrent(queue: StagedFile[], token?: vscode.CancellationToken): Promise<void> {
     const concurrency = this.concurrencyLimit
 
     for (let i = 0; i < queue.length; i += concurrency) {
-      if (this._isDisposed) break
+      if (this._isDisposed || token?.isCancellationRequested) break
 
       const chunk = queue.slice(i, i + concurrency)
       await Promise.all(chunk.map((file) => this.processFileWithCache(file)))

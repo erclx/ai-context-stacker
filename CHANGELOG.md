@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Track Loading Service**: Tracks now load in smaller chunks to avoid blocking VS Code on startup.
+- **File Lookup Index**: Added faster file existence checks using a lookup table instead of searching arrays.
+- **Workspace Event Handler**: Batches rapid file rename and delete operations to reduce processing overhead.
+- **Tree Node Updates**: Tree view updates individual items instead of rebuilding the entire tree.
+- **Path Caching**: File paths are calculated once when added rather than repeatedly during display.
+
+### Changed
+
+- **Track Manager**: Moved track loading and analysis logic into separate modules.
+- **Token Calculation**: Stats are calculated only for the current track and stop immediately when switching tracks.
+- **UI Updates**: Reduced frequency of context menu and status bar refreshes.
+
 ## [0.0.7] - 2025-12-30
 
 ### Added
@@ -145,7 +159,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All processing is local.
 - No data is sent externally.
 
-[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.6...HEAD
+[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/erclx/ai-context-stacker/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/erclx/ai-context-stacker/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/erclx/ai-context-stacker/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/erclx/ai-context-stacker/compare/v0.0.3...v0.0.4

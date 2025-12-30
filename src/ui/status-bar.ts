@@ -7,6 +7,9 @@ export class StackerStatusBar implements vscode.Disposable {
   private provider: StackProvider
   private _disposables: vscode.Disposable[] = []
 
+  private _throttleTimer: NodeJS.Timeout | undefined
+  private readonly UPDATE_THROTTLE_MS = 500
+
   constructor(extensionContext: vscode.ExtensionContext, contextStackProvider: StackProvider) {
     this.provider = contextStackProvider
 
@@ -15,13 +18,22 @@ export class StackerStatusBar implements vscode.Disposable {
     this.item.command = 'aiContextStacker.copyAll'
     this.item.tooltip = 'Click to Copy Stack to Clipboard'
 
-    const treeListener = contextStackProvider.onDidChangeTreeData(() => this.update())
-    const analysisListener = contextStackProvider.analysisEngine.onDidStatusChange(() => this.update())
+    const treeListener = contextStackProvider.onDidChangeTreeData(() => this.scheduleUpdate())
+    const analysisListener = contextStackProvider.analysisEngine.onDidStatusChange(() => this.scheduleUpdate())
 
     this._disposables.push(this.item, treeListener, analysisListener)
     extensionContext.subscriptions.push(this.item)
 
     this.update()
+  }
+
+  private scheduleUpdate(): void {
+    if (this._throttleTimer) return
+
+    this._throttleTimer = setTimeout(() => {
+      this._throttleTimer = undefined
+      this.update()
+    }, this.UPDATE_THROTTLE_MS)
   }
 
   private update() {
@@ -58,6 +70,10 @@ export class StackerStatusBar implements vscode.Disposable {
   }
 
   public dispose() {
+    if (this._throttleTimer) {
+      clearTimeout(this._throttleTimer)
+      this._throttleTimer = undefined
+    }
     this._disposables.forEach((d) => d.dispose())
   }
 }

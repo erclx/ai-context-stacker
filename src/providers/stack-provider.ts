@@ -20,6 +20,8 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   private treeBuilder = new TreeBuilder()
   private renderer = new StackItemRenderer()
+  private enrichmentCTS: vscode.CancellationTokenSource | undefined
+  private refreshTimer: NodeJS.Timeout | undefined
 
   constructor(
     private context: vscode.ExtensionContext,
@@ -34,7 +36,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
     if (this.trackManager.isInitialized) {
       this.triggerRefresh()
-      void this.analysisEngine.enrichActiveTrack()
+      this.triggerEnrichment()
     }
   }
 
@@ -104,28 +106,62 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   public async addFiles(uris: vscode.Uri[]): Promise<boolean> {
     const newFiles = this.trackManager.addFilesToActive(uris)
+
     if (newFiles.length === 0) {
       return false
     }
 
-    this._treeDirty = true
-    this.triggerRefresh()
+    const isPlaceholderVisible =
+      this._cachedTree &&
+      this._cachedTree.length > 0 &&
+      this._cachedTree[0].type === 'file' &&
+      this._cachedTree[0].uri.scheme === 'ai-stack'
 
-    this.analysisEngine.notifyFilesAdded()
+    if (this._cachedTree && !this._treeDirty && !this.hasActiveFilters && !isPlaceholderVisible) {
+      this._cachedTree = await this.treeBuilder.patch(this._cachedTree, newFiles, [])
+      this.contextKeyService.updateStackState(this.trackManager.getActiveTrack().files)
+      this.postBuildUpdates(this._cachedTree)
+      this._onDidChangeTreeData.fire()
+    } else {
+      this._treeDirty = true
+      this.triggerRefresh()
+    }
+
+    this.triggerEnrichment()
 
     return true
   }
 
   public removeFiles(files: StagedFile[]): void {
     this.trackManager.removeFilesFromActive(files)
-    this._treeDirty = true
-    this.triggerRefresh()
+
+    if (this._cachedTree && !this._treeDirty && !this.hasActiveFilters) {
+      const removedUris = files.map((f) => f.uri.toString())
+      void this.treeBuilder.patch(this._cachedTree, [], removedUris).then((newTree) => {
+        this._cachedTree = newTree
+        if (this._cachedTree.length === 0) {
+          this._cachedTree = undefined
+          this._treeDirty = true
+          this.triggerRefresh()
+        } else {
+          this.contextKeyService.updateStackState(this.trackManager.getActiveTrack().files)
+          this.postBuildUpdates(this._cachedTree)
+          this._onDidChangeTreeData.fire()
+        }
+      })
+    } else {
+      this._treeDirty = true
+      this.triggerRefresh()
+    }
+
+    this.triggerEnrichment()
   }
 
   public clear(): void {
     this.trackManager.clearActive()
     this._treeDirty = true
     this.triggerRefresh()
+    this.triggerEnrichment()
   }
 
   public async forceRefresh(): Promise<void> {
@@ -133,7 +169,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     files.forEach((f) => (f.stats = undefined))
     this._treeDirty = true
     this.triggerRefresh()
-    void this.analysisEngine.enrichActiveTrack()
+    this.triggerEnrichment()
   }
 
   public async reScanFileSystem(): Promise<void> {
@@ -159,20 +195,37 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
         const newUris = foundUris.filter((uri) => !currentSet.has(uri.toString()))
 
         if (newUris.length > 0) {
-          this.trackManager.addFilesToActive(newUris)
+          this.addFiles(newUris)
           vscode.window.setStatusBarMessage(`Found ${newUris.length} new files.`, 3000)
         } else {
           vscode.window.setStatusBarMessage('No new files found.', 3000)
         }
-
-        await this.forceRefresh()
       },
     )
   }
 
   public dispose(): void {
+    this.cancelEnrichment()
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer)
+    }
     this._onDidChangeTreeData.dispose()
     this.disposables.forEach((d) => d.dispose())
+  }
+
+  private triggerEnrichment(): void {
+    this.cancelEnrichment()
+    this.enrichmentCTS = new vscode.CancellationTokenSource()
+
+    void this.analysisEngine.enrichActiveTrack(this.enrichmentCTS.token)
+  }
+
+  private cancelEnrichment(): void {
+    if (this.enrichmentCTS) {
+      this.enrichmentCTS.cancel()
+      this.enrichmentCTS.dispose()
+      this.enrichmentCTS = undefined
+    }
   }
 
   private shouldRebuildTree(): boolean {
@@ -184,9 +237,14 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
       return
     }
 
-    this._onDidChangeTreeData.fire()
-    this.refreshSmartVisibility()
-    this.checkUnstagedOpenFiles()
+    if (this.refreshTimer) return
+
+    this.refreshTimer = setTimeout(() => {
+      this.refreshTimer = undefined
+      this._onDidChangeTreeData.fire()
+      this.refreshSmartVisibility()
+      this.checkUnstagedOpenFiles()
+    }, 50)
   }
 
   private async rebuildTreeCache(): Promise<StackTreeItem[]> {
@@ -245,6 +303,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     this.trackManager.onDidChangeTrack(() => {
       this._treeDirty = true
       this.triggerRefresh()
+      this.triggerEnrichment()
     })
 
     this.tokenAggregator.onDidChange(() => {

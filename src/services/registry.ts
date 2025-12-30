@@ -4,22 +4,26 @@ import { IgnoreManager, StackProvider, TrackManager, TrackProvider } from '../pr
 import { Logger, LogLevel } from '../utils'
 import { AnalysisEngine } from './analysis-engine'
 import { ContextKeyService } from './context-key-service'
-import { FileWatcherService } from './file-watcher'
+import { FileLifecycleService } from './file-lifecycle-service'
+import { HydrationService } from './hydration-service'
 import { PersistenceService } from './persistence-service'
 import { TokenAggregatorService } from './token-aggregator'
+import { UriIndex } from './uri-index'
 
 export class ServiceRegistry implements vscode.Disposable {
   private static _instance: ServiceRegistry | undefined
 
   public readonly persistenceService: PersistenceService
+  public readonly hydrationService: HydrationService
   public readonly trackManager: TrackManager
   public readonly ignoreManager: IgnoreManager
   public readonly stackProvider: StackProvider
   public readonly trackProvider: TrackProvider
-  public readonly fileWatcher: FileWatcherService
+  public readonly fileLifecycleService: FileLifecycleService
   public readonly analysisEngine: AnalysisEngine
   public readonly tokenAggregator: TokenAggregatorService
   public readonly contextKeyService: ContextKeyService
+  public readonly uriIndex: UriIndex
 
   private _disposables: vscode.Disposable[] = []
 
@@ -29,10 +33,12 @@ export class ServiceRegistry implements vscode.Disposable {
     this.initializeLogger()
 
     this.persistenceService = new PersistenceService(context)
+    this.hydrationService = new HydrationService(this.persistenceService)
     this.ignoreManager = new IgnoreManager()
     this.contextKeyService = new ContextKeyService()
+    this.uriIndex = new UriIndex()
 
-    this.trackManager = new TrackManager(context, this.persistenceService)
+    this.trackManager = new TrackManager(context, this.persistenceService, this.hydrationService, this.uriIndex)
 
     this.analysisEngine = new AnalysisEngine(context, this.trackManager)
     this.tokenAggregator = new TokenAggregatorService(this.trackManager, this.analysisEngine)
@@ -48,7 +54,7 @@ export class ServiceRegistry implements vscode.Disposable {
 
     this.trackProvider = new TrackProvider(this.trackManager, this.tokenAggregator)
 
-    this.fileWatcher = new FileWatcherService(this.trackManager)
+    this.fileLifecycleService = new FileLifecycleService(this.trackManager)
 
     this.registerInternalDisposables()
   }
@@ -85,7 +91,7 @@ export class ServiceRegistry implements vscode.Disposable {
       this.tokenAggregator,
       this.stackProvider,
       this.trackProvider,
-      this.fileWatcher,
+      this.fileLifecycleService,
       vscode.workspace.onDidChangeConfiguration((e) => this.handleConfigChange(e)),
     )
   }

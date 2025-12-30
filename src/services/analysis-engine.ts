@@ -14,7 +14,7 @@ export class AnalysisEngine implements vscode.Disposable {
 
   private statsProcessor: StatsProcessor
   private _isWarmingUp = true
-  private _enrichmentInProgress = false
+  private _activeEnrichmentCount = 0
   private pendingUpdates = new Map<string, NodeJS.Timeout>()
   private disposables: vscode.Disposable[] = []
 
@@ -38,7 +38,7 @@ export class AnalysisEngine implements vscode.Disposable {
   }
 
   public get isAnalyzing(): boolean {
-    return this._enrichmentInProgress
+    return this._activeEnrichmentCount > 0
   }
 
   public dispose(): void {
@@ -54,13 +54,13 @@ export class AnalysisEngine implements vscode.Disposable {
   }
 
   public notifyFilesAdded(): void {
-    void this.enrichActiveTrack()
+    this._onDidUpdateStats.fire()
   }
 
-  public async enrichActiveTrack(): Promise<void> {
-    if (this._enrichmentInProgress) return
-    this._enrichmentInProgress = true
+  public async enrichActiveTrack(token?: vscode.CancellationToken): Promise<void> {
+    if (token?.isCancellationRequested) return
 
+    this._activeEnrichmentCount++
     this._onDidStatusChange.fire()
     this._onDidUpdateStats.fire()
 
@@ -72,20 +72,25 @@ export class AnalysisEngine implements vscode.Disposable {
         return
       }
 
-      await this.statsProcessor.enrichFileStatsProgressive(files, () => {
-        const now = Date.now()
-        if (now - this.lastUiUpdate > this.UI_THROTTLE_MS) {
-          this._onDidUpdateStats.fire()
-          this.lastUiUpdate = now
-        }
-      })
+      await this.statsProcessor.enrichFileStatsProgressive(
+        files,
+        () => {
+          const now = Date.now()
+          if (now - this.lastUiUpdate > this.UI_THROTTLE_MS) {
+            this._onDidUpdateStats.fire()
+            this.lastUiUpdate = now
+          }
+        },
+        token,
+      )
     } catch (error) {
       Logger.error('Stats enrichment failed', error as Error)
     } finally {
-      if (this._isWarmingUp) {
+      this._activeEnrichmentCount = Math.max(0, this._activeEnrichmentCount - 1)
+
+      if (this._isWarmingUp && this._activeEnrichmentCount === 0) {
         this._isWarmingUp = false
       }
-      this._enrichmentInProgress = false
 
       this._onDidStatusChange.fire()
       this._onDidUpdateStats.fire()
@@ -95,13 +100,9 @@ export class AnalysisEngine implements vscode.Disposable {
   private registerListeners(): void {
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument((e) => this.handleDocChange(e.document)),
-      this.trackManager.onDidChangeTrack(() => {
-        void this.enrichActiveTrack()
-      }),
+
       vscode.window.onDidChangeWindowState((state) => {
-        if (state.focused) {
-          void this.enrichActiveTrack()
-        } else {
+        if (!state.focused) {
           this.clearAllPendingTimers()
         }
       }),

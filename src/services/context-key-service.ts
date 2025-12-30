@@ -5,6 +5,7 @@ import { StagedFile } from '../models'
 export class ContextKeyService implements vscode.Disposable {
   private pending = new Map<string, unknown>()
   private timer: NodeJS.Timeout | undefined
+  private readonly FLUSH_DELAY_MS = 200
 
   public updateStackState(files: StagedFile[]): void {
     const hasFiles = files.length > 0
@@ -56,7 +57,7 @@ export class ContextKeyService implements vscode.Disposable {
     if (this.timer) {
       return
     }
-    this.timer = setTimeout(() => this.flush(), 50)
+    this.timer = setTimeout(() => this.flush(), this.FLUSH_DELAY_MS)
   }
 
   private flush(): void {

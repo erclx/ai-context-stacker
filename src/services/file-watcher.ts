@@ -103,7 +103,7 @@ export class FileWatcherService implements vscode.Disposable {
     const deletes = Array.from(this.pendingDeletes).map((s) => vscode.Uri.parse(s))
     this.pendingDeletes.clear()
 
-    void this.trackManager.processDeletions(deletes)
+    void this.trackManager.processBatchDeletions(deletes)
   }
 
   private clearTimer(): void {

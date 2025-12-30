@@ -12,6 +12,7 @@ export interface StagedFile {
   stats?: ContentStats
   isBinary?: boolean
   isPinned?: boolean
+  pathSegments?: string[]
 }
 
 export interface StagedFolder {

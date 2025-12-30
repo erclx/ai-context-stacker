@@ -17,12 +17,19 @@ class MockWatcher implements vscode.FileSystemWatcher {
   readonly onDidCreate = new vscode.EventEmitter<vscode.Uri>().event
   readonly onDidChange = new vscode.EventEmitter<vscode.Uri>().event
 
+  private _isDisposed = false
+
   fireDelete(uri: vscode.Uri) {
-    this._onDidDelete.fire(uri)
+    if (!this._isDisposed) {
+      this._onDidDelete.fire(uri)
+    }
   }
 
   dispose() {
-    this._onDidDelete.dispose()
+    if (!this._isDisposed) {
+      this._isDisposed = true
+      this._onDidDelete.dispose()
+    }
   }
 }
 
@@ -57,7 +64,7 @@ class MockTrackManager {
     this.removeLog.push(uri.toString())
   }
 
-  async processDeletions(uris: vscode.Uri[]): Promise<void> {
+  async processBatchDeletions(uris: vscode.Uri[]): Promise<void> {
     for (const uri of uris) {
       this.removeLog.push(uri.toString())
     }
@@ -85,16 +92,18 @@ suite('FileWatcherService Integration Tests', () => {
 
     remoteNameStub = sinon.stub(vscode.env, 'remoteName').get(() => undefined)
 
-    createWatcherStub = sinon.stub(vscode.workspace, 'createFileSystemWatcher').returns(mockWatcher)
+    createWatcherStub = sinon.stub(vscode.workspace, 'createFileSystemWatcher').callsFake(() => {
+      return mockWatcher
+    })
 
     renameStub = sinon.stub(vscode.workspace, 'onDidRenameFiles').callsFake((listener: any) => {
       capturedRenameListener = listener
-      return { dispose: () => {} }
+      return new vscode.Disposable(() => {})
     })
 
     deleteStub = sinon.stub(vscode.workspace, 'onDidDeleteFiles').callsFake((listener: any) => {
       capturedDeleteListener = listener
-      return { dispose: () => {} }
+      return new vscode.Disposable(() => {})
     })
 
     service = new FileWatcherService(mockManager as unknown as TrackManager)

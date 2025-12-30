@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
-import { ContextTrack, SerializedState, StagedFile } from '../models'
-import { PersistenceService } from '../services'
+import { ContextTrack, StagedFile } from '../models'
+import { HydrationService, PersistenceService, UriIndex } from '../services'
 import { generateId, Logger } from '../utils'
 import { isChildOf } from '../utils/file-scanner'
 
@@ -11,7 +11,6 @@ export class TrackManager implements vscode.Disposable {
   private tracks = new Map<string, ContextTrack>()
   private activeTrackId = 'default'
   private _trackOrder: string[] = []
-  private uriRefCount = new Map<string, number>()
 
   private _isInitialized = false
   private _isDisposed = false
@@ -23,6 +22,8 @@ export class TrackManager implements vscode.Disposable {
   constructor(
     private context: vscode.ExtensionContext,
     private persistence: PersistenceService,
+    private hydrationService: HydrationService,
+    private uriIndex: UriIndex,
   ) {
     this.scheduleAsyncHydration()
   }
@@ -88,7 +89,11 @@ export class TrackManager implements vscode.Disposable {
   public deleteTrack(id: string): void {
     if (this.tracks.size <= 1) return
 
-    this.decrementIndex(this.tracks.get(id)?.files || [])
+    const track = this.tracks.get(id)
+    if (track) {
+      this.uriIndex.decrementMany(track.files.map((f) => f.uri))
+    }
+
     this.tracks.delete(id)
     this._trackOrder = this._trackOrder.filter((tid) => tid !== id)
     this.handleTrackDeletion(id)
@@ -102,7 +107,7 @@ export class TrackManager implements vscode.Disposable {
     Logger.warn('Hard Reset initiated.')
     this.tracks.clear()
     this._trackOrder = []
-    this.uriRefCount.clear()
+    this.uriIndex.clear()
 
     if (!this._isDisposed) {
       await this.persistence.clear()
@@ -151,10 +156,10 @@ export class TrackManager implements vscode.Disposable {
   }
 
   public hasUri(uri: vscode.Uri): boolean {
-    return (this.uriRefCount.get(uri.toString()) ?? 0) > 0
+    return this.uriIndex.has(uri)
   }
 
-  public async processDeletions(uris: vscode.Uri[]): Promise<void> {
+  public async processBatchDeletions(uris: vscode.Uri[]): Promise<void> {
     if (this._isDisposed || uris.length === 0) return
 
     const deletedSet = new Set(uris.map((u) => u.toString()))
@@ -166,10 +171,6 @@ export class TrackManager implements vscode.Disposable {
 
       const toRemove: StagedFile[] = []
       const toKeep: StagedFile[] = []
-
-      if (initialCount * uris.length > 2000) {
-        await this.yieldToEventLoop()
-      }
 
       for (const file of track.files) {
         let shouldRemove = deletedSet.has(file.uri.toString())
@@ -192,14 +193,14 @@ export class TrackManager implements vscode.Disposable {
 
       if (toRemove.length > 0) {
         track.files = toKeep
-        this.decrementIndex(toRemove)
+        this.uriIndex.decrementMany(toRemove.map((f) => f.uri))
         changed = true
       }
     }
 
     if (changed) {
       this.finalizeChange()
-      Logger.info(`Processed ${uris.length} deletion(s). Tracks updated.`)
+      Logger.info(`Processed batch deletion of ${uris.length} roots.`)
     }
   }
 
@@ -210,7 +211,10 @@ export class TrackManager implements vscode.Disposable {
     for (const track of this.tracks.values()) {
       const prevLen = track.files.length
       track.files = track.files.filter((f) => f.uri.toString() !== uriStr)
-      if (track.files.length !== prevLen) changed = true
+      if (track.files.length !== prevLen) {
+        this.uriIndex.decrement(uri)
+        changed = true
+      }
     }
 
     if (changed) this.finalizeChange()
@@ -224,6 +228,8 @@ export class TrackManager implements vscode.Disposable {
       const file = track.files.find((f) => f.uri.toString() === oldStr)
       if (file) {
         this.updateFileUri(file, newUri)
+        this.uriIndex.decrement(oldUri)
+        this.uriIndex.increment(newUri)
         changed = true
       }
     }
@@ -237,7 +243,7 @@ export class TrackManager implements vscode.Disposable {
 
     if (newFiles.length > 0) {
       track.files.push(...newFiles)
-      this.incrementIndex(newFiles)
+      this.uriIndex.incrementMany(newFiles.map((f) => f.uri))
       this.requestSave()
     }
     return newFiles
@@ -247,7 +253,7 @@ export class TrackManager implements vscode.Disposable {
     const track = this.getActiveTrack()
     if (track === this.NULL_TRACK) return
 
-    this.decrementIndex(files)
+    this.uriIndex.decrementMany(files.map((f) => f.uri))
     const targets = new Set(files.map((f) => f.uri.toString()))
     track.files = track.files.filter((f) => !targets.has(f.uri.toString()))
 
@@ -259,7 +265,7 @@ export class TrackManager implements vscode.Disposable {
     if (track === this.NULL_TRACK) return
 
     const removed = track.files.filter((f) => !f.isPinned)
-    this.decrementIndex(removed)
+    this.uriIndex.decrementMany(removed.map((f) => f.uri))
     track.files = track.files.filter((f) => f.isPinned)
 
     this.requestSave()
@@ -298,24 +304,23 @@ export class TrackManager implements vscode.Disposable {
   private async performHydration(): Promise<void> {
     if (this._isDisposed) return
 
-    const startTime = Date.now()
-
     try {
-      const raw = await this.persistence.load()
+      const result = await this.hydrationService.hydrate()
 
-      if (raw) {
-        await this.restoreStateInChunks(raw)
+      if (result) {
+        this.tracks = result.tracks
+        this.activeTrackId = result.activeTrackId
+        this._trackOrder = result.trackOrder
       } else {
         Logger.info('No previous state found, creating default track')
         this.createDefaultTrack()
       }
 
-      this.rebuildFullIndex()
+      this.validateStateIntegrity()
+      this.uriIndex.rebuild(this.allTracks)
       this._isInitialized = true
       this.updateContextKeys()
       this.fireChange()
-
-      Logger.debug(`Total hydration completed in ${Date.now() - startTime}ms`)
     } catch (error) {
       Logger.error('Hydration failed catastrophically', error as Error)
       this.createDefaultTrack()
@@ -324,100 +329,13 @@ export class TrackManager implements vscode.Disposable {
     }
   }
 
-  private async restoreStateInChunks(rawState: SerializedState): Promise<void> {
-    this.activeTrackId = rawState.activeTrackId || 'default'
-    this._trackOrder = rawState.trackOrder || []
-
-    const trackEntries = Object.entries(rawState.tracks || {})
-    const CHUNK_SIZE = 5
-
-    for (let i = 0; i < trackEntries.length; i += CHUNK_SIZE) {
-      await this.yieldToEventLoop()
-
-      const chunk = trackEntries.slice(i, i + CHUNK_SIZE)
-
-      for (const [id, serializedTrack] of chunk) {
-        try {
-          const track = this.deserializeTrackOptimized(serializedTrack)
-          this.tracks.set(id, track)
-        } catch (error) {
-          Logger.error(`Failed to deserialize track ${id}`, error as Error)
-        }
-      }
-    }
-
-    this.validateStateIntegrity()
-  }
-
-  private deserializeTrackOptimized(trackData: any): ContextTrack {
-    const files: StagedFile[] = []
-
-    if (trackData.items && Array.isArray(trackData.items)) {
-      for (const item of trackData.items) {
-        try {
-          const uri = vscode.Uri.parse(item.uri)
-          files.push({
-            type: 'file',
-            uri,
-            label: this.extractLabel(uri),
-            isPinned: !!item.isPinned,
-          })
-        } catch (error) {
-          Logger.warn(`Skipped invalid URI: ${item.uri}`)
-        }
-      }
-    }
-
-    return {
-      id: trackData.id,
-      name: trackData.name,
-      files,
-    }
-  }
-
-  private extractLabel(uri: vscode.Uri): string {
-    const pathParts = uri.path.split('/')
-    return pathParts[pathParts.length - 1] || 'unknown'
-  }
-
-  private yieldToEventLoop(): Promise<void> {
-    return new Promise((resolve) => setImmediate(resolve))
-  }
-
   private fireChange(track?: ContextTrack): void {
     if (!this._isDisposed) {
       this._onDidChangeTrack.fire(track || this.getActiveTrack())
     }
   }
 
-  private rebuildFullIndex(): void {
-    this.uriRefCount.clear()
-    for (const track of this.tracks.values()) {
-      this.incrementIndex(track.files)
-    }
-  }
-
-  private incrementIndex(files: StagedFile[]): void {
-    for (const f of files) {
-      const key = f.uri.toString()
-      this.uriRefCount.set(key, (this.uriRefCount.get(key) || 0) + 1)
-    }
-  }
-
-  private decrementIndex(files: StagedFile[]): void {
-    for (const f of files) {
-      const key = f.uri.toString()
-      const current = this.uriRefCount.get(key) || 0
-      if (current > 1) {
-        this.uriRefCount.set(key, current - 1)
-      } else {
-        this.uriRefCount.delete(key)
-      }
-    }
-  }
-
   private finalizeChange(): void {
-    this.rebuildFullIndex()
     this.requestSave()
     this.fireChange()
   }
@@ -441,6 +359,7 @@ export class TrackManager implements vscode.Disposable {
     this.tracks.set(def.id, def)
     this._trackOrder = [def.id]
     this.activeTrackId = def.id
+    this.uriIndex.rebuild([def])
     return def
   }
 
