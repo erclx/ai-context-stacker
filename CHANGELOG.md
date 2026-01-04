@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Incremental Tree Patching**: Updates specific tree branches instead of full structural rebuilds.
+- **URI Compression**: Persists relative paths instead of full URIs to minimize storage footprint.
+- **State Fingerprinting**: Intelligent dirty-checking to skip redundant background save operations.
+- **Macro-task Yielding**: Improved event loop yielding during analysis to protect UI responsiveness.
+
+### Changed
+
+- **Centralized Lifecycle**: Unified file rename and delete logic within the Track Manager to prevent de-sync.
+- **Reactive UI**: Tree providers now passively observe core state changes.
+
+### Fixed
+
+- **Extension Host Starvation**: Resolved race conditions in high-frequency background loops.
+- **Memory Leaks**: Hardened service disposal logic to prevent ghost listeners.
+- **Test Stability**: Fixed asynchronous timing issues and race conditions in the test suite.
+
 ## [0.0.8] - 2025-12-30
 
 ### Added
