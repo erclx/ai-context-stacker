@@ -36,6 +36,10 @@ suite('Extension Test Suite', () => {
       assert.strictEqual(isStaged, true, 'File was not added to the context stack')
     } finally {
       await vscode.workspace.fs.delete(testFileUri)
+
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      ServiceRegistry.disposeExisting()
     }
   })
 })

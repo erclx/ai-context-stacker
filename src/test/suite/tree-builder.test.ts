@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import * as sinon from 'sinon'
 import * as vscode from 'vscode'
 
-import { isStagedFolder, StagedFile, StagedFolder } from '../../models'
+import { ContentStats, isStagedFolder, StagedFile, StagedFolder } from '../../models'
 import { TreeBuilder } from '../../services/tree-builder'
 
 suite('TreeBuilder Suite', () => {
@@ -17,6 +17,7 @@ suite('TreeBuilder Suite', () => {
   })
 
   teardown(() => {
+    builder.reset()
     sandbox.restore()
   })
 
@@ -40,11 +41,11 @@ suite('TreeBuilder Suite', () => {
     assertFolder(srcFolder, 'src')
 
     const utilsFolder = srcFolder.children.find((c) => c.label === 'utils') as StagedFolder
-    assert.ok(utilsFolder, 'Should have utils folder')
+    assert.ok(utilsFolder)
     assertFolder(utilsFolder, 'utils')
 
     const mathFile = utilsFolder.children.find((c) => c.label === 'math.ts')
-    assert.ok(mathFile, 'Should have math.ts')
+    assert.ok(mathFile)
   })
 
   test('Should sort folders before files alphabetically', async () => {
@@ -69,15 +70,100 @@ suite('TreeBuilder Suite', () => {
     const srcFolder = result[0] as StagedFolder
 
     const hasA = srcFolder.containedFiles.some((f) => f.uri.path === fileA.uri.path)
-    assert.strictEqual(hasA, true, 'src should contain a.ts directly')
+    assert.strictEqual(hasA, true)
 
     const hasB = srcFolder.containedFiles.some((f) => f.uri.path === fileB.uri.path)
-    assert.strictEqual(hasB, false, 'src should not contain b.ts directly')
+    assert.strictEqual(hasB, false)
 
     const nestedFolder = srcFolder.children.find((c) => c.label === 'nested') as StagedFolder
     assert.ok(nestedFolder)
     const nestedHasB = nestedFolder.containedFiles.some((f) => f.uri.path === fileB.uri.path)
-    assert.strictEqual(nestedHasB, true, 'nested should contain b.ts directly')
+    assert.strictEqual(nestedHasB, true)
+  })
+
+  test('Should increment token stats on parents when file is added', async () => {
+    const file = createFile('src/main.ts')
+    file.stats = { tokenCount: 100, charCount: 500 }
+    mockPaths([file], ['src/main.ts'])
+
+    const result = await builder.buildAsync([file])
+    const srcFolder = result[0] as StagedFolder
+
+    assert.strictEqual(srcFolder.tokenCount, 100)
+  })
+
+  suite('Patch Logic', () => {
+    test('Should incrementally add files to existing structure', async () => {
+      const fileA = createFile('src/a.ts')
+      mockPaths([fileA], ['src/a.ts'])
+      await builder.buildAsync([fileA])
+
+      const fileB = createFile('src/b.ts')
+      mockPaths([fileB], ['src/b.ts'])
+
+      const result = await builder.patch([fileB], [])
+      const srcFolder = result[0] as StagedFolder
+
+      assert.strictEqual(srcFolder.children.length, 2)
+      assert.ok(srcFolder.children.find((c) => c.label === 'a.ts'))
+      assert.ok(srcFolder.children.find((c) => c.label === 'b.ts'))
+    })
+
+    test('Should prune empty folders after removal', async () => {
+      const file = createFile('src/utils/helper.ts')
+      mockPaths([file], ['src/utils/helper.ts'])
+      await builder.buildAsync([file])
+
+      const result = await builder.patch([], [file])
+
+      assert.strictEqual(result.length, 0)
+    })
+
+    test('Should not prune folders that still contain other files', async () => {
+      const fileA = createFile('src/keep.ts')
+      const fileB = createFile('src/remove.ts')
+      mockPaths([fileA, fileB], ['src/keep.ts', 'src/remove.ts'])
+
+      await builder.buildAsync([fileA, fileB])
+      const result = await builder.patch([], [fileB])
+
+      assert.strictEqual(result.length, 1)
+      const srcFolder = result[0] as StagedFolder
+      assert.strictEqual(srcFolder.children.length, 1)
+      assert.strictEqual(srcFolder.children[0].label, 'keep.ts')
+    })
+
+    test('Should update token stats bubble-up on patch add/remove', async () => {
+      const fileA = createFile('src/a.ts')
+      fileA.stats = { tokenCount: 10, charCount: 10 }
+      mockPaths([fileA], ['src/a.ts'])
+      await builder.buildAsync([fileA])
+
+      const fileB = createFile('src/b.ts')
+      fileB.stats = { tokenCount: 20, charCount: 20 }
+      mockPaths([fileB], ['src/b.ts'])
+
+      let result = await builder.patch([fileB], [])
+      let srcFolder = result[0] as StagedFolder
+      assert.strictEqual(srcFolder.tokenCount, 30)
+
+      result = await builder.patch([], [fileA])
+      srcFolder = result[0] as StagedFolder
+      assert.strictEqual(srcFolder.tokenCount, 20)
+    })
+
+    test('Should handle mixed add and remove in single operation', async () => {
+      const fileA = createFile('a.ts')
+      const fileB = createFile('b.ts')
+      mockPaths([fileA, fileB], ['a.ts', 'b.ts'])
+
+      await builder.buildAsync([fileA])
+
+      const result = await builder.patch([fileB], [fileA])
+
+      assert.strictEqual(result.length, 1)
+      assert.strictEqual(result[0].label, 'b.ts')
+    })
   })
 
   function setupMocks(sb: sinon.SinonSandbox): void {
