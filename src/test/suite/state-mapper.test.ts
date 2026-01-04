@@ -32,6 +32,19 @@ suite('StateMapper Suite', () => {
     assert.strictEqual(item.isPinned, true)
   })
 
+  test('Should ignore runtime cache properties like pathSegments during serialization', () => {
+    const file = createStagedFile('/src/cache.ts', false)
+    file.pathSegments = ['src', 'cache.ts']
+
+    const tracks = new Map<string, ContextTrack>()
+    tracks.set('t1', { id: 't1', name: 'T1', files: [file] })
+
+    const result = StateMapper.toSerialized(tracks, 't1', ['t1'])
+    const item = result.tracks['t1'].items[0] as any
+
+    assert.strictEqual(item.pathSegments, undefined, 'Runtime cache properties should not be serialized')
+  })
+
   test('Should handle empty track maps', () => {
     const tracks = new Map<string, ContextTrack>()
 

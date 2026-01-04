@@ -31,6 +31,7 @@ suite('StatsProcessor Performance & Logic Tests', () => {
     clock = sandbox.useFakeTimers({
       shouldAdvanceTime: true,
       shouldClearNativeTimers: true,
+      toFake: ['setTimeout', 'clearTimeout', 'setImmediate', 'clearImmediate', 'setInterval', 'clearInterval', 'Date'],
     })
 
     processor = new StatsProcessor()
@@ -84,20 +85,28 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     const executionLog: string[] = []
 
-    const processingPromise = processor.enrichFileStats(files).then(() => {
-      executionLog.push('Processing Complete')
+    setImmediate(() => {
+      executionLog.push('UI Render Event')
     })
 
-    await clock.tickAsync(2600)
-
-    setTimeout(() => {
-      executionLog.push('UI Render Event')
-    }, 0)
+    const processingPromise = processor.enrichFileStats(files).then(() => {
+      return new Promise<void>((resolve) => {
+        setImmediate(() => {
+          executionLog.push('Processing Complete')
+          resolve()
+        })
+      })
+    })
 
     await clock.runAllAsync()
     await processingPromise
 
-    assert.ok(executionLog.includes('UI Render Event'), 'UI Event should have executed during processing window')
+    assert.ok(executionLog.includes('UI Render Event'), 'UI Event should have executed during processing')
+
+    const uiIndex = executionLog.indexOf('UI Render Event')
+    const completionIndex = executionLog.indexOf('Processing Complete')
+
+    assert.ok(uiIndex < completionIndex, `UI (idx: ${uiIndex}) should be before Complete (idx: ${completionIndex})`)
   })
 
   test('Should process files in chunks', async () => {
@@ -108,7 +117,6 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     const promise = processor.enrichFileStats(files)
 
-    await clock.tickAsync(3000)
     await clock.runAllAsync()
     await promise
 
@@ -130,7 +138,6 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     const promise = processor.enrichFileStats([bigFile, smallFile])
 
-    await clock.tickAsync(2600)
     await clock.runAllAsync()
     await promise
 
@@ -153,7 +160,6 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     const promise = processor.enrichFileStats([binaryFile])
 
-    await clock.tickAsync(2600)
     await clock.runAllAsync()
     await promise
 
@@ -173,7 +179,6 @@ suite('StatsProcessor Performance & Logic Tests', () => {
 
     const promise = processor.enrichFileStats([badFile, goodFile])
 
-    await clock.tickAsync(2600)
     await clock.runAllAsync()
     await promise
 
