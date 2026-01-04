@@ -64,7 +64,7 @@ export class HydrationService {
     if (data.items && Array.isArray(data.items)) {
       for (const item of data.items) {
         try {
-          const uri = vscode.Uri.parse(item.uri)
+          const uri = this.expandUri(item.uri)
           files.push({
             type: 'file',
             uri,
@@ -82,6 +82,17 @@ export class HydrationService {
       name: data.name,
       files,
     }
+  }
+
+  private expandUri(pathOrUri: string): vscode.Uri {
+    if (pathOrUri.includes('://') || pathOrUri.startsWith('/')) {
+      return vscode.Uri.parse(pathOrUri)
+    }
+    const root = vscode.workspace.workspaceFolders?.[0]
+    if (root) {
+      return vscode.Uri.joinPath(root.uri, pathOrUri)
+    }
+    return vscode.Uri.file(pathOrUri)
   }
 
   private extractLabel(uri: vscode.Uri): string {

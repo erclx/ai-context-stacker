@@ -19,7 +19,7 @@ export class StateMapper {
         id: t.id,
         name: t.name,
         items: t.files.map((f) => ({
-          uri: f.uri.toString(),
+          uri: this.compressUri(f.uri),
           isPinned: !!f.isPinned,
         })),
       }
@@ -63,7 +63,7 @@ export class StateMapper {
     }
 
     return trackData.items.map((item) => {
-      const uri = vscode.Uri.parse(item.uri)
+      const uri = this.expandUri(item.uri)
       return {
         type: 'file',
         uri,
@@ -76,5 +76,26 @@ export class StateMapper {
   private static extractLabel(uri: vscode.Uri): string {
     const pathParts = uri.path.split('/')
     return pathParts[pathParts.length - 1] || 'unknown'
+  }
+
+  private static compressUri(uri: vscode.Uri): string {
+    const relative = vscode.workspace.asRelativePath(uri, false)
+    if (relative === uri.fsPath || relative === uri.path) {
+      return uri.toString()
+    }
+    return relative
+  }
+
+  private static expandUri(pathOrUri: string): vscode.Uri {
+    if (pathOrUri.includes('://') || pathOrUri.startsWith('/')) {
+      return vscode.Uri.parse(pathOrUri)
+    }
+
+    const root = vscode.workspace.workspaceFolders?.[0]
+    if (root) {
+      return vscode.Uri.joinPath(root.uri, pathOrUri)
+    }
+
+    return vscode.Uri.file(pathOrUri)
   }
 }
