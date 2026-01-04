@@ -5,6 +5,7 @@ export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
 export class Logger {
   private static _outputChannel: vscode.OutputChannel | undefined
   private static _logLevel: LogLevel = 'INFO'
+  private static _throttleMap = new Map<string, number>()
 
   public static configure(name: string, level: LogLevel = 'INFO'): void {
     this._outputChannel?.dispose()
@@ -19,6 +20,18 @@ export class Logger {
   public static debug(message: string): void {
     if (this.shouldLog('DEBUG')) {
       this.log('DEBUG', message)
+    }
+  }
+
+  public static debugThrottled(key: string, message: string, limitMs: number = 1000): void {
+    if (!this.shouldLog('DEBUG')) return
+
+    const now = Date.now()
+    const last = this._throttleMap.get(key) || 0
+
+    if (now - last > limitMs) {
+      this._throttleMap.set(key, now)
+      this.log('DEBUG', `[Throttled] ${message}`)
     }
   }
 
@@ -54,6 +67,7 @@ export class Logger {
 
   public static dispose(): void {
     this._outputChannel?.dispose()
+    this._throttleMap.clear()
   }
 
   private static shouldLog(level: LogLevel): boolean {
