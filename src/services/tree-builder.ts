@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { isStagedFolder, StackTreeItem, StagedFile, StagedFolder } from '../models'
+import { ContentStats, isStagedFolder, StackTreeItem, StagedFile, StagedFolder } from '../models'
 
 export function getDescendantFiles(item: StackTreeItem): StagedFile[] {
   if (isStagedFolder(item)) {
@@ -13,225 +13,263 @@ export class TreeBuilder {
   private folderMap = new Map<string, StagedFolder>()
   private rootItems: StackTreeItem[] = []
   private workspaceRoots: vscode.WorkspaceFolder[] = []
-  private readonly YIELD_THRESHOLD = 250
+  private readonly collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+  private readonly CHUNK_SIZE = 500
 
-  public async buildAsync(files: StagedFile[]): Promise<StackTreeItem[]> {
-    this.resetState()
-
-    let opCount = 0
-    for (const file of files) {
-      await this.processFile(file)
-      opCount++
-      if (opCount >= this.YIELD_THRESHOLD) {
-        opCount = 0
-        await new Promise((resolve) => setImmediate(resolve))
-      }
-    }
-
-    return this.finalizeTree()
-  }
-
-  public async patch(
-    currentTree: StackTreeItem[],
-    addedFiles: StagedFile[],
-    removedUriStrings: string[],
-  ): Promise<StackTreeItem[]> {
-    let tree = currentTree
-    if (removedUriStrings.length > 0) {
-      const removedSet = new Set(removedUriStrings)
-      tree = this.pruneTree(tree, removedSet)
-    }
-
-    if (addedFiles.length > 0) {
-      this.refreshWorkspaceRoots()
-      for (const file of addedFiles) {
-        if (!file.pathSegments) {
-          file.pathSegments = this.computeSegments(file)
-        }
-        this.insertIntoTree(tree, file, file.pathSegments)
-      }
-    }
-
-    await this.sortIterative(tree)
-    this.calculateFolderStats(tree)
-
-    return tree
-  }
-
-  public calculateFolderStats(items: StackTreeItem[]): number {
-    let total = 0
-
-    for (const item of items) {
-      if (isStagedFolder(item)) {
-        const folderTotal = this.calculateFolderStats(item.children)
-        item.tokenCount = folderTotal
-        total += folderTotal
-      } else {
-        total += item.stats?.tokenCount ?? 0
-      }
-    }
-
-    return total
-  }
-
-  public computeSegments(file: StagedFile): string[] {
-    if (this.workspaceRoots.length === 0) {
-      this.refreshWorkspaceRoots()
-    }
-    const isMultiRoot = this.workspaceRoots.length > 1
-    return vscode.workspace.asRelativePath(file.uri, isMultiRoot).split('/')
-  }
-
-  private resetState(): void {
+  public reset(): void {
     this.folderMap.clear()
     this.rootItems = []
     this.refreshWorkspaceRoots()
   }
 
-  private refreshWorkspaceRoots(): void {
-    this.workspaceRoots = vscode.workspace.workspaceFolders ? [...vscode.workspace.workspaceFolders] : []
+  public async buildAsync(files: StagedFile[]): Promise<StackTreeItem[]> {
+    this.reset()
+    await this.processFileBatch(files)
+    this.recalculateAllStats()
+    this.sortRecursive(this.rootItems)
+    return this.rootItems
   }
 
-  private async processFile(file: StagedFile): Promise<void> {
+  public async patch(added: StagedFile[], removed: StagedFile[]): Promise<StackTreeItem[]> {
+    this.ensureWorkspaceRoots()
+    this.processRemovals(removed)
+    this.processAdditions(added)
+    this.sortRecursive(this.rootItems)
+    return this.rootItems
+  }
+
+  public updateFileStats(
+    file: StagedFile,
+    oldStats: ContentStats | undefined,
+    newStats: ContentStats | undefined,
+  ): void {
+    const delta = (newStats?.tokenCount ?? 0) - (oldStats?.tokenCount ?? 0)
+    if (delta === 0) return
+
+    const segments = this.getOptimizedSegments(file)
+    this.propagateStatChange(segments, delta)
+  }
+
+  public recalculateAllStats(): void {
+    this.calculateNodeStats(this.rootItems)
+  }
+
+  private async processFileBatch(files: StagedFile[]): Promise<void> {
+    for (let i = 0; i < files.length; i += this.CHUNK_SIZE) {
+      const chunk = files.slice(i, i + this.CHUNK_SIZE)
+      chunk.forEach((file) => this.insertFile(file))
+      if (files.length > this.CHUNK_SIZE) {
+        await this.yieldToEventLoop()
+      }
+    }
+  }
+
+  private async yieldToEventLoop(): Promise<void> {
+    await new Promise((resolve) => setImmediate(resolve))
+  }
+
+  private processRemovals(removed: StagedFile[]): void {
+    removed.forEach((file) => this.removeFile(file))
+  }
+
+  private processAdditions(added: StagedFile[]): void {
+    added.forEach((file) => this.insertFile(file))
+  }
+
+  private ensureWorkspaceRoots(): void {
+    if (this.workspaceRoots.length === 0) {
+      this.refreshWorkspaceRoots()
+    }
+  }
+
+  private calculateNodeStats(nodes: StackTreeItem[]): number {
+    let total = 0
+    for (const node of nodes) {
+      if (isStagedFolder(node)) {
+        node.tokenCount = this.calculateNodeStats(node.children)
+        total += node.tokenCount
+      } else {
+        total += node.stats?.tokenCount ?? 0
+      }
+    }
+    return total
+  }
+
+  private propagateStatChange(segments: string[], delta: number): void {
+    let currentPath = ''
+    for (let i = 0; i < segments.length - 1; i++) {
+      const segment = segments[i]
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment
+      const folder = this.folderMap.get(`folder:${currentPath}`)
+      if (folder) {
+        folder.tokenCount = (folder.tokenCount ?? 0) + delta
+      }
+    }
+  }
+
+  private insertFile(file: StagedFile): void {
     const segments = this.getOptimizedSegments(file)
     if (segments.length === 1) {
       this.rootItems.push(file)
+      this.applyInitialStats(file)
       return
     }
-    this.mapPathToTree(file, segments)
+    this.insertNestedFile(file, segments)
   }
 
-  private mapPathToTree(file: StagedFile, segments: string[]): void {
+  private insertNestedFile(file: StagedFile, segments: string[]): void {
+    let currentPath = ''
     let parentChildren = this.rootItems
-    let currentPath = ''
 
     for (let i = 0; i < segments.length - 1; i++) {
       const segment = segments[i]
       currentPath = currentPath ? `${currentPath}/${segment}` : segment
-      const folder = this.resolveFolder(segment, currentPath, file.uri, parentChildren)
 
+      const folder = this.resolveOrCreateFolder(segment, currentPath, file.uri, parentChildren)
       parentChildren = folder.children
-      if (i === segments.length - 2) folder.containedFiles.push(file)
+
+      this.trackContainedFile(folder, file, i, segments.length)
     }
+
     parentChildren.push(file)
+    this.applyInitialStats(file)
   }
 
-  private resolveFolder(name: string, id: string, refUri: vscode.Uri, list: StackTreeItem[]): StagedFolder {
-    const existing = this.folderMap.get(id)
-    if (existing) return existing
+  private resolveOrCreateFolder(
+    segment: string,
+    currentPath: string,
+    refUri: vscode.Uri,
+    parentList: StackTreeItem[],
+  ): StagedFolder {
+    const folderId = `folder:${currentPath}`
+    let folder = this.folderMap.get(folderId)
 
-    const newFolder = this.createFolderNode(name, id, refUri)
-    this.folderMap.set(id, newFolder)
-    list.push(newFolder)
-    return newFolder
+    if (!folder) {
+      folder = this.createFolderNode(segment, currentPath, refUri)
+      this.folderMap.set(folderId, folder)
+      parentList.push(folder)
+    }
+    return folder
   }
 
-  private insertIntoTree(nodes: StackTreeItem[], file: StagedFile, segments: string[]): void {
+  private trackContainedFile(folder: StagedFolder, file: StagedFile, index: number, totalSegments: number): void {
+    if (index === totalSegments - 2) {
+      if (!folder.containedFiles.includes(file)) {
+        folder.containedFiles.push(file)
+      }
+    }
+  }
+
+  private applyInitialStats(file: StagedFile): void {
+    if (file.stats?.tokenCount) {
+      this.updateFileStats(file, undefined, file.stats)
+    }
+  }
+
+  private removeFile(file: StagedFile): void {
+    if (file.stats?.tokenCount) {
+      this.updateFileStats(file, file.stats, undefined)
+    }
+
+    const segments = this.getOptimizedSegments(file)
     if (segments.length === 1) {
-      nodes.push(file)
+      this.rootItems = this.rootItems.filter((i) => i !== file)
       return
     }
 
-    let currentNodes = nodes
+    this.removeNestedFile(file, segments)
+  }
+
+  private removeNestedFile(file: StagedFile, segments: string[]): void {
+    const parents = this.resolveParentHierarchy(segments)
+    if (parents.length === 0) return
+
+    const directParent = parents[parents.length - 1]
+    this.detachFileFromParent(directParent, file)
+    this.pruneEmptyFolders(parents)
+  }
+
+  private resolveParentHierarchy(segments: string[]): StagedFolder[] {
     let currentPath = ''
+    const parents: StagedFolder[] = []
 
     for (let i = 0; i < segments.length - 1; i++) {
       const segment = segments[i]
       currentPath = currentPath ? `${currentPath}/${segment}` : segment
-      const folderId = `folder:${currentPath}`
-
-      let folder = currentNodes.find(
-        (n): n is StagedFolder => isStagedFolder(n) && (n.id === folderId || n.label === segment),
-      )
-
-      if (!folder) {
-        folder = this.createFolderNode(segment, currentPath, file.uri)
-        currentNodes.push(folder)
-      }
-
-      currentNodes = folder.children
-      if (i === segments.length - 2) folder.containedFiles.push(file)
+      const folder = this.folderMap.get(`folder:${currentPath}`)
+      if (!folder) return []
+      parents.push(folder)
     }
-
-    currentNodes.push(file)
+    return parents
   }
 
-  private pruneTree(nodes: StackTreeItem[], removedSet: Set<string>): StackTreeItem[] {
-    const kept: StackTreeItem[] = []
-
-    for (const node of nodes) {
-      if (isStagedFolder(node)) {
-        node.children = this.pruneTree(node.children, removedSet)
-        node.containedFiles = node.containedFiles.filter((f) => !removedSet.has(f.uri.toString()))
-
-        if (node.children.length > 0) {
-          kept.push(node)
-        }
-      } else {
-        if (!removedSet.has(node.uri.toString())) {
-          kept.push(node)
-        }
-      }
-    }
-    return kept
+  private detachFileFromParent(parent: StagedFolder, file: StagedFile): void {
+    parent.children = parent.children.filter((c) => c !== file)
+    parent.containedFiles = parent.containedFiles.filter((f) => f !== file)
   }
 
-  private createFolderNode(name: string, id: string, refUri: vscode.Uri): StagedFolder {
+  private pruneEmptyFolders(parents: StagedFolder[]): void {
+    for (let i = parents.length - 1; i >= 0; i--) {
+      const folder = parents[i]
+      if (folder.children.length > 0) break
+
+      this.folderMap.delete(folder.id)
+      this.detachFolder(folder, i, parents)
+    }
+  }
+
+  private detachFolder(folder: StagedFolder, index: number, parents: StagedFolder[]): void {
+    if (index === 0) {
+      this.rootItems = this.rootItems.filter((item) => item !== folder)
+    } else {
+      const parent = parents[index - 1]
+      parent.children = parent.children.filter((c) => c !== folder)
+    }
+  }
+
+  private getOptimizedSegments(file: StagedFile): string[] {
+    if (!file.pathSegments) {
+      const isMultiRoot = this.workspaceRoots.length > 1
+      file.pathSegments = vscode.workspace.asRelativePath(file.uri, isMultiRoot).split('/')
+    }
+    return file.pathSegments
+  }
+
+  private createFolderNode(name: string, relativePath: string, refUri: vscode.Uri): StagedFolder {
     const root = vscode.workspace.getWorkspaceFolder(refUri)
-    const finalId = id.startsWith('folder:') ? id : `folder:${id}`
+    const resourceUri = root ? vscode.Uri.joinPath(root.uri, relativePath) : refUri
+
     return {
       type: 'folder',
-      id: finalId,
+      id: `folder:${relativePath}`,
       label: name,
-      resourceUri: root ? vscode.Uri.joinPath(root.uri, id) : refUri,
+      resourceUri,
       children: [],
       containedFiles: [],
       tokenCount: 0,
     }
   }
 
-  private getOptimizedSegments(file: StagedFile): string[] {
-    if (file.pathSegments) return file.pathSegments
-    file.pathSegments = this.computeSegments(file)
-    return file.pathSegments
+  private refreshWorkspaceRoots(): void {
+    this.workspaceRoots = vscode.workspace.workspaceFolders ? [...vscode.workspace.workspaceFolders] : []
   }
 
-  private async finalizeTree(): Promise<StackTreeItem[]> {
-    await this.sortIterative(this.rootItems)
-    return this.rootItems
-  }
+  private sortRecursive(nodes: StackTreeItem[]): void {
+    if (nodes.length === 0) return
 
-  private async sortIterative(rootItems: StackTreeItem[]): Promise<void> {
-    if (rootItems.length === 0) return
+    nodes.sort((a, b) => this.compareNodes(a, b))
 
-    rootItems.sort(this.sortComparator)
-
-    const stack = [...rootItems]
-    let opCount = 0
-
-    while (stack.length > 0) {
-      const item = stack.pop()
-
-      opCount++
-      if (opCount >= this.YIELD_THRESHOLD) {
-        opCount = 0
-        await new Promise((resolve) => setImmediate(resolve))
-      }
-
-      if (item && isStagedFolder(item) && item.children.length > 0) {
-        item.children.sort(this.sortComparator)
-        for (let i = item.children.length - 1; i >= 0; i--) {
-          stack.push(item.children[i])
-        }
+    for (const node of nodes) {
+      if (isStagedFolder(node)) {
+        this.sortRecursive(node.children)
       }
     }
   }
 
-  private sortComparator(a: StackTreeItem, b: StackTreeItem): number {
+  private compareNodes(a: StackTreeItem, b: StackTreeItem): number {
     const aIsFolder = isStagedFolder(a)
     const bIsFolder = isStagedFolder(b)
-
     if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1
-    return a.label.localeCompare(b.label)
+    return this.collator.compare(a.label, b.label)
   }
 }
