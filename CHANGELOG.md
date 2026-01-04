@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Hierarchical Pin Bubbling**: Folders inherit pinned status when they contain pinned children.
+- **Pinned Item Priority**: Pinned items sort to the top at every tree level.
+- **Reactive Tree Re-sorting**: Pin toggles re-order the UI instantly without full tree rebuilds.
 - **Incremental Tree Patching**: Tree view updates specific branches instead of full rebuilds.
 - **URI Compression**: Paths stored in compact format to reduce storage footprint.
 - **State Fingerprinting**: Smart dirty-checking skips redundant save operations.
@@ -18,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Weighted Sort Heuristic**: Tree sorting now follows pinned status, then item type, then alphabetical order.
 - **Centralized Lifecycle**: Unified rename and delete logic to prevent de-sync.
 - **Reactive UI**: Tree providers observe core state changes passively.
 - **Service Disposal**: Reverse-order cleanup ensures proper resource teardown.
@@ -25,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Pinned Folder Visibility**: Pinned folders now stay at the top instead of being buried alphabetically.
 - **Extension Host Starvation**: Resolved race conditions in background loops.
 - **Memory Leaks**: Improved service disposal to prevent ghost listeners.
 - **Test Stability**: Fixed async timing issues and race conditions.

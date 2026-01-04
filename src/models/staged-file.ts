@@ -35,3 +35,14 @@ export function isStagedFolder(item: StackTreeItem): item is StagedFolder {
 export function isStagedFile(item: StackTreeItem): item is StagedFile {
   return item.type === 'file'
 }
+
+export function getSortWeight(item: StackTreeItem): number {
+  let weight = 0
+  if (item.isPinned) {
+    weight += 2
+  }
+  if (isStagedFolder(item)) {
+    weight += 1
+  }
+  return weight
+}

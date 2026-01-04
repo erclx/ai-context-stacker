@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import * as sinon from 'sinon'
 import * as vscode from 'vscode'
 
-import { ContentStats, isStagedFolder, StagedFile, StagedFolder } from '../../models'
+import { isStagedFolder, StagedFile, StagedFolder } from '../../models'
 import { TreeBuilder } from '../../services/tree-builder'
 
 suite('TreeBuilder Suite', () => {
@@ -90,6 +90,54 @@ suite('TreeBuilder Suite', () => {
     const srcFolder = result[0] as StagedFolder
 
     assert.strictEqual(srcFolder.tokenCount, 100)
+  })
+
+  suite('Pin Propagation & Sorting', () => {
+    test('Should propagate pin state from children to parents', async () => {
+      const pinnedFile = createFile('src/pinned.ts')
+      pinnedFile.isPinned = true
+      const unpinnedFile = createFile('src/normal.ts')
+
+      mockPaths([pinnedFile, unpinnedFile], ['src/pinned.ts', 'src/normal.ts'])
+
+      const result = await builder.buildAsync([pinnedFile, unpinnedFile])
+      const srcFolder = result[0] as StagedFolder
+
+      assert.strictEqual(srcFolder.isPinned, true, 'Folder containing pinned file should be marked pinned')
+    })
+
+    test('Should sort pinned folders above unpinned folders (Pin Priority)', async () => {
+      const pinnedFile = createFile('utils/important.ts')
+      pinnedFile.isPinned = true
+
+      const normalFile = createFile('api/endpoint.ts')
+
+      mockPaths([pinnedFile, normalFile], ['utils/important.ts', 'api/endpoint.ts'])
+
+      const result = await builder.buildAsync([pinnedFile, normalFile])
+
+      assert.strictEqual(result.length, 2)
+
+      assertFolder(result[0], 'utils')
+      assert.strictEqual((result[0] as StagedFolder).isPinned, true)
+
+      assertFolder(result[1], 'api')
+    })
+
+    test('Should resort correctly when mixed pinned and unpinned siblings exist', async () => {
+      const fileA = createFile('a.ts')
+      const fileB = createFile('b.ts')
+      fileB.isPinned = true
+      const fileC = createFile('c.ts')
+
+      mockPaths([fileA, fileB, fileC], ['a.ts', 'b.ts', 'c.ts'])
+
+      const result = await builder.buildAsync([fileA, fileB, fileC])
+
+      assert.strictEqual(result[0].label, 'b.ts', 'Pinned file should be first')
+      assert.strictEqual(result[1].label, 'a.ts', 'Unpinned files should follow alphabetical order')
+      assert.strictEqual(result[2].label, 'c.ts')
+    })
   })
 
   suite('Patch Logic', () => {

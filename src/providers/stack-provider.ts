@@ -52,6 +52,19 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     return this._showPinnedOnly
   }
 
+  public resort(): void {
+    if (this.hasActiveFilters) {
+      this._treeDirty = true
+      this.triggerRefresh()
+      return
+    }
+
+    if (this._cachedTree) {
+      this.treeBuilder.resort()
+      this._onDidChangeTreeData.fire()
+    }
+  }
+
   public getFiles(): StagedFile[] {
     const raw = this.trackManager.getActiveTrack().files
     return this._showPinnedOnly ? raw.filter((f) => f.isPinned) : raw

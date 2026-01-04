@@ -22,6 +22,8 @@ export function getTogglePinCommands(deps: CommandDependencies): Command[] {
 
         const filesToToggle = resolveFilesToToggle(targets)
         deps.services.trackManager.toggleFilesPin(filesToToggle)
+
+        deps.services.stackProvider.resort()
       },
     },
   ]
