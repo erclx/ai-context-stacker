@@ -72,6 +72,8 @@ Refactor with confidence. AI Context Stacker uses native VS Code events to track
 
 - **Renames**: Renaming a staged file in the Explorer automatically updates its path in the stack
 - **Deletes**: Deleting a file removes it from the stack to keep your context clean
+- **Incremental Patching**: The UI uses intelligent tree patching that updates only the specific branches that changed. This maintains sub-millisecond responsiveness even when managing hundreds of files.
+- **Unified Lifecycle**: Centralized rename and delete handling prevents synchronization issues and ensures the tree view stays accurate.
 
 The extension adapts to your workflow so you can reorganize your project without breaking your prepared context.
 
@@ -134,6 +136,8 @@ The extension writes diagnostic information to the Output Channel (`AI Context S
 The extension handles large stacks without blocking VS Code. The sidebar renders immediately on startup while token counting happens in the background.
 
 Token counts are cached locally. When you restart VS Code, the extension instantly restores your previous analysis, only re-scanning files that have changed on disk. For large track collections, restoration happens in batches to keep the UI responsive.
+
+**Efficient State Management**: The extension uses intelligent dirty-checking to skip redundant save operations. Paths are stored in compressed format to minimize storage footprint. Background operations yield control to the event loop to maintain UI responsiveness during intensive tasks.
 
 File system tracking uses native VS Code events instead of low-level watchers to reduce resource usage in remote environments like WSL, SSH, and Dev Containers. Background processes are cleaned up automatically on window reload to prevent lingering tasks. Folder trees with hundreds of files build quickly, and long operations show progress using VS Code's native progress bar.
 
