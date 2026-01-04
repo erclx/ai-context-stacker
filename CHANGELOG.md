@@ -9,21 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Incremental Tree Patching**: Updates specific tree branches instead of full structural rebuilds.
-- **URI Compression**: Persists relative paths instead of full URIs to minimize storage footprint.
-- **State Fingerprinting**: Intelligent dirty-checking to skip redundant background save operations.
-- **Macro-task Yielding**: Improved event loop yielding during analysis to protect UI responsiveness.
+- **Incremental Tree Patching**: Tree view updates specific branches instead of full rebuilds.
+- **URI Compression**: Paths stored in compact format to reduce storage footprint.
+- **State Fingerprinting**: Smart dirty-checking skips redundant save operations.
+- **Macro-task Yielding**: Background analysis yields to keep UI responsive.
+- **Multi-Root Resolution**: Parallel path probing across multiple workspace folders.
+- **Throttled Debugging**: Log sampling prevents output channel flooding.
 
 ### Changed
 
-- **Centralized Lifecycle**: Unified file rename and delete logic within the Track Manager to prevent de-sync.
-- **Reactive UI**: Tree providers now passively observe core state changes.
+- **Centralized Lifecycle**: Unified rename and delete logic to prevent de-sync.
+- **Reactive UI**: Tree providers observe core state changes passively.
+- **Service Disposal**: Reverse-order cleanup ensures proper resource teardown.
+- **State Hashing**: Hash-based dirty checking replaces simple length comparison.
 
 ### Fixed
 
-- **Extension Host Starvation**: Resolved race conditions in high-frequency background loops.
-- **Memory Leaks**: Hardened service disposal logic to prevent ghost listeners.
-- **Test Stability**: Fixed asynchronous timing issues and race conditions in the test suite.
+- **Extension Host Starvation**: Resolved race conditions in background loops.
+- **Memory Leaks**: Improved service disposal to prevent ghost listeners.
+- **Test Stability**: Fixed async timing issues and race conditions.
+- **Teardown Race Conditions**: Added filesystem settle-period in tests.
+- **Multi-Root Ambiguity**: Absolute URIs stored in multi-root workspaces.
 
 ## [0.0.8] - 2025-12-30
 
