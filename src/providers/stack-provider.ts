@@ -18,7 +18,6 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   private _showPinnedOnly = false
   private _largeFileThreshold = 5000
 
-  private treeBuilder = new TreeBuilder()
   private renderer = new StackItemRenderer()
   private enrichmentCTS: vscode.CancellationTokenSource | undefined
   private refreshTimer: NodeJS.Timeout | undefined
@@ -27,6 +26,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     private context: vscode.ExtensionContext,
     private ignoreManager: IgnoreManager,
     private trackManager: TrackManager,
+    private treeBuilder: TreeBuilder,
     public readonly analysisEngine: AnalysisEngine,
     private tokenAggregator: TokenAggregatorService,
     private contextKeyService: ContextKeyService,
@@ -106,15 +106,41 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   public async addFiles(uris: vscode.Uri[]): Promise<boolean> {
     const newFiles = this.trackManager.addFilesToActive(uris)
-    return newFiles.length > 0
+
+    if (newFiles.length === 0) return false
+
+    if (this.canPerformOptimisticPatch()) {
+      this._cachedTree = await this.treeBuilder.patch(newFiles, [])
+      this.postBuildUpdates(this._cachedTree)
+      this._onDidChangeTreeData.fire()
+    } else {
+      this._treeDirty = true
+      this.triggerRefresh()
+    }
+
+    this.triggerEnrichment()
+    return true
   }
 
-  public removeFiles(files: StagedFile[]): void {
+  public async removeFiles(files: StagedFile[]): Promise<void> {
     this.trackManager.removeFilesFromActive(files)
+
+    if (this.canPerformOptimisticPatch()) {
+      this._cachedTree = await this.treeBuilder.patch([], files)
+      this.handlePostPatchUpdate()
+    } else {
+      this._treeDirty = true
+      this.triggerRefresh()
+    }
+
+    this.triggerEnrichment()
   }
 
   public clear(): void {
     this.trackManager.clearActive()
+    this.treeBuilder.reset()
+    this._treeDirty = true
+    this.triggerRefresh()
   }
 
   public async forceRefresh(): Promise<void> {
@@ -221,13 +247,13 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   private async executeTreeBuild(files: StagedFile[]): Promise<StackTreeItem[]> {
     const tree = await this.treeBuilder.buildAsync(files)
-    this.treeBuilder.calculateFolderStats(tree)
     this.postBuildUpdates(tree)
     return tree
   }
 
   private handleEmptyTree(): StackTreeItem[] {
     this.contextKeyService.updateFolderState(false)
+    this.treeBuilder.reset()
 
     this._cachedTree = this.generateEmptyState()
     this._treeDirty = false
@@ -255,24 +281,23 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   private registerListeners(): void {
     this.trackManager.onDidChangeTrack(() => {
       this._treeDirty = true
+      this.treeBuilder.reset()
       this.triggerRefresh()
       this.triggerEnrichment()
     })
 
     this.tokenAggregator.onDidChange(() => {
-      if (this._cachedTree) {
-        this.treeBuilder.calculateFolderStats(this._cachedTree)
-      }
+      this.treeBuilder.recalculateAllStats()
       this._onDidChangeTreeData.fire()
     })
 
     this.analysisEngine.onDidUpdateStats(() => {
+      this.treeBuilder.recalculateAllStats()
       this._onDidChangeTreeData.fire()
     })
 
     this.disposables.push(vscode.workspace.onDidChangeConfiguration((e) => this.handleConfigChange(e)))
     this.disposables.push(vscode.window.onDidChangeActiveTextEditor(() => this.refreshSmartVisibility()))
-
     this.disposables.push(vscode.window.tabGroups.onDidChangeTabs(() => this.checkUnstagedOpenFiles()))
   }
 
@@ -335,5 +360,20 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     }
 
     this.contextKeyService.updateUnstagedFilesState(hasUnstaged)
+  }
+
+  private canPerformOptimisticPatch(): boolean {
+    return !!(this._cachedTree && !this._treeDirty && !this.hasActiveFilters)
+  }
+
+  private handlePostPatchUpdate(): void {
+    if (this._cachedTree && this._cachedTree.length === 0) {
+      this._cachedTree = undefined
+      this._treeDirty = true
+      this.triggerRefresh()
+    } else if (this._cachedTree) {
+      this.postBuildUpdates(this._cachedTree)
+      this._onDidChangeTreeData.fire()
+    }
   }
 }
