@@ -10,6 +10,7 @@ export function getUnpinAllCommands(deps: CommandDependencies): Command[] {
       execute: async () => {
         try {
           deps.services.trackManager.unpinAllInActive()
+          deps.services.stackProvider.resort()
           vscode.window.setStatusBarMessage('$(pinned) Unpinned all files', 2000)
         } catch (error) {
           Logger.error('Failed to unpin all files', error)

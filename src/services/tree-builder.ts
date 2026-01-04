@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { ContentStats, isStagedFolder, StackTreeItem, StagedFile, StagedFolder } from '../models'
+import { ContentStats, getSortWeight, isStagedFolder, StackTreeItem, StagedFile, StagedFolder } from '../models'
 
 export function getDescendantFiles(item: StackTreeItem): StagedFile[] {
   if (isStagedFolder(item)) {
@@ -26,6 +26,7 @@ export class TreeBuilder {
     this.reset()
     await this.processFileBatch(files)
     this.recalculateAllStats()
+    this.propagatePinState(this.rootItems)
     this.sortRecursive(this.rootItems)
     return this.rootItems
   }
@@ -34,8 +35,14 @@ export class TreeBuilder {
     this.ensureWorkspaceRoots()
     this.processRemovals(removed)
     this.processAdditions(added)
+    this.propagatePinState(this.rootItems)
     this.sortRecursive(this.rootItems)
     return this.rootItems
+  }
+
+  public resort(): void {
+    this.propagatePinState(this.rootItems)
+    this.sortRecursive(this.rootItems)
   }
 
   public updateFileStats(
@@ -267,9 +274,26 @@ export class TreeBuilder {
   }
 
   private compareNodes(a: StackTreeItem, b: StackTreeItem): number {
-    const aIsFolder = isStagedFolder(a)
-    const bIsFolder = isStagedFolder(b)
-    if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1
+    const weightA = getSortWeight(a)
+    const weightB = getSortWeight(b)
+
+    if (weightA !== weightB) {
+      return weightB - weightA
+    }
     return this.collator.compare(a.label, b.label)
+  }
+
+  private propagatePinState(nodes: StackTreeItem[]): boolean {
+    let hasPinned = false
+    for (const node of nodes) {
+      if (isStagedFolder(node)) {
+        const childrenPinned = this.propagatePinState(node.children)
+        node.isPinned = childrenPinned
+        if (childrenPinned) hasPinned = true
+      } else {
+        if (node.isPinned) hasPinned = true
+      }
+    }
+    return hasPinned
   }
 }
