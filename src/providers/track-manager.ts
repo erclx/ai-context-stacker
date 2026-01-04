@@ -1,3 +1,4 @@
+import * as os from 'os'
 import * as vscode from 'vscode'
 
 import { ContextTrack, StagedFile } from '../models'
@@ -164,15 +165,21 @@ export class TrackManager implements vscode.Disposable {
 
     const deletedSet = new Set(uris.map((u) => u.toString()))
     let changed = false
+    let opCount = 0
+    const YIELD_THRESHOLD = 500
 
     for (const track of this.tracks.values()) {
-      const initialCount = track.files.length
-      if (initialCount === 0) continue
+      if (track.files.length === 0) continue
 
       const toRemove: StagedFile[] = []
       const toKeep: StagedFile[] = []
 
       for (const file of track.files) {
+        // Yield to event loop to prevent freezing on massive deletions
+        if (++opCount % YIELD_THRESHOLD === 0) {
+          await new Promise((resolve) => setImmediate(resolve))
+        }
+
         let shouldRemove = deletedSet.has(file.uri.toString())
 
         if (!shouldRemove) {
@@ -244,7 +251,7 @@ export class TrackManager implements vscode.Disposable {
     if (newFiles.length > 0) {
       track.files.push(...newFiles)
       this.uriIndex.incrementMany(newFiles.map((f) => f.uri))
-      this.requestSave()
+      this.finalizeChange()
     }
     return newFiles
   }
@@ -257,7 +264,7 @@ export class TrackManager implements vscode.Disposable {
     const targets = new Set(files.map((f) => f.uri.toString()))
     track.files = track.files.filter((f) => !targets.has(f.uri.toString()))
 
-    this.requestSave()
+    this.finalizeChange()
   }
 
   public clearActive(): void {
@@ -268,7 +275,7 @@ export class TrackManager implements vscode.Disposable {
     this.uriIndex.decrementMany(removed.map((f) => f.uri))
     track.files = track.files.filter((f) => f.isPinned)
 
-    this.requestSave()
+    this.finalizeChange()
   }
 
   public isNameTaken(name: string): boolean {

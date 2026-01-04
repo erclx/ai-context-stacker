@@ -1,7 +1,6 @@
 export * from './analysis-engine'
 export * from './context-key-service'
 export * from './file-lifecycle-service'
-export * from './file-watcher'
 export * from './hydration-service'
 export * from './ignore-parser'
 export * from './persistence-service'

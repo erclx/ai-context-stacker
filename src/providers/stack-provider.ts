@@ -106,62 +106,15 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   public async addFiles(uris: vscode.Uri[]): Promise<boolean> {
     const newFiles = this.trackManager.addFilesToActive(uris)
-
-    if (newFiles.length === 0) {
-      return false
-    }
-
-    const isPlaceholderVisible =
-      this._cachedTree &&
-      this._cachedTree.length > 0 &&
-      this._cachedTree[0].type === 'file' &&
-      this._cachedTree[0].uri.scheme === 'ai-stack'
-
-    if (this._cachedTree && !this._treeDirty && !this.hasActiveFilters && !isPlaceholderVisible) {
-      this._cachedTree = await this.treeBuilder.patch(this._cachedTree, newFiles, [])
-      this.contextKeyService.updateStackState(this.trackManager.getActiveTrack().files)
-      this.postBuildUpdates(this._cachedTree)
-      this._onDidChangeTreeData.fire()
-    } else {
-      this._treeDirty = true
-      this.triggerRefresh()
-    }
-
-    this.triggerEnrichment()
-
-    return true
+    return newFiles.length > 0
   }
 
   public removeFiles(files: StagedFile[]): void {
     this.trackManager.removeFilesFromActive(files)
-
-    if (this._cachedTree && !this._treeDirty && !this.hasActiveFilters) {
-      const removedUris = files.map((f) => f.uri.toString())
-      void this.treeBuilder.patch(this._cachedTree, [], removedUris).then((newTree) => {
-        this._cachedTree = newTree
-        if (this._cachedTree.length === 0) {
-          this._cachedTree = undefined
-          this._treeDirty = true
-          this.triggerRefresh()
-        } else {
-          this.contextKeyService.updateStackState(this.trackManager.getActiveTrack().files)
-          this.postBuildUpdates(this._cachedTree)
-          this._onDidChangeTreeData.fire()
-        }
-      })
-    } else {
-      this._treeDirty = true
-      this.triggerRefresh()
-    }
-
-    this.triggerEnrichment()
   }
 
   public clear(): void {
     this.trackManager.clearActive()
-    this._treeDirty = true
-    this.triggerRefresh()
-    this.triggerEnrichment()
   }
 
   public async forceRefresh(): Promise<void> {
