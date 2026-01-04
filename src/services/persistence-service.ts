@@ -11,6 +11,7 @@ export class PersistenceService implements vscode.Disposable {
 
   private _saveTimer: NodeJS.Timeout | undefined
   private _pendingSave: (() => Promise<void>) | undefined
+  private _lastFingerprint: string | undefined
 
   constructor(private context: vscode.ExtensionContext) {}
 
@@ -19,6 +20,7 @@ export class PersistenceService implements vscode.Disposable {
     const raw = this.context.workspaceState.get<SerializedState>(PersistenceService.STORAGE_KEY)
     if (raw) {
       Logger.debug(`Storage read in ${Date.now() - start}ms`)
+      this._lastFingerprint = this.generateFingerprintRaw(raw)
     }
     return raw
   }
@@ -55,6 +57,7 @@ export class PersistenceService implements vscode.Disposable {
       clearTimeout(this._saveTimer)
       this._saveTimer = undefined
     }
+    this._lastFingerprint = undefined
     await this.context.workspaceState.update(PersistenceService.STORAGE_KEY, undefined)
   }
 
@@ -68,6 +71,11 @@ export class PersistenceService implements vscode.Disposable {
 
   private async performSave(tracks: Map<string, ContextTrack>, activeId: string, order: string[]): Promise<void> {
     try {
+      const newFingerprint = this.generateFingerprint(tracks, activeId, order)
+      if (newFingerprint === this._lastFingerprint) {
+        return
+      }
+
       const state = StateMapper.toSerialized(tracks, activeId, order)
       const json = JSON.stringify(state)
       const size = json.length
@@ -80,10 +88,30 @@ export class PersistenceService implements vscode.Disposable {
         return
       }
 
+      await new Promise((resolve) => setImmediate(resolve))
+
       await this.context.workspaceState.update(PersistenceService.STORAGE_KEY, state)
-      // Logger.debug(`State saved (${size} bytes)`) // Optional verbose logging
+      this._lastFingerprint = newFingerprint
     } catch (error) {
       Logger.error('Failed to save state', error as Error)
     }
+  }
+
+  private generateFingerprint(tracks: Map<string, ContextTrack>, activeId: string, order: string[]): string {
+    let hash = `${activeId}:${order.join(',')}`
+    for (const track of tracks.values()) {
+      hash += `:${track.id}:${track.files.length}`
+    }
+    return hash
+  }
+
+  private generateFingerprintRaw(state: SerializedState): string {
+    const keys = Object.keys(state.tracks || {}).sort()
+    let hash = `${state.activeTrackId}:${(state.trackOrder || []).join(',')}`
+    for (const key of keys) {
+      const t = state.tracks[key]
+      hash += `:${t.id}:${t.items.length}`
+    }
+    return hash
   }
 }

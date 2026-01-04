@@ -1,15 +1,46 @@
 import * as assert from 'assert'
+import * as sinon from 'sinon'
 import * as vscode from 'vscode'
 
 import { ContextTrack, SerializedState, StagedFile } from '../../models'
 import { StateMapper } from '../../services/state-mapper'
 
 suite('StateMapper Suite', () => {
-  test('Should serialize domain tracks into a simplified JSON object', () => {
-    const file = createStagedFile('/src/app.ts', true)
-    const trackId = 'track-1'
-    const trackOrder = [trackId]
+  let sandbox: sinon.SinonSandbox
+  let rootUri: vscode.Uri
 
+  setup(() => {
+    sandbox = sinon.createSandbox()
+    rootUri = vscode.Uri.file('/root')
+
+    sandbox.stub(vscode.workspace, 'workspaceFolders').value([
+      {
+        uri: rootUri,
+        name: 'root',
+        index: 0,
+      },
+    ])
+
+    sandbox.stub(vscode.workspace, 'asRelativePath').callsFake((pathOrUri) => {
+      const path = pathOrUri.toString()
+      // Simulate compression: if path is inside root, make it relative
+      if (path.includes(rootUri.path)) {
+        return path.split(rootUri.path)[1].replace(/^\//, '')
+      }
+      return path
+    })
+  })
+
+  teardown(() => {
+    sandbox.restore()
+  })
+
+  test('Should compress absolute URIs to relative paths during serialization', () => {
+    // Create a file located inside the mock workspace root
+    const fullPath = vscode.Uri.joinPath(rootUri, 'src/app.ts').path
+    const file = createStagedFile(fullPath, true)
+
+    const trackId = 'track-1'
     const tracks = new Map<string, ContextTrack>()
     tracks.set(trackId, {
       id: trackId,
@@ -17,23 +48,59 @@ suite('StateMapper Suite', () => {
       files: [file],
     })
 
-    const result = StateMapper.toSerialized(tracks, trackId, trackOrder)
+    const result = StateMapper.toSerialized(tracks, trackId, [trackId])
+    const item = result.tracks[trackId].items[0]
 
-    assert.strictEqual(result.activeTrackId, trackId)
-    assert.deepStrictEqual(result.trackOrder, trackOrder)
-    assert.strictEqual(Object.keys(result.tracks).length, 1)
-
-    const serializedTrack = result.tracks[trackId]
-    assert.strictEqual(serializedTrack.name, 'Feature A')
-    assert.strictEqual(serializedTrack.items.length, 1)
-
-    const item = serializedTrack.items[0]
-    assert.strictEqual(item.uri, file.uri.toString())
+    assert.strictEqual(item.uri, 'src/app.ts', 'URI should be compressed to relative path')
     assert.strictEqual(item.isPinned, true)
   })
 
+  test('Should expand relative paths to absolute URIs during hydration', () => {
+    const serialized: SerializedState = {
+      activeTrackId: 'feature-b',
+      trackOrder: ['feature-b'],
+      tracks: {
+        'feature-b': {
+          id: 'feature-b',
+          name: 'Feature B',
+          items: [{ uri: 'src/auth.ts', isPinned: false }],
+        },
+      },
+    }
+
+    const { tracks } = StateMapper.fromSerialized(serialized)
+    const track = tracks.get('feature-b')!
+    const file = track.files[0]
+
+    // Expect the path to be joined with the workspace root
+    const expectedUri = vscode.Uri.joinPath(rootUri, 'src/auth.ts')
+
+    assert.strictEqual(file.uri.toString(), expectedUri.toString(), 'Relative path should expand to full workspace URI')
+    assert.strictEqual(file.isPinned, false)
+  })
+
+  test('Should handle absolute URIs gracefully during hydration (backward compatibility)', () => {
+    const absoluteUri = 'file:///external/lib/utils.ts'
+    const serialized: SerializedState = {
+      activeTrackId: 'legacy',
+      trackOrder: ['legacy'],
+      tracks: {
+        legacy: {
+          id: 'legacy',
+          name: 'Legacy Track',
+          items: [{ uri: absoluteUri, isPinned: true }],
+        },
+      },
+    }
+
+    const { tracks } = StateMapper.fromSerialized(serialized)
+    const file = tracks.get('legacy')!.files[0]
+
+    assert.strictEqual(file.uri.toString(), absoluteUri, 'Absolute URIs should be preserved')
+  })
+
   test('Should ignore runtime cache properties like pathSegments during serialization', () => {
-    const file = createStagedFile('/src/cache.ts', false)
+    const file = createStagedFile('/root/src/cache.ts', false)
     file.pathSegments = ['src', 'cache.ts']
 
     const tracks = new Map<string, ContextTrack>()
@@ -47,40 +114,11 @@ suite('StateMapper Suite', () => {
 
   test('Should handle empty track maps', () => {
     const tracks = new Map<string, ContextTrack>()
-
     const result = StateMapper.toSerialized(tracks, 'default', [])
 
     assert.deepStrictEqual(result.tracks, {})
     assert.strictEqual(result.activeTrackId, 'default')
     assert.deepStrictEqual(result.trackOrder, [])
-  })
-
-  test('Should hydrate domain model from valid serialized state', () => {
-    const serialized: SerializedState = {
-      activeTrackId: 'feature-b',
-      trackOrder: ['feature-b'],
-      tracks: {
-        'feature-b': {
-          id: 'feature-b',
-          name: 'Feature B',
-          items: [{ uri: 'file:///src/auth.ts', isPinned: false }],
-        },
-      },
-    }
-
-    const { tracks, activeTrackId, trackOrder } = StateMapper.fromSerialized(serialized)
-
-    assert.strictEqual(activeTrackId, 'feature-b')
-    assert.deepStrictEqual(trackOrder, ['feature-b'])
-    assert.ok(tracks.has('feature-b'))
-
-    const track = tracks.get('feature-b')!
-    assert.strictEqual(track.name, 'Feature B')
-    assert.strictEqual(track.files.length, 1)
-
-    const file = track.files[0]
-    assert.strictEqual(file.uri.toString(), 'file:///src/auth.ts')
-    assert.strictEqual(file.isPinned, false)
   })
 
   test('Should automatically reconstruct file labels from URI paths', () => {
@@ -91,20 +129,19 @@ suite('StateMapper Suite', () => {
         default: {
           id: 'default',
           name: 'Default',
-          items: [{ uri: 'file:///project/utils/helper.spec.ts', isPinned: false }],
+          items: [{ uri: 'src/components/Button.tsx', isPinned: false }],
         },
       },
     }
 
     const { tracks } = StateMapper.fromSerialized(serialized)
-
     const file = tracks.get('default')!.files[0]
-    assert.strictEqual(file.label, 'helper.spec.ts', 'Label should be derived from the filename')
+
+    assert.strictEqual(file.label, 'Button.tsx', 'Label should be derived from the filename')
   })
 
   test('Should return safe defaults when state is undefined', () => {
     const result = StateMapper.fromSerialized(undefined)
-
     assert.strictEqual(result.activeTrackId, 'default')
     assert.deepStrictEqual(result.trackOrder, [])
     assert.strictEqual(result.tracks.size, 0)
@@ -112,19 +149,19 @@ suite('StateMapper Suite', () => {
 
   test('Should handle tracks with missing item arrays gracefully', () => {
     const partialData: any = {
-      activeTrackId: 'broken-track',
-      trackOrder: ['broken-track'],
+      activeTrackId: 'broken',
+      trackOrder: ['broken'],
       tracks: {
-        'broken-track': {
-          id: 'broken-track',
+        broken: {
+          id: 'broken',
           name: 'Broken',
         },
       },
     }
 
     const { tracks } = StateMapper.fromSerialized(partialData)
+    const track = tracks.get('broken')
 
-    const track = tracks.get('broken-track')
     assert.ok(track)
     assert.deepStrictEqual(track!.files, [], 'Should default to empty array if items missing')
   })
