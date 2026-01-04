@@ -1,3 +1,4 @@
+import * as os from 'os'
 import * as vscode from 'vscode'
 
 import { ContextTrack, SerializedState, StagedFile } from '../models'
@@ -37,43 +38,56 @@ export class HydrationService {
     const tracks = new Map<string, ContextTrack>()
 
     const trackEntries = Object.entries(rawState.tracks || {})
-    const CHUNK_SIZE = 5
+    const CHUNK_SIZE = 3
 
     for (let i = 0; i < trackEntries.length; i += CHUNK_SIZE) {
       await this.yieldToEventLoop()
 
       const chunk = trackEntries.slice(i, i + CHUNK_SIZE)
 
-      for (const [id, serializedTrack] of chunk) {
-        try {
-          const track = this.deserializeTrackOptimized(serializedTrack)
-          tracks.set(id, track)
-        } catch (error) {
-          Logger.error(`Failed to deserialize track ${id}`, error as Error)
-        }
-      }
+      await Promise.all(
+        chunk.map(async ([id, serializedTrack]) => {
+          try {
+            const track = await this.deserializeTrackAsync(serializedTrack)
+            tracks.set(id, track)
+          } catch (error) {
+            Logger.error(`Failed to deserialize track ${id}`, error as Error)
+          }
+        }),
+      )
     }
 
     return { tracks, activeTrackId, trackOrder }
   }
 
-  private deserializeTrackOptimized(trackData: unknown): ContextTrack {
+  private async deserializeTrackAsync(trackData: unknown): Promise<ContextTrack> {
     const files: StagedFile[] = []
     const data = trackData as { id: string; name: string; items?: Array<{ uri: string; isPinned?: boolean }> }
 
     if (data.items && Array.isArray(data.items)) {
-      for (const item of data.items) {
-        try {
-          const uri = this.expandUri(item.uri)
-          files.push({
-            type: 'file',
-            uri,
-            label: this.extractLabel(uri),
-            isPinned: !!item.isPinned,
-          })
-        } catch (error) {
-          Logger.warn(`Skipped invalid URI: ${item.uri}`)
-        }
+      const VALIDATION_CONCURRENCY = Math.max(4, os.cpus().length)
+      const queue = [...data.items]
+
+      while (queue.length > 0) {
+        const batch = queue.splice(0, VALIDATION_CONCURRENCY)
+
+        await Promise.all(
+          batch.map(async (item) => {
+            try {
+              const validatedUri = await this.resolveAndValidateUri(item.uri)
+              if (validatedUri) {
+                files.push({
+                  type: 'file',
+                  uri: validatedUri,
+                  label: this.extractLabel(validatedUri),
+                  isPinned: !!item.isPinned,
+                })
+              }
+            } catch (error) {
+              Logger.warn(`Skipped invalid URI during hydration: ${item.uri}`)
+            }
+          }),
+        )
       }
     }
 
@@ -84,15 +98,36 @@ export class HydrationService {
     }
   }
 
-  private expandUri(pathOrUri: string): vscode.Uri {
-    if (pathOrUri.includes('://') || pathOrUri.startsWith('/')) {
-      return vscode.Uri.parse(pathOrUri)
+  private async resolveAndValidateUri(pathOrUri: string): Promise<vscode.Uri | null> {
+    if (pathOrUri.includes('://') || pathOrUri.startsWith('/') || /^[a-zA-Z]:\\/.test(pathOrUri)) {
+      const uri = vscode.Uri.parse(pathOrUri)
+      return (await this.checkExists(uri)) ? uri : null
     }
-    const root = vscode.workspace.workspaceFolders?.[0]
-    if (root) {
-      return vscode.Uri.joinPath(root.uri, pathOrUri)
+
+    const folders = vscode.workspace.workspaceFolders || []
+
+    if (folders.length === 1) {
+      const uri = vscode.Uri.joinPath(folders[0].uri, pathOrUri)
+      return (await this.checkExists(uri)) ? uri : null
     }
-    return vscode.Uri.file(pathOrUri)
+
+    for (const folder of folders) {
+      const candidate = vscode.Uri.joinPath(folder.uri, pathOrUri)
+      if (await this.checkExists(candidate)) {
+        return candidate
+      }
+    }
+
+    return null
+  }
+
+  private async checkExists(uri: vscode.Uri): Promise<boolean> {
+    try {
+      await vscode.workspace.fs.stat(uri)
+      return true
+    } catch {
+      return false
+    }
   }
 
   private extractLabel(uri: vscode.Uri): string {

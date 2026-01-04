@@ -79,6 +79,11 @@ export class StateMapper {
   }
 
   private static compressUri(uri: vscode.Uri): string {
+    const folders = vscode.workspace.workspaceFolders
+    if (folders && folders.length > 1) {
+      return uri.toString()
+    }
+
     const relative = vscode.workspace.asRelativePath(uri, false)
     if (relative === uri.fsPath || relative === uri.path) {
       return uri.toString()
@@ -87,7 +92,7 @@ export class StateMapper {
   }
 
   private static expandUri(pathOrUri: string): vscode.Uri {
-    if (pathOrUri.includes('://') || pathOrUri.startsWith('/')) {
+    if (pathOrUri.includes('://') || pathOrUri.startsWith('/') || /^[a-zA-Z]:\\/.test(pathOrUri)) {
       return vscode.Uri.parse(pathOrUri)
     }
 

@@ -165,8 +165,9 @@ export class TrackManager implements vscode.Disposable {
 
     const deletedSet = new Set(uris.map((u) => u.toString()))
     let changed = false
-    let opCount = 0
-    const YIELD_THRESHOLD = 500
+
+    let lastYield = Date.now()
+    const YIELD_MS = 16
 
     for (const track of this.tracks.values()) {
       if (track.files.length === 0) continue
@@ -175,9 +176,10 @@ export class TrackManager implements vscode.Disposable {
       const toKeep: StagedFile[] = []
 
       for (const file of track.files) {
-        // Yield to event loop to prevent freezing on massive deletions
-        if (++opCount % YIELD_THRESHOLD === 0) {
+        // Yield check
+        if (Date.now() - lastYield > YIELD_MS) {
           await new Promise((resolve) => setImmediate(resolve))
+          lastYield = Date.now()
         }
 
         let shouldRemove = deletedSet.has(file.uri.toString())

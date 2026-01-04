@@ -11,7 +11,7 @@ export class PersistenceService implements vscode.Disposable {
 
   private _saveTimer: NodeJS.Timeout | undefined
   private _pendingSave: (() => Promise<void>) | undefined
-  private _lastFingerprint: string | undefined
+  private _lastFingerprint: number = 0
 
   constructor(private context: vscode.ExtensionContext) {}
 
@@ -57,7 +57,7 @@ export class PersistenceService implements vscode.Disposable {
       clearTimeout(this._saveTimer)
       this._saveTimer = undefined
     }
-    this._lastFingerprint = undefined
+    this._lastFingerprint = 0
     await this.context.workspaceState.update(PersistenceService.STORAGE_KEY, undefined)
   }
 
@@ -97,20 +97,53 @@ export class PersistenceService implements vscode.Disposable {
     }
   }
 
-  private generateFingerprint(tracks: Map<string, ContextTrack>, activeId: string, order: string[]): string {
-    let hash = `${activeId}:${order.join(',')}`
-    for (const track of tracks.values()) {
-      hash += `:${track.id}:${track.files.length}`
+  private generateFingerprint(tracks: Map<string, ContextTrack>, activeId: string, order: string[]): number {
+    let hash = 5381
+
+    hash = this.updateHash(hash, activeId)
+    for (const id of order) {
+      hash = this.updateHash(hash, id)
     }
-    return hash
+
+    for (const track of tracks.values()) {
+      hash = this.updateHash(hash, track.id)
+      for (const file of track.files) {
+        hash = this.updateHash(hash, file.uri.toString())
+      }
+    }
+
+    return hash >>> 0
   }
 
-  private generateFingerprintRaw(state: SerializedState): string {
-    const keys = Object.keys(state.tracks || {}).sort()
-    let hash = `${state.activeTrackId}:${(state.trackOrder || []).join(',')}`
-    for (const key of keys) {
-      const t = state.tracks[key]
-      hash += `:${t.id}:${t.items.length}`
+  private generateFingerprintRaw(state: SerializedState): number {
+    let hash = 5381
+    const order = state.trackOrder || []
+
+    hash = this.updateHash(hash, state.activeTrackId || 'default')
+    for (const id of order) {
+      hash = this.updateHash(hash, id)
+    }
+
+    const tracks = state.tracks || {}
+    const trackKeys = Object.keys(tracks).sort()
+
+    for (const key of trackKeys) {
+      const t = tracks[key]
+      hash = this.updateHash(hash, t.id)
+      if (t.items && Array.isArray(t.items)) {
+        for (const item of t.items) {
+          hash = this.updateHash(hash, item.uri)
+        }
+      }
+    }
+
+    return hash >>> 0
+  }
+
+  private updateHash(hash: number, str: string): number {
+    let i = str.length
+    while (i) {
+      hash = (hash * 33) ^ str.charCodeAt(--i)
     }
     return hash
   }
