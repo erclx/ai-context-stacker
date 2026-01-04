@@ -66,14 +66,22 @@ export class StatsProcessor implements vscode.Disposable {
       if (entries.length > StatsProcessor.CACHE_LIMIT_ENTRIES) {
         entries.sort((a, b) => b[1].mtime - a[1].mtime)
         this.statsCache = Object.fromEntries(entries.slice(0, StatsProcessor.CACHE_LIMIT_ENTRIES))
-        Logger.debug(`Trimmed stats cache to ${StatsProcessor.CACHE_LIMIT_ENTRIES} entries`)
+        Logger.debugThrottled(
+          'cache-trim',
+          `Trimmed stats cache to ${StatsProcessor.CACHE_LIMIT_ENTRIES} entries`,
+          5000,
+        )
       }
 
       await this.context.workspaceState.update(StatsProcessor.CACHE_KEY, this.statsCache)
 
       if (this.cacheHits + this.cacheMisses > 0) {
         const hitRate = Math.round((this.cacheHits / (this.cacheHits + this.cacheMisses)) * 100)
-        Logger.debug(`Stats cache hit rate: ${hitRate}% (${this.cacheHits} hits, ${this.cacheMisses} misses)`)
+        Logger.debugThrottled(
+          'cache-hit-rate',
+          `Stats cache hit rate: ${hitRate}% (${this.cacheHits} hits, ${this.cacheMisses} misses)`,
+          2000,
+        )
       }
     } catch (error) {
       Logger.error('Failed to save stats cache', error as Error)
@@ -86,7 +94,7 @@ export class StatsProcessor implements vscode.Disposable {
     const queue = targets.filter((f) => !f.stats)
 
     if (queue.length === 0) {
-      Logger.debug(`All ${targets.length} files already have stats`)
+      Logger.debugThrottled('enrich-noop', `All ${targets.length} files already have stats`, 5000)
       return
     }
 
@@ -114,7 +122,7 @@ export class StatsProcessor implements vscode.Disposable {
     const queue = targets.filter((f) => !f.stats)
 
     if (queue.length === 0) {
-      Logger.debug(`All ${targets.length} files already have stats`)
+      Logger.debugThrottled('enrich-noop', `All ${targets.length} files already have stats`, 5000)
       return
     }
 
@@ -204,7 +212,7 @@ export class StatsProcessor implements vscode.Disposable {
         }
       }
     } catch (error) {
-      Logger.warn(`Stats read failed: ${file.uri.fsPath}`)
+      Logger.debugThrottled(`stats-fail-${file.uri.fsPath}`, `Stats read failed: ${file.uri.fsPath}`, 10000)
       this.setEmptyStats(file)
     }
   }
@@ -227,7 +235,7 @@ export class StatsProcessor implements vscode.Disposable {
 
       await this.analyzeExactStats(file)
     } catch (error) {
-      Logger.warn(`Stats processing failed: ${file.uri.fsPath}`)
+      Logger.debugThrottled(`proc-fail-${file.uri.fsPath}`, `Stats processing failed: ${file.uri.fsPath}`, 10000)
       this.setEmptyStats(file)
     }
   }

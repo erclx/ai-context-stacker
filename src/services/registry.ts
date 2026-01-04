@@ -28,6 +28,7 @@ export class ServiceRegistry implements vscode.Disposable {
   public readonly treeBuilder: TreeBuilder
 
   private _disposables: vscode.Disposable[] = []
+  private _isDisposed = false
 
   constructor(private context: vscode.ExtensionContext) {
     ServiceRegistry._instance = this
@@ -42,7 +43,6 @@ export class ServiceRegistry implements vscode.Disposable {
     this.treeBuilder = new TreeBuilder()
 
     this.trackManager = new TrackManager(context, this.persistenceService, this.hydrationService, this.uriIndex)
-
     this.analysisEngine = new AnalysisEngine(context, this.trackManager)
     this.tokenAggregator = new TokenAggregatorService(this.trackManager, this.analysisEngine)
 
@@ -57,7 +57,6 @@ export class ServiceRegistry implements vscode.Disposable {
     )
 
     this.trackProvider = new TrackProvider(this.trackManager, this.tokenAggregator)
-
     this.fileLifecycleService = new FileLifecycleService(this.trackManager)
 
     this.registerInternalDisposables()
@@ -77,27 +76,40 @@ export class ServiceRegistry implements vscode.Disposable {
   }
 
   public register(): void {
-    this.context.subscriptions.push(...this._disposables)
+    this.context.subscriptions.push(this)
   }
 
   public dispose(): void {
-    this._disposables.forEach((d) => d.dispose())
+    if (this._isDisposed) return
+    this._isDisposed = true
+
+    while (this._disposables.length) {
+      const item = this._disposables.pop()
+      if (item) {
+        try {
+          item.dispose()
+        } catch (error) {
+          Logger.error('Error disposing service', error as Error)
+        }
+      }
+    }
     ServiceRegistry._instance = undefined
   }
 
   private registerInternalDisposables(): void {
-    this._disposables.push(
+    const tier1: vscode.Disposable[] = [
       this.persistenceService,
       this.ignoreManager,
       this.contextKeyService,
-      this.trackManager,
-      this.analysisEngine,
-      this.tokenAggregator,
-      this.stackProvider,
-      this.trackProvider,
-      this.fileLifecycleService,
+      this.uriIndex,
       vscode.workspace.onDidChangeConfiguration((e) => this.handleConfigChange(e)),
-    )
+    ]
+
+    const tier2: vscode.Disposable[] = [this.trackManager, this.analysisEngine, this.tokenAggregator]
+
+    const tier3: vscode.Disposable[] = [this.stackProvider, this.trackProvider, this.fileLifecycleService]
+
+    this._disposables.push(...tier1, ...tier2, ...tier3)
   }
 
   private initializeLogger(): void {
@@ -107,6 +119,8 @@ export class ServiceRegistry implements vscode.Disposable {
   }
 
   private handleConfigChange(e: vscode.ConfigurationChangeEvent): void {
+    if (this._isDisposed) return
+
     if (e.affectsConfiguration('aiContextStacker.logLevel')) {
       const config = vscode.workspace.getConfiguration('aiContextStacker')
       const level = config.get<LogLevel>('logLevel') || 'INFO'
