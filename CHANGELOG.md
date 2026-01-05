@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.11] - 2026-01-05
+
 ### Changed
 
-- **README Refinement**: Simplified content to focus on user features over technical details.
+- **README Refinement**: Focused content on user features over technical details.
 
 ### Fixed
 
@@ -219,7 +221,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All processing is local.
 - No data is sent externally.
 
-[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.10...HEAD
+[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.11...HEAD
+[0.0.11]: https://github.com/erclx/ai-context-stacker/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/erclx/ai-context-stacker/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/erclx/ai-context-stacker/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/erclx/ai-context-stacker/compare/v0.0.7...v0.0.8
