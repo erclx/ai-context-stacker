@@ -8,27 +8,55 @@ export class StackerStatusBar implements vscode.Disposable {
   private _disposables: vscode.Disposable[] = []
 
   private _throttleTimer: NodeJS.Timeout | undefined
+  private _feedbackTimer: NodeJS.Timeout | undefined
+  private _isSuccessState: boolean = false
   private readonly UPDATE_THROTTLE_MS = 500
+  private readonly FEEDBACK_DURATION_MS = 2000
 
   constructor(extensionContext: vscode.ExtensionContext, contextStackProvider: StackProvider) {
     this.provider = contextStackProvider
 
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
-
     this.item.command = 'aiContextStacker.copyAll'
     this.item.tooltip = 'Click to Copy Stack to Clipboard'
 
     const treeListener = contextStackProvider.onDidChangeTreeData(() => this.scheduleUpdate())
     const analysisListener = contextStackProvider.analysisEngine.onDidStatusChange(() => this.scheduleUpdate())
 
-    this._disposables.push(this.item, treeListener, analysisListener)
+    const successCommand = vscode.commands.registerCommand('aiContextStacker.statusBar.showSuccess', () =>
+      this.showSuccess(),
+    )
+
+    this._disposables.push(this.item, treeListener, analysisListener, successCommand)
     extensionContext.subscriptions.push(this.item)
 
     this.update()
   }
 
+  public showSuccess(): void {
+    this._isSuccessState = true
+
+    if (this._throttleTimer) {
+      clearTimeout(this._throttleTimer)
+      this._throttleTimer = undefined
+    }
+    if (this._feedbackTimer) {
+      clearTimeout(this._feedbackTimer)
+    }
+
+    this.item.text = `$(check) Copied!`
+    this.item.tooltip = 'Successfully copied content to clipboard'
+    this.item.show()
+
+    this._feedbackTimer = setTimeout(() => {
+      this._isSuccessState = false
+      this._feedbackTimer = undefined
+      this.update()
+    }, this.FEEDBACK_DURATION_MS)
+  }
+
   private scheduleUpdate(): void {
-    if (this._throttleTimer) return
+    if (this._throttleTimer || this._isSuccessState) return
 
     this._throttleTimer = setTimeout(() => {
       this._throttleTimer = undefined
@@ -37,6 +65,8 @@ export class StackerStatusBar implements vscode.Disposable {
   }
 
   private update() {
+    if (this._isSuccessState) return
+
     const files = this.provider.getFiles()
 
     if (files.length === 0) {
@@ -73,6 +103,10 @@ export class StackerStatusBar implements vscode.Disposable {
     if (this._throttleTimer) {
       clearTimeout(this._throttleTimer)
       this._throttleTimer = undefined
+    }
+    if (this._feedbackTimer) {
+      clearTimeout(this._feedbackTimer)
+      this._feedbackTimer = undefined
     }
     this._disposables.forEach((d) => d.dispose())
   }

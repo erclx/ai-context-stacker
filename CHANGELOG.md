@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Visual Copy Feedback**: Status bar shows checkmark on successful clipboard operations.
 - **Smart URI Resolution**: Concurrent path probing for faster workspace hydration.
 - **Lifecycle Guards**: Disposal awareness prevents race conditions during teardown.
 

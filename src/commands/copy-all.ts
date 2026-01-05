@@ -34,7 +34,9 @@ async function handleCopyAll(provider: StackProvider): Promise<void> {
       const result = await generateContext(files, token)
 
       if (result !== undefined) {
-        await ClipboardOps.copyText(result, `${files.length} files`)
+        await ClipboardOps.copyText(result, `${files.length} files`, () => {
+          void vscode.commands.executeCommand('aiContextStacker.statusBar.showSuccess')
+        })
       }
     },
   )

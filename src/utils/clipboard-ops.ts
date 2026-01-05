@@ -6,12 +6,12 @@ import { Logger } from './logger'
 import { TokenEstimator } from './token-estimator'
 
 export class ClipboardOps {
-  public static async copy(files: StagedFile[], label: string): Promise<void> {
+  public static async copy(files: StagedFile[], label: string, onSuccess?: () => void): Promise<void> {
     const content = await ContentFormatter.format(files)
-    await this.copyText(content, label)
+    await this.copyText(content, label, onSuccess)
   }
 
-  public static async copyText(content: string, label: string): Promise<void> {
+  public static async copyText(content: string, label: string, onSuccess?: () => void): Promise<void> {
     if (!this.validatePayload(content)) return
 
     try {
@@ -20,7 +20,7 @@ export class ClipboardOps {
       }
 
       await vscode.env.clipboard.writeText(content)
-      this.broadcastSuccess(content, label)
+      this.broadcastSuccess(content, label, onSuccess)
     } catch (error) {
       Logger.error('Clipboard write failed', error)
       void vscode.window.showErrorMessage('Failed to write to clipboard. See output for details.')
@@ -35,11 +35,15 @@ export class ClipboardOps {
     return true
   }
 
-  private static broadcastSuccess(content: string, label: string): void {
+  private static broadcastSuccess(content: string, label: string, onSuccess?: () => void): void {
     const stats = TokenEstimator.measure(content)
     const statsString = TokenEstimator.format(stats)
 
     Logger.info(`Copied: ${label}`)
     void vscode.window.showInformationMessage(`Copied ${label}! (${statsString})`)
+
+    if (onSuccess) {
+      onSuccess()
+    }
   }
 }
