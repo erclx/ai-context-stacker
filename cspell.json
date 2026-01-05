@@ -1,29 +1,19 @@
 {
   "version": "0.2",
   "language": "en",
-  "words": [
-    "APOS",
-    "cloudern",
-    "codicons",
-    "commitlint",
-    "cutcopypaste",
-    "disposables",
-    "erclx",
-    "esbenp",
-    "esbuild",
-    "eslintrc",
-    "l10n",
-    "lintstagedrc",
-    "prettierrc",
-    "pycache",
-    "quickpick",
-    "sidebar",
-    "treedata",
-    "venv",
-    "vscode",
-    "vsix",
-    "webview",
-    "yarnrc"
+  "useGitignore": true,
+  "dictionaryDefinitions": [
+    {
+      "name": "tech-terms",
+      "path": "./.cspell/technical.txt",
+      "addWords": true
+    },
+    {
+      "name": "project-terms",
+      "path": "./.cspell/project.txt",
+      "addWords": true
+    }
   ],
-  "ignorePaths": ["node_modules", "out", "dist", "package-lock.json", ".vscode-test", "**/*.vsix", "**/*.svg"]
+  "dictionaries": ["tech-terms", "project-terms"],
+  "ignorePaths": ["package-lock.json", "**/*.svg", "**/*.vsix"]
 }

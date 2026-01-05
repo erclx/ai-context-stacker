@@ -1,0 +1,17 @@
+APOS
+cloudern
+codicons
+commitlint
+disposables
+esbenp
+esbuild
+eslintrc
+l10n
+lintstagedrc
+prettierrc
+quickpick
+sidebar
+vscode
+vsix
+webview
+yarnrc

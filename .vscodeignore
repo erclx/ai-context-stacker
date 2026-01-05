@@ -3,6 +3,7 @@
 .husky/**
 .continue/**
 .github/**
+.cspell/**
 src/**
 node_modules/**
 out/**
