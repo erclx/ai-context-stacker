@@ -2,7 +2,6 @@
 
 [![Version](https://img.shields.io/visual-studio-marketplace/v/erclx.ai-context-stacker)](https://marketplace.visualstudio.com/items?itemName=erclx.ai-context-stacker)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/erclx.ai-context-stacker)](https://marketplace.visualstudio.com/items?itemName=erclx.ai-context-stacker)
-[![Rating](https://img.shields.io/visual-studio-marketplace/r/erclx.ai-context-stacker)](https://marketplace.visualstudio.com/items?itemName=erclx.ai-context-stacker)
 
 Prepare file context and directory maps for models like ChatGPT, Claude, or Gemini without leaving VS Code. Drag files into organized tracks to copy complete project context in one action.
 
