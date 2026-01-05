@@ -3,16 +3,16 @@
   "displayName": "AI Context Stacker",
   "publisher": "erclx",
   "description": "Collect, organize, and copy multiple files and directory structures for use in AI prompts.",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "license": "MIT",
   "icon": "assets/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/erclx/ai-context-stacker.git"
   },
-  "homepage": "https://github.cocontext-stacker",
+  "homepage": "https://github.com/erclx/ai-context-stacker",
   "engines": {
-    "vscode": "^1.107.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Other"
@@ -646,7 +646,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "@types/sinon": "^21.0.0",
-    "@types/vscode": "^1.107.0",
+    "@types/vscode": "^1.85.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "cspell": "^9.4.0",
