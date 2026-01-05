@@ -49,25 +49,6 @@ function registerSubscriptions(
 
 function registerCommands(context: vscode.ExtensionContext, services: ServiceRegistry, views: ViewManager): void {
   registerAllCommands({ context, services, views })
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('aiContextStacker.internalPurge', async () => {
-      await executeHardReset(services)
-    }),
-  )
-}
-
-async function executeHardReset(services: ServiceRegistry): Promise<void> {
-  const choice = await vscode.window.showWarningMessage(
-    'Execute Hard Reset? This will wipe all saved tracks.',
-    { modal: true },
-    'Purge & Reset',
-  )
-
-  if (choice !== 'Purge & Reset') return
-
-  await services.trackManager.hardReset()
-  vscode.window.showInformationMessage('State purged. Please reload window.')
 }
 
 export function deactivate(): void {

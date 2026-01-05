@@ -9,7 +9,6 @@ import { HydrationService } from './hydration-service'
 import { PersistenceService } from './persistence-service'
 import { TokenAggregatorService } from './token-aggregator'
 import { TreeBuilder } from './tree-builder'
-import { UriIndex } from './uri-index'
 
 export class ServiceRegistry implements vscode.Disposable {
   private static _instance: ServiceRegistry | undefined
@@ -24,7 +23,6 @@ export class ServiceRegistry implements vscode.Disposable {
   public readonly analysisEngine: AnalysisEngine
   public readonly tokenAggregator: TokenAggregatorService
   public readonly contextKeyService: ContextKeyService
-  public readonly uriIndex: UriIndex
   public readonly treeBuilder: TreeBuilder
 
   private _disposables: vscode.Disposable[] = []
@@ -39,10 +37,9 @@ export class ServiceRegistry implements vscode.Disposable {
     this.hydrationService = new HydrationService(this.persistenceService)
     this.ignoreManager = new IgnoreManager()
     this.contextKeyService = new ContextKeyService()
-    this.uriIndex = new UriIndex()
     this.treeBuilder = new TreeBuilder()
 
-    this.trackManager = new TrackManager(context, this.persistenceService, this.hydrationService, this.uriIndex)
+    this.trackManager = new TrackManager(context, this.persistenceService, this.hydrationService)
     this.analysisEngine = new AnalysisEngine(context, this.trackManager)
     this.tokenAggregator = new TokenAggregatorService(this.trackManager, this.analysisEngine)
 
@@ -101,7 +98,6 @@ export class ServiceRegistry implements vscode.Disposable {
       this.persistenceService,
       this.ignoreManager,
       this.contextKeyService,
-      this.uriIndex,
       vscode.workspace.onDidChangeConfiguration((e) => this.handleConfigChange(e)),
     ]
 

@@ -1,17 +1,14 @@
-import * as os from 'os'
 import * as vscode from 'vscode'
 
 import { ContextTrack, StagedFile } from '../models'
-import { HydrationService, PersistenceService, UriIndex } from '../services'
+import { HydrationService, PersistenceService } from '../services'
 import { generateId, Logger } from '../utils'
 import { isChildOf } from '../utils/file-scanner'
 
 export class TrackManager implements vscode.Disposable {
-  private readonly NULL_TRACK: ContextTrack = { id: 'ghost', name: 'No Active Track', files: [] }
-
   private tracks = new Map<string, ContextTrack>()
   private activeTrackId = 'default'
-  private _trackOrder: string[] = []
+  private _trackOrder: string[] = ['default']
 
   private _isInitialized = false
   private _isDisposed = false
@@ -24,8 +21,8 @@ export class TrackManager implements vscode.Disposable {
     private context: vscode.ExtensionContext,
     private persistence: PersistenceService,
     private hydrationService: HydrationService,
-    private uriIndex: UriIndex,
   ) {
+    this.createDefaultTrack(false)
     this.scheduleAsyncHydration()
   }
 
@@ -38,7 +35,11 @@ export class TrackManager implements vscode.Disposable {
   }
 
   public getActiveTrack(): ContextTrack {
-    return this.tracks.get(this.activeTrackId) || this.NULL_TRACK
+    const track = this.tracks.get(this.activeTrackId)
+    if (!track) {
+      return this.createDefaultTrack(true)
+    }
+    return track
   }
 
   public dispose(): void {
@@ -90,11 +91,6 @@ export class TrackManager implements vscode.Disposable {
   public deleteTrack(id: string): void {
     if (this.tracks.size <= 1) return
 
-    const track = this.tracks.get(id)
-    if (track) {
-      this.uriIndex.decrementMany(track.files.map((f) => f.uri))
-    }
-
     this.tracks.delete(id)
     this._trackOrder = this._trackOrder.filter((tid) => tid !== id)
     this.handleTrackDeletion(id)
@@ -108,13 +104,12 @@ export class TrackManager implements vscode.Disposable {
     Logger.warn('Hard Reset initiated.')
     this.tracks.clear()
     this._trackOrder = []
-    this.uriIndex.clear()
 
     if (!this._isDisposed) {
       await this.persistence.clear()
     }
 
-    this.createDefaultTrack()
+    this.createDefaultTrack(true)
     await this.persistence.saveImmediate(this.tracks, this.activeTrackId, this._trackOrder)
     this.fireChange()
   }
@@ -149,15 +144,19 @@ export class TrackManager implements vscode.Disposable {
 
   public unpinAllInActive(): void {
     const track = this.getActiveTrack()
-    if (track === this.NULL_TRACK) return
-
     track.files.forEach((f) => (f.isPinned = false))
     this.requestSave()
     this.fireChange(track)
   }
 
   public hasUri(uri: vscode.Uri): boolean {
-    return this.uriIndex.has(uri)
+    const uriStr = uri.toString()
+    for (const track of this.tracks.values()) {
+      if (track.files.some((f) => f.uri.toString() === uriStr)) {
+        return true
+      }
+    }
+    return false
   }
 
   public async processBatchDeletions(uris: vscode.Uri[]): Promise<void> {
@@ -172,13 +171,12 @@ export class TrackManager implements vscode.Disposable {
     for (const track of this.tracks.values()) {
       if (track.files.length === 0) continue
 
-      const toRemove: StagedFile[] = []
-      const toKeep: StagedFile[] = []
+      const toRemoveIds = new Set<string>()
 
       for (const file of track.files) {
-        // Yield check
         if (Date.now() - lastYield > YIELD_MS) {
           await new Promise((resolve) => setImmediate(resolve))
+          if (this._isDisposed) return
           lastYield = Date.now()
         }
 
@@ -194,15 +192,12 @@ export class TrackManager implements vscode.Disposable {
         }
 
         if (shouldRemove) {
-          toRemove.push(file)
-        } else {
-          toKeep.push(file)
+          toRemoveIds.add(file.uri.toString())
         }
       }
 
-      if (toRemove.length > 0) {
-        track.files = toKeep
-        this.uriIndex.decrementMany(toRemove.map((f) => f.uri))
+      if (toRemoveIds.size > 0) {
+        track.files = track.files.filter((f) => !toRemoveIds.has(f.uri.toString()))
         changed = true
       }
     }
@@ -221,7 +216,6 @@ export class TrackManager implements vscode.Disposable {
       const prevLen = track.files.length
       track.files = track.files.filter((f) => f.uri.toString() !== uriStr)
       if (track.files.length !== prevLen) {
-        this.uriIndex.decrement(uri)
         changed = true
       }
     }
@@ -237,8 +231,6 @@ export class TrackManager implements vscode.Disposable {
       const file = track.files.find((f) => f.uri.toString() === oldStr)
       if (file) {
         this.updateFileUri(file, newUri)
-        this.uriIndex.decrement(oldUri)
-        this.uriIndex.increment(newUri)
         changed = true
       }
     }
@@ -252,7 +244,6 @@ export class TrackManager implements vscode.Disposable {
 
     if (newFiles.length > 0) {
       track.files.push(...newFiles)
-      this.uriIndex.incrementMany(newFiles.map((f) => f.uri))
       this.finalizeChange()
     }
     return newFiles
@@ -260,23 +251,14 @@ export class TrackManager implements vscode.Disposable {
 
   public removeFilesFromActive(files: StagedFile[]): void {
     const track = this.getActiveTrack()
-    if (track === this.NULL_TRACK) return
-
-    this.uriIndex.decrementMany(files.map((f) => f.uri))
     const targets = new Set(files.map((f) => f.uri.toString()))
     track.files = track.files.filter((f) => !targets.has(f.uri.toString()))
-
     this.finalizeChange()
   }
 
   public clearActive(): void {
     const track = this.getActiveTrack()
-    if (track === this.NULL_TRACK) return
-
-    const removed = track.files.filter((f) => !f.isPinned)
-    this.uriIndex.decrementMany(removed.map((f) => f.uri))
     track.files = track.files.filter((f) => f.isPinned)
-
     this.finalizeChange()
   }
 
@@ -316,23 +298,24 @@ export class TrackManager implements vscode.Disposable {
     try {
       const result = await this.hydrationService.hydrate()
 
+      if (this._isDisposed) return
+
       if (result) {
         this.tracks = result.tracks
         this.activeTrackId = result.activeTrackId
         this._trackOrder = result.trackOrder
       } else {
-        Logger.info('No previous state found, creating default track')
-        this.createDefaultTrack()
+        Logger.info('No previous state found, using default track')
+        if (this.tracks.size === 0) this.createDefaultTrack(true)
       }
 
       this.validateStateIntegrity()
-      this.uriIndex.rebuild(this.allTracks)
       this._isInitialized = true
       this.updateContextKeys()
       this.fireChange()
     } catch (error) {
       Logger.error('Hydration failed catastrophically', error as Error)
-      this.createDefaultTrack()
+      this.createDefaultTrack(true)
       this._isInitialized = true
       this.fireChange()
     }
@@ -363,13 +346,19 @@ export class TrackManager implements vscode.Disposable {
     return track.files.length > 0 || track.name !== 'Main'
   }
 
-  private createDefaultTrack(): ContextTrack {
+  private createDefaultTrack(forceReset: boolean): ContextTrack {
     const def: ContextTrack = { id: 'default', name: 'Main', files: [] }
-    this.tracks.set(def.id, def)
-    this._trackOrder = [def.id]
-    this.activeTrackId = def.id
-    this.uriIndex.rebuild([def])
-    return def
+
+    if (forceReset || !this.tracks.has(def.id)) {
+      this.tracks.set(def.id, def)
+    }
+
+    if (forceReset || this._trackOrder.length === 0) {
+      this._trackOrder = [def.id]
+      this.activeTrackId = def.id
+    }
+
+    return this.tracks.get(def.id) || def
   }
 
   private swapTracks(idxA: number, idxB: number): void {
@@ -396,7 +385,7 @@ export class TrackManager implements vscode.Disposable {
 
   private ensureActiveTrack(): ContextTrack {
     let track = this.tracks.get(this.activeTrackId)
-    if (!track) track = this.createDefaultTrack()
+    if (!track) track = this.createDefaultTrack(true)
     return track
   }
 
@@ -404,12 +393,15 @@ export class TrackManager implements vscode.Disposable {
     if (this.tracks.size > 0 && !this.tracks.has(this.activeTrackId)) {
       this.activeTrackId = this._trackOrder[0] || 'default'
     }
+    if (this.tracks.size === 0) {
+      this.createDefaultTrack(true)
+    }
   }
 
   private handleTrackDeletion(deletedId: string): void {
     if (this.activeTrackId === deletedId) {
       const nextId = this._trackOrder[0] || 'default'
-      if (!this.tracks.has(nextId)) this.createDefaultTrack()
+      if (!this.tracks.has(nextId)) this.createDefaultTrack(true)
       void this.switchToTrack(nextId)
     } else {
       this.requestSave()
