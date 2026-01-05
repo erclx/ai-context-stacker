@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Smart URI Resolution**: Concurrent path probing for faster workspace hydration.
+- **Lifecycle Guards**: Disposal awareness prevents race conditions during teardown.
+
+### Changed
+
+- **Architecture Cleanup**: Unified token statistics types to reduce memory footprint.
+- **State Management**: Removed internal purge command for standard state handling.
+- **Main Track Guarantee**: Track existence enforced at initialization.
+
+### Fixed
+
+- **Store Disposal Errors**: Resolved exceptions during rapid activation cycles.
+- **Multi-Root Resolution**: Fixed secondary workspace files being pruned during hydration.
+
 ## [0.0.9] - 2026-01-05
 
 ### Added

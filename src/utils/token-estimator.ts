@@ -1,14 +1,11 @@
-export interface SimpleStats {
-  tokenCount: number
-  charCount: number
-}
+import { ContentStats } from '../models'
 
 export class TokenEstimator {
   private static readonly LARGE_FILE_THRESHOLD = 100 * 1024
   private static readonly CHARS_PER_TOKEN_RATIO = 4
   private static readonly WORDS_TO_TOKENS_RATIO = 1.3
 
-  public static measure(text: string): SimpleStats {
+  public static measure(text: string): ContentStats {
     if (!text) {
       return { tokenCount: 0, charCount: 0 }
     }
@@ -19,7 +16,7 @@ export class TokenEstimator {
     return { tokenCount, charCount }
   }
 
-  public static format(stats: SimpleStats): string {
+  public static format(stats: ContentStats): string {
     return `~${stats.tokenCount.toLocaleString()} tokens`
   }
 

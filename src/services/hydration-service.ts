@@ -1,9 +1,9 @@
 import * as os from 'os'
-import * as vscode from 'vscode'
 
 import { ContextTrack, SerializedState, StagedFile } from '../models'
 import { Logger } from '../utils'
 import { PersistenceService } from './persistence-service'
+import { StateMapper } from './state-mapper'
 
 export interface HydrationResult {
   tracks: Map<string, ContextTrack>
@@ -74,12 +74,12 @@ export class HydrationService {
         await Promise.all(
           batch.map(async (item) => {
             try {
-              const validatedUri = await this.resolveAndValidateUri(item.uri)
+              const validatedUri = await StateMapper.resolveValidUri(item.uri)
               if (validatedUri) {
                 files.push({
                   type: 'file',
                   uri: validatedUri,
-                  label: this.extractLabel(validatedUri),
+                  label: StateMapper.extractLabel(validatedUri),
                   isPinned: !!item.isPinned,
                 })
               }
@@ -96,43 +96,6 @@ export class HydrationService {
       name: data.name,
       files,
     }
-  }
-
-  private async resolveAndValidateUri(pathOrUri: string): Promise<vscode.Uri | null> {
-    if (pathOrUri.includes('://') || pathOrUri.startsWith('/') || /^[a-zA-Z]:\\/.test(pathOrUri)) {
-      const uri = vscode.Uri.parse(pathOrUri)
-      return (await this.checkExists(uri)) ? uri : null
-    }
-
-    const folders = vscode.workspace.workspaceFolders || []
-
-    if (folders.length === 1) {
-      const uri = vscode.Uri.joinPath(folders[0].uri, pathOrUri)
-      return (await this.checkExists(uri)) ? uri : null
-    }
-
-    for (const folder of folders) {
-      const candidate = vscode.Uri.joinPath(folder.uri, pathOrUri)
-      if (await this.checkExists(candidate)) {
-        return candidate
-      }
-    }
-
-    return null
-  }
-
-  private async checkExists(uri: vscode.Uri): Promise<boolean> {
-    try {
-      await vscode.workspace.fs.stat(uri)
-      return true
-    } catch {
-      return false
-    }
-  }
-
-  private extractLabel(uri: vscode.Uri): string {
-    const pathParts = uri.path.split('/')
-    return pathParts[pathParts.length - 1] || 'unknown'
   }
 
   private yieldToEventLoop(): Promise<void> {
