@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **README Refinement**: Simplified content to focus on user features over technical details.
 
+### Fixed
+
+- **Spell Check**: Moved custom word lists to external files for better organization.
+
 ## [0.0.10] - 2026-01-05
 
 ### Added
