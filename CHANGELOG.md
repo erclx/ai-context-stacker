@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Release Automation**: Added interactive script for version preparation and automated GitHub Release generation.
+
 ## [0.0.11] - 2026-01-05
 
 ### Changed

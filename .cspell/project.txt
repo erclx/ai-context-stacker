@@ -3,3 +3,4 @@ treedata
 cutcopypaste
 pycache
 venv
+softprops
