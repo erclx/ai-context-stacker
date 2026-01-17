@@ -57,6 +57,9 @@ jobs:
       - name: Publish to VS Code
         run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }}
 
+      - name: Publish to Open VSX
+        run: npx ovsx publish -p ${{ secrets.OVSX_TOKEN }}
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
