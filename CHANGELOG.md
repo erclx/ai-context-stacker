@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Open VSX Publishing**: Extension now published to Open VSX.
+
 ## [0.0.12] - 2026-01-08
 
 ### Added
