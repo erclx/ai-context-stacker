@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 
 import { IgnoreManager, StackProvider } from '../providers'
+import { attachPickerToggle } from '../utils'
 import { Command, CommandDependencies } from './types'
 
 interface FileQuickPickItem extends vscode.QuickPickItem {
@@ -116,6 +117,8 @@ function bindPickerEvents(
   actionItem: FileQuickPickItem,
   resolve: (value: readonly FileQuickPickItem[] | undefined) => void,
 ): void {
+  attachPickerToggle(picker)
+
   picker.onDidChangeValue((value) => {
     const previousSelection = picker.selectedItems
 
@@ -124,7 +127,6 @@ function bindPickerEvents(
 
     if (picker.items.length !== newItems.length) {
       picker.items = newItems
-
       picker.selectedItems = previousSelection
     }
   })

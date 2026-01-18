@@ -523,6 +523,12 @@
     },
     "keybindings": [
       {
+        "command": "aiContextStacker.internalToggle",
+        "key": "ctrl+space",
+        "mac": "ctrl+space",
+        "when": "aiStackerPickerVisible"
+      },
+      {
         "command": "aiContextStacker.addFilePicker",
         "key": "ctrl+alt+a",
         "mac": "cmd+alt+a"

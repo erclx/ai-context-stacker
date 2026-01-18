@@ -1,7 +1,14 @@
 import * as vscode from 'vscode'
 
 import { StackProvider } from '../providers'
+import { attachPickerToggle } from '../utils'
 import { Command, CommandDependencies } from './types'
+
+type StagedFile = ReturnType<StackProvider['getFiles']>[number]
+
+interface RemoveFileItem extends vscode.QuickPickItem {
+  file: StagedFile
+}
 
 export function getRemoveFilePickerCommands(deps: CommandDependencies): Command[] {
   return [
@@ -20,7 +27,7 @@ async function handleRemovePicker(provider: StackProvider): Promise<void> {
     return
   }
 
-  const items = currentFiles.map((file) => ({
+  const items: RemoveFileItem[] = currentFiles.map((file) => ({
     label: vscode.workspace.asRelativePath(file.uri),
     description: file.isPinned ? '$(pin) Pinned' : undefined,
     picked: false,
@@ -28,13 +35,7 @@ async function handleRemovePicker(provider: StackProvider): Promise<void> {
     file: file,
   }))
 
-  const selectedItems = await vscode.window.showQuickPick(items, {
-    canPickMany: true,
-    placeHolder: 'Select files to remove from the stack',
-    title: 'Remove Files',
-    matchOnDescription: true,
-    matchOnDetail: true,
-  })
+  const selectedItems = await showRemoveFilePicker(items)
 
   if (!selectedItems || selectedItems.length === 0) return
 
@@ -44,4 +45,31 @@ async function handleRemovePicker(provider: StackProvider): Promise<void> {
     provider.removeFiles(filesToRemove)
     void vscode.window.setStatusBarMessage(`Removed ${filesToRemove.length} files from stack.`, 2000)
   }
+}
+
+function showRemoveFilePicker(items: RemoveFileItem[]): Promise<readonly RemoveFileItem[] | undefined> {
+  return new Promise((resolve) => {
+    const picker = vscode.window.createQuickPick<RemoveFileItem>()
+
+    picker.items = items
+    picker.canSelectMany = true
+    picker.placeholder = 'Select files to remove from the stack'
+    picker.title = 'Remove Files'
+    picker.matchOnDescription = true
+    picker.matchOnDetail = true
+
+    attachPickerToggle(picker)
+
+    picker.onDidAccept(() => {
+      resolve(picker.selectedItems)
+      picker.hide()
+    })
+
+    picker.onDidHide(() => {
+      resolve(undefined)
+      picker.dispose()
+    })
+
+    picker.show()
+  })
 }

@@ -2,7 +2,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 
 import { StackProvider } from '../providers'
-import { isChildOf } from '../utils/file-scanner'
+import { attachPickerToggle, isChildOf } from '../utils'
 import { Command, CommandDependencies } from './types'
 
 type StagedFile = ReturnType<StackProvider['getFiles']>[number]
@@ -37,16 +37,37 @@ async function handleRemoveFolderPicker(provider: StackProvider): Promise<void> 
     return
   }
 
-  const selected = await vscode.window.showQuickPick(items, {
-    canPickMany: true,
-    placeHolder: 'Select folders to remove from the stack',
-    title: 'Remove Folder from Stack',
-    matchOnDescription: true,
-  })
+  const selected = await showRemoveFolderPicker(items)
 
   if (!selected || selected.length === 0) return
 
   await performBatchRemoval(selected, currentFiles, provider)
+}
+
+function showRemoveFolderPicker(items: FolderItem[]): Promise<readonly FolderItem[] | undefined> {
+  return new Promise((resolve) => {
+    const picker = vscode.window.createQuickPick<FolderItem>()
+
+    picker.items = items
+    picker.canSelectMany = true
+    picker.placeholder = 'Select folders to remove from the stack'
+    picker.title = 'Remove Folder from Stack'
+    picker.matchOnDescription = true
+
+    attachPickerToggle(picker)
+
+    picker.onDidAccept(() => {
+      resolve(picker.selectedItems)
+      picker.hide()
+    })
+
+    picker.onDidHide(() => {
+      resolve(undefined)
+      picker.dispose()
+    })
+
+    picker.show()
+  })
 }
 
 function analyzeFolders(files: StagedFile[]): Map<string, { uri: vscode.Uri; count: number }> {

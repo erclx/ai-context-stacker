@@ -2,7 +2,13 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 
 import { IgnoreManager, StackProvider } from '../providers'
-import { discoverWorkspaceFolders, handleFolderScanning, Logger, pruneNestedFolders } from '../utils'
+import {
+  attachPickerToggle,
+  discoverWorkspaceFolders,
+  handleFolderScanning,
+  Logger,
+  pruneNestedFolders,
+} from '../utils'
 import { Command, CommandDependencies } from './types'
 
 interface FolderQuickPickItem extends vscode.QuickPickItem {
@@ -74,6 +80,8 @@ function bindPickerEvents(
   picker: vscode.QuickPick<FolderQuickPickItem>,
   resolve: (value: FolderQuickPickItem[] | undefined) => void,
 ): void {
+  attachPickerToggle(picker)
+
   picker.onDidAccept(() => {
     resolve(Array.from(picker.selectedItems))
     picker.hide()
