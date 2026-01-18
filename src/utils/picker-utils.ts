@@ -2,11 +2,12 @@ import * as vscode from 'vscode'
 
 export function attachPickerToggle<T extends vscode.QuickPickItem>(picker: vscode.QuickPick<T>): vscode.Disposable {
   const contextKey = 'aiStackerPickerVisible'
-  const commandId = 'aiContextStacker.internalToggle'
+  const toggleCommandId = 'aiContextStacker.internalToggle'
+  const selectAllCommandId = 'aiContextStacker.internalSelectAll'
 
   void vscode.commands.executeCommand('setContext', contextKey, true)
 
-  const toggleCommand = vscode.commands.registerCommand(commandId, () => {
+  const toggleCommand = vscode.commands.registerCommand(toggleCommandId, () => {
     const activeItems = picker.activeItems
     if (activeItems.length === 0) return
 
@@ -24,13 +25,24 @@ export function attachPickerToggle<T extends vscode.QuickPickItem>(picker: vscod
     picker.selectedItems = Array.from(selectedSet)
   })
 
+  const selectAllCommand = vscode.commands.registerCommand(selectAllCommandId, () => {
+    const allVisible = picker.items.filter((item) => item.kind !== vscode.QuickPickItemKind.Separator)
+
+    if (picker.selectedItems.length === allVisible.length) {
+      picker.selectedItems = []
+    } else {
+      picker.selectedItems = allVisible
+    }
+  })
+
   const cleanup = () => {
     void vscode.commands.executeCommand('setContext', contextKey, false)
     toggleCommand.dispose()
+    selectAllCommand.dispose()
     hideListener.dispose()
   }
 
   const hideListener = picker.onDidHide(cleanup)
 
-  return vscode.Disposable.from(toggleCommand, hideListener)
+  return vscode.Disposable.from(toggleCommand, selectAllCommand, hideListener)
 }

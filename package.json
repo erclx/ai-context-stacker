@@ -529,6 +529,12 @@
         "when": "aiStackerPickerVisible"
       },
       {
+        "command": "aiContextStacker.internalSelectAll",
+        "key": "ctrl+a",
+        "mac": "cmd+a",
+        "when": "aiStackerPickerVisible"
+      },
+      {
         "command": "aiContextStacker.addFilePicker",
         "key": "ctrl+alt+a",
         "mac": "cmd+alt+a"
