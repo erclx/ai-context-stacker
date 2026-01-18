@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Open VSX Publishing**: Extension now published to Open VSX.
+- **Picker Keybindings**: Added select-all and toggle-selection keybindings for quick pickers.
+
+### Changed
+
+- **Picker 'Add All' Action**: Removed explicit "Add all files" action from file and folder pickers.
 
 ## [0.0.12] - 2026-01-08
 

@@ -27,7 +27,7 @@ This process is repetitive, especially with larger codebases or multi-file tasks
 2. **Open** the AI Context Stacker view in the Activity Bar.
 3. **Stage Files** by dragging them into the Staged Files panel.
    - Or right-click any file in the Explorer → **Add to AI Context Stack**.
-4. **Quick Add** files from anywhere using <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> (<kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> on Mac).
+4. **Quick Add** files from anywhere using <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> (<kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> on Mac). Once the picker is open, use <kbd>Ctrl</kbd>+<kbd>A</kbd> to select all or <kbd>Ctrl</kbd>+<kbd>Space</kbd> to toggle individual selections.
 5. **Preview** context with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> on Mac, except in Markdown files).
 6. **Copy Stack** by clicking the copy icon or pressing <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> on Mac) when focused on the Staged Files view.
 7. **Paste** into the LLM.
@@ -181,6 +181,13 @@ Copy behavior adapts to the current selection:
 | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd>     | New Track         |
 | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd>     | Switch Track      |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> | Preview Context   |
+
+### Quick Pickers (when open)
+
+| Shortcut                                                   | Command          |
+| :--------------------------------------------------------- | :--------------- |
+| <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd> | Select All       |
+| <kbd>Ctrl</kbd>+<kbd>Space</kbd>                           | Toggle Selection |
 
 ### Staged Files View (when focused)
 
