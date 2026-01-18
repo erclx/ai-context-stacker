@@ -5,8 +5,7 @@ import { attachPickerToggle } from '../utils'
 import { Command, CommandDependencies } from './types'
 
 interface FileQuickPickItem extends vscode.QuickPickItem {
-  uri?: vscode.Uri
-  id: 'file' | 'action'
+  uri: vscode.Uri
 }
 
 export function getAddFilePickerCommands(deps: CommandDependencies): Command[] {
@@ -36,21 +35,11 @@ async function executePickerFlow(stackProvider: StackProvider, ignoreManager: Ig
   const selectedItems = await showFilePicker(newFiles)
   if (!selectedItems || selectedItems.length === 0) return
 
-  await processSelection(selectedItems, newFiles, stackProvider)
+  await processSelection(selectedItems, stackProvider)
 }
 
-async function processSelection(
-  items: readonly FileQuickPickItem[],
-  allAvailableFiles: vscode.Uri[],
-  provider: StackProvider,
-): Promise<void> {
-  if (items.some((i) => i.id === 'action')) {
-    provider.addFiles(allAvailableFiles)
-    vscode.window.showInformationMessage(`Added all ${allAvailableFiles.length} file(s) to context stack`)
-    return
-  }
-
-  const uris = items.filter((i) => i.id === 'file' && i.uri).map((i) => i.uri as vscode.Uri)
+async function processSelection(items: readonly FileQuickPickItem[], provider: StackProvider): Promise<void> {
+  const uris = items.map((i) => i.uri)
 
   if (uris.length > 0) {
     provider.addFiles(uris)
@@ -72,10 +61,9 @@ function showFilePicker(files: vscode.Uri[]): Promise<readonly FileQuickPickItem
   return new Promise((resolve) => {
     const picker = vscode.window.createQuickPick<FileQuickPickItem>()
     const fileItems = createFileItems(files)
-    const actionItem = createAddAllItem(files.length)
 
-    configurePicker(picker, fileItems, actionItem)
-    bindPickerEvents(picker, fileItems, actionItem, resolve)
+    configurePicker(picker, fileItems)
+    bindPickerEvents(picker, resolve)
 
     picker.show()
   })
@@ -85,51 +73,24 @@ function createFileItems(files: vscode.Uri[]): FileQuickPickItem[] {
   return files.map((uri) => ({
     label: vscode.workspace.asRelativePath(uri),
     uri: uri,
-    id: 'file',
     iconPath: new vscode.ThemeIcon('file'),
   }))
 }
 
-function createAddAllItem(count: number): FileQuickPickItem {
-  return {
-    label: '$(check-all) Add All Unstaged Files',
-    description: `(${count} files)`,
-    id: 'action',
-  }
-}
-
-function configurePicker(
-  picker: vscode.QuickPick<FileQuickPickItem>,
-  fileItems: FileQuickPickItem[],
-  actionItem: FileQuickPickItem,
-): void {
+function configurePicker(picker: vscode.QuickPick<FileQuickPickItem>, fileItems: FileQuickPickItem[]): void {
   picker.canSelectMany = true
   picker.placeholder = 'Search and select files to add...'
   picker.title = 'Add Files to Context Stack'
   picker.matchOnDescription = true
   picker.matchOnDetail = true
-  picker.items = [actionItem, ...fileItems]
+  picker.items = fileItems
 }
 
 function bindPickerEvents(
   picker: vscode.QuickPick<FileQuickPickItem>,
-  fileItems: FileQuickPickItem[],
-  actionItem: FileQuickPickItem,
   resolve: (value: readonly FileQuickPickItem[] | undefined) => void,
 ): void {
   attachPickerToggle(picker)
-
-  picker.onDidChangeValue((value) => {
-    const previousSelection = picker.selectedItems
-
-    const isSearchEmpty = value.trim() === ''
-    const newItems = isSearchEmpty ? [actionItem, ...fileItems] : fileItems
-
-    if (picker.items.length !== newItems.length) {
-      picker.items = newItems
-      picker.selectedItems = previousSelection
-    }
-  })
 
   picker.onDidAccept(() => {
     resolve(picker.selectedItems)
