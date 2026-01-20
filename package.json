@@ -650,7 +650,9 @@
     "lint": "eslint src",
     "lint:spelling": "cspell \"**\"",
     "test": "vscode-test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "release": "bash scripts/prepare-release.sh",
+    "publish": "bash scripts/trigger-release.sh"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.2.0",
