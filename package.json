@@ -200,6 +200,12 @@
         "icon": "$(copy)"
       },
       {
+        "command": "aiContextStacker.copyExplorerContent",
+        "title": "Copy Content",
+        "category": "AI Context Stacker",
+        "icon": "$(copy)"
+      },
+      {
         "command": "aiContextStacker.deleteAllTracks",
         "title": "Reset All Tracks",
         "category": "AI Context Stacker",
@@ -323,6 +329,11 @@
       "explorer/context": [
         {
           "command": "aiContextStacker.addFileToStack",
+          "when": "resourceScheme == file",
+          "group": "7_modification"
+        },
+        {
+          "command": "aiContextStacker.copyExplorerContent",
           "when": "resourceScheme == file",
           "group": "7_modification"
         },
