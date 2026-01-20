@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Copy Content**: Added "Copy Content for AI Context" command to explorer context menu.
+
+### Changed
+
+- **UI Wording**: Standardized command titles for consistency (e.g., "Reveal in AI Context Stack").
+- **Menu Order**: Explicitly ordered items in the explorer context menu.
+
 ## [0.0.14] - 2026-01-20
 
 ### Added

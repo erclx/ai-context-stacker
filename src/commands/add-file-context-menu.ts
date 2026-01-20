@@ -31,7 +31,7 @@ export function getAddFileContextMenuCommands(deps: CommandDependencies): Comman
   ]
 }
 
-function resolveTargets(clickedUri?: vscode.Uri, selectedUris?: vscode.Uri[]): vscode.Uri[] {
+export function resolveTargets(clickedUri?: vscode.Uri, selectedUris?: vscode.Uri[]): vscode.Uri[] {
   if (selectedUris && selectedUris.length > 0) return selectedUris
 
   if (clickedUri) return [clickedUri]

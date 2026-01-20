@@ -27,7 +27,7 @@ This process is repetitive, especially with larger codebases or multi-file tasks
 1. **Install** the extension from the VS Code Marketplace.
 2. **Open** the AI Context Stacker view in the Activity Bar.
 3. **Stage Files** by dragging them into the Staged Files panel.
-   - Or right-click any file in the Explorer → **Add to AI Context Stack**.
+   - Or right-click a file in the Explorer to **Add to AI Context Stack** or **Copy Content for AI Context**.
 4. **Quick Add** files from anywhere using <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> (<kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> on Mac). Once the picker is open, use <kbd>Ctrl</kbd>+<kbd>A</kbd> to select all or <kbd>Ctrl</kbd>+<kbd>Space</kbd> to toggle individual selections.
 5. **Preview** context with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> on Mac, except in Markdown files).
 6. **Copy Stack** by clicking the copy icon or pressing <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> on Mac) when focused on the Staged Files view.
@@ -118,28 +118,29 @@ Copy behavior adapts to the current selection:
 
 ### Navigation
 
-- Right-click files in the Explorer to add them or reveal them in the stack.
+- Right-click files in the Explorer to add them, copy their content, or reveal them in the stack.
 - Right-click staged files to reveal them in the system file manager.
-- Use **Reveal in AI Stack** to locate a file within the staged context.
+- Use **Reveal in AI Context Stack** to locate a file within the staged context.
 
 ## Commands
 
 ### Stack Operations
 
-| Command                   | Description                                                   | Keybinding                                                                               |
-| :------------------------ | :------------------------------------------------------------ | :--------------------------------------------------------------------------------------- |
-| `Add Files...`            | Pick files to add to the stack (includes **Add All** option). | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> |
-| `Add Folder...`           | Recursively scan and add a directory.                         | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> |
-| `Remove Files...`         | Select files to remove from the stack.                        |                                                                                          |
-| `Add All Open Files`      | Stage all currently open text editors.                        |                                                                                          |
-| `Add Current File`        | Stage the active editor.                                      |                                                                                          |
-| `Add to AI Context Stack` | Add file from Explorer context menu.                          |                                                                                          |
-| `Reveal in AI Stack`      | Locate and highlight a file within the staged context.        |                                                                                          |
-| `Clear Stack`             | Remove all **unpinned** files from the current track.         | <kbd>Shift</kbd>+<kbd>Del</kbd> (when focused)                                           |
-| `Toggle Pin`              | Pin or unpin selected file(s).                                | <kbd>Space</kbd> (when focused)                                                          |
-| `Unpin All`               | Unpin all files in the current track (found in `...` menu).   |                                                                                          |
-| `Refresh Stack`           | Re-scan filesystem and discover new files in staged folders.  | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> (when focused)                               |
-| `Select All`              | Select all staged files.                                      | <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd>                               |
+| Command                       | Description                                                   | Keybinding                                                                               |
+| :---------------------------- | :------------------------------------------------------------ | :--------------------------------------------------------------------------------------- |
+| `Add Files...`                | Pick files to add to the stack (includes **Add All** option). | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> |
+| `Add Folder...`               | Recursively scan and add a directory.                         | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> / <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> |
+| `Remove Files...`             | Select files to remove from the stack.                        |                                                                                          |
+| `Add All Open Files`          | Stage all currently open text editors.                        |                                                                                          |
+| `Add Current File`            | Stage the active editor.                                      |                                                                                          |
+| `Add to AI Context Stack`     | Add a file to the stack from the Explorer context menu.       |                                                                                          |
+| `Copy Content for AI Context` | Copy file content directly from the Explorer context menu.    |                                                                                          |
+| `Reveal in AI Context Stack`  | Locate and highlight a file within the AI Context Stack.      |                                                                                          |
+| `Clear Stack`                 | Remove all **unpinned** files from the current track.         | <kbd>Shift</kbd>+<kbd>Del</kbd> (when focused)                                           |
+| `Toggle Pin`                  | Pin or unpin selected file(s).                                | <kbd>Space</kbd> (when focused)                                                          |
+| `Unpin All`                   | Unpin all files in the current track (found in `...` menu).   |                                                                                          |
+| `Refresh Stack`               | Re-scan filesystem and discover new files in staged folders.  | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> (when focused)                               |
+| `Select All`                  | Select all staged files.                                      | <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd>                               |
 
 ### Output & Clipboard
 
