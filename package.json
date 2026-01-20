@@ -201,7 +201,7 @@
       },
       {
         "command": "aiContextStacker.copyExplorerContent",
-        "title": "Copy Content",
+        "title": "Copy Content for AI Context",
         "category": "AI Context Stacker",
         "icon": "$(copy)"
       },
@@ -285,7 +285,7 @@
       },
       {
         "command": "aiContextStacker.revealInView",
-        "title": "Reveal in AI Stack",
+        "title": "Reveal in AI Context Stack",
         "category": "AI Context Stacker"
       },
       {
@@ -330,17 +330,17 @@
         {
           "command": "aiContextStacker.addFileToStack",
           "when": "resourceScheme == file",
-          "group": "7_modification"
+          "group": "7_modification@1"
         },
         {
           "command": "aiContextStacker.copyExplorerContent",
           "when": "resourceScheme == file",
-          "group": "7_modification"
+          "group": "7_modification@2"
         },
         {
           "command": "aiContextStacker.revealInView",
           "when": "resourceScheme == file",
-          "group": "7_modification"
+          "group": "7_modification@3"
         }
       ],
       "editor/title/context": [
