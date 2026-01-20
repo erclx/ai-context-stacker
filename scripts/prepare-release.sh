@@ -1,89 +1,132 @@
 #!/bin/bash
-# ==============================================================================
-# Script Name: Prepare Release PR
-# Description: Bumps version, updates changelog, and opens a Release PR.
-# Usage:       ./scripts/prepare-release.sh
-# ==============================================================================
-
 set -e
+set -o pipefail
 
-# --- Colors ---
-BLUE='\033[0;34m'
 GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
 RED='\033[0;31m'
-GRAY='\033[0;90m'
+YELLOW='\033[0;33m'
+WHITE='\033[1;37m'
+GREY='\033[0;90m'
 NC='\033[0m'
 
-log_step() { echo -e "\n${BLUE}➜${NC} $1"; }
-log_error() { echo -e "${RED}✗${NC} $1"; exit 1; }
+log_info()  { echo -e "${GREY}│${NC} ${GREEN}✓${NC} $1"; }
+log_error() { echo -e "${GREY}│${NC} ${RED}✗${NC} $1"; exit 1; }
+log_step()  { echo -e "${GREY}│${NC}\n${GREY}├${NC} ${WHITE}$1${NC}"; }
+log_add()   { echo -e "${GREY}│${NC} ${GREEN}+${NC} $1"; }
 
-# --- 1. Pre-flight Checks ---
-log_step "Checking Git State..."
+select_option() {
+  local prompt_text=$1
+  shift
+  local options=("$@")
+  local cur=0
+  local count=${#options[@]}
+  local index=0
+  local esc=$(echo -en "\033")
+
+  echo -ne "${GREY}│${NC}\n${GREEN}◆${NC} ${prompt_text}\n"
+  tput civis
+
+  while true; do
+    index=0
+    for o in "${options[@]}"; do
+      if [ "$index" == "$cur" ]; then
+        echo -e "${GREY}│${NC}   ${GREEN}● ${o}${NC}\033[K"
+      else
+        echo -e "${GREY}│${NC}     ${o}\033[K"
+      fi
+      ((index++))
+    done
+
+    read -rsn1 key
+    if [[ "$key" == "$esc" ]]; then
+      read -rsn2 -t 0.001 key
+      [[ "$key" == "[A" ]] && key="k"
+      [[ "$key" == "[B" ]] && key="j"
+    fi
+
+    case "$key" in
+      k|K) ((cur > 0)) && ((cur--)) ;;
+      j|J) ((cur < count-1)) && ((cur++)) ;;
+      "") break ;;
+    esac
+
+    echo -en "\033[${count}A"
+  done
+
+  echo -en "\033[${count}A\033[J"
+  echo -e "\033[1A${GREY}◇${NC} ${prompt_text} ${WHITE}${options[$cur]}${NC}"
+  tput cnorm
+  SELECTED_OPTION="${options[$cur]}"
+}
+
+check_dependencies() {
+  command -v git >/dev/null 2>&1 || log_error "git is required"
+  command -v node >/dev/null 2>&1 || log_error "node is required"
+  command -v npm >/dev/null 2>&1 || log_error "npm is required"
+  command -v gh >/dev/null 2>&1 || log_error "gh is required"
+}
+
+main() {
+  check_dependencies
+
+  echo -e "${GREY}┌${NC}"
+  log_step "Checking Git State"
 
 if [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
-    log_error "Must start from 'main' branch."
+    log_error "Must start from 'main' branch"
 fi
 
 if ! git diff-index --quiet HEAD --; then
-    log_error "You have uncommitted changes. Stash or commit them first."
+    log_error "Uncommitted changes detected"
 fi
 
 git pull origin main
 
-# --- 2. Determine Version ---
 CURRENT_VERSION=$(node -p "require('./package.json').version")
-# Simple patch bump logic
-MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
-MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
-PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+  MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
+  MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
+  PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
 NEXT_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
 
-echo -e "Current: ${YELLOW}$CURRENT_VERSION${NC}"
-echo -e "Next:    ${GREEN}$NEXT_VERSION${NC}"
-echo ""
-read -p "Press Enter to proceed with v$NEXT_VERSION (or Ctrl+C to cancel)..."
+  select_option "Bump version ($CURRENT_VERSION -> $NEXT_VERSION)?" "Yes" "No"
+  if [ "$SELECTED_OPTION" != "Yes" ]; then
+    log_error "Cancelled by user"
+  fi
 
-# --- 3. Create Release Branch ---
+  log_step "Creating Release Branch"
 BRANCH_NAME="release/v$NEXT_VERSION"
-log_step "Creating branch $BRANCH_NAME..."
 git checkout -b "$BRANCH_NAME"
+  log_add "Branch: $BRANCH_NAME"
 
-# --- 4. Bump Files (Package.json & Changelog) ---
-log_step "Bumping Version & Changelog..."
-
-# Update package.json
+  log_step "Bumping Version & Changelog"
 npm version "$NEXT_VERSION" --no-git-tag-version > /dev/null
+  log_add "Updated package.json"
 
-# Update Changelog Header
 DATE=$(date +%Y-%m-%d)
-# Mac/Linux sed compatibility
 if [ "$(uname)" == "Darwin" ]; then
     sed -i '' "s/## \[Unreleased\]/## [Unreleased]\n\n## [$NEXT_VERSION] - $DATE/" CHANGELOG.md
 else
     sed -i "s/## \[Unreleased\]/## [Unreleased]\n\n## [$NEXT_VERSION] - $DATE/" CHANGELOG.md
 fi
 
-# Update Changelog Links (Perl regex)
 ESC_CURRENT=${CURRENT_VERSION//./\\.}
 perl -i -pe "s|\[Unreleased\]: (.*)v$ESC_CURRENT\.\.\.HEAD|[Unreleased]: \$1v$NEXT_VERSION...HEAD\n[$NEXT_VERSION]: \$1v$CURRENT_VERSION...v$NEXT_VERSION|g" CHANGELOG.md
+  log_add "Updated CHANGELOG.md"
 
-# --- 5. Review & Confirmation ---
-echo -e "\n${GRAY}Changes to be committed:${NC}"
+  log_step "Review Changes"
 git --no-pager diff --stat package.json package-lock.json CHANGELOG.md
 
-echo ""
-read -p "Press Enter to commit and push (or Ctrl+C to cancel)..."
+  select_option "Commit and push changes?" "Yes" "No"
+  if [ "$SELECTED_OPTION" != "Yes" ]; then
+    log_error "Cancelled by user"
+  fi
 
-# --- 6. Commit & Push ---
-log_step "Pushing Branch..."
+  log_step "Pushing Branch"
 git add package.json package-lock.json CHANGELOG.md
 git commit -m "chore: release v$NEXT_VERSION"
 git push -u origin "$BRANCH_NAME"
 
-# --- 7. Open Pull Request ---
-log_step "Opening Pull Request..."
-
+  log_step "Opening Pull Request"
 PR_BODY="## Summary
 Finalize artifacts for **v$NEXT_VERSION** release.
 
@@ -101,9 +144,14 @@ Finalize artifacts for **v$NEXT_VERSION** release.
 - [x] Verify Changelog links resolve to correct tags
 "
 
-# Create PR using GitHub CLI
 gh pr create \
   --title "chore(release): v$NEXT_VERSION" \
   --body "$PR_BODY" \
   --label "release" \
   --web
+
+  echo -e "${GREY}└${NC}\n"
+  echo -e "${GREEN}✓ Release preparation complete${NC}"
+}
+
+main "$@"
