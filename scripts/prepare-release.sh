@@ -20,33 +20,27 @@ select_option() {
   local options=("$@")
   local cur=0
   local count=${#options[@]}
-  local index=0
-  local esc=$(echo -en "\033")
 
   echo -ne "${GREY}│${NC}\n${GREEN}◆${NC} ${prompt_text}\n"
-  tput civis
 
   while true; do
-    index=0
-    for o in "${options[@]}"; do
-      if [ "$index" == "$cur" ]; then
-        echo -e "${GREY}│${NC}   ${GREEN}● ${o}${NC}\033[K"
+    for i in "${!options[@]}"; do
+      if [ $i -eq $cur ]; then
+        echo -e "${GREY}│${NC}    ${GREEN}● ${options[$i]}${NC}"
       else
-        echo -e "${GREY}│${NC}     ${o}\033[K"
+        echo -e "${GREY}│${NC}      ${options[$i]}${NC}"
       fi
-      ((index++))
     done
 
     read -rsn1 key
-    if [[ "$key" == "$esc" ]]; then
-      read -rsn2 -t 0.001 key
-      [[ "$key" == "[A" ]] && key="k"
-      [[ "$key" == "[B" ]] && key="j"
-    fi
-
     case "$key" in
-      k|K) ((cur > 0)) && ((cur--)) ;;
-      j|J) ((cur < count-1)) && ((cur++)) ;;
+      $'\x1b')
+        read -rsn2 key
+        if [[ "$key" == "[A" ]]; then cur=$(( (cur - 1 + count) % count )); fi
+        if [[ "$key" == "[B" ]]; then cur=$(( (cur + 1) % count )); fi
+        ;;
+      "k") cur=$(( (cur - 1 + count) % count ));;
+      "j") cur=$(( (cur + 1) % count ));;
       "") break ;;
     esac
 
@@ -55,7 +49,6 @@ select_option() {
 
   echo -en "\033[${count}A\033[J"
   echo -e "\033[1A${GREY}◇${NC} ${prompt_text} ${WHITE}${options[$cur]}${NC}"
-  tput cnorm
   SELECTED_OPTION="${options[$cur]}"
 }
 
