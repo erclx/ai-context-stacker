@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Open VSX Badge**: Added Open VSX downloads badge to `README.md`.
+
+### Changed
+
+- **Marketplace Badges**: Shortened labels for marketplace badges in `README.md` for cleaner display.
+
 ## [0.0.13] - 2026-01-18
 
 ### Added
