@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Release Automation**: Added `npm run release` and `npm run publish` commands for simplified versioning and deployment.
+
 - **Open VSX Badge**: Added Open VSX downloads badge to `README.md`.
 
 ### Changed
