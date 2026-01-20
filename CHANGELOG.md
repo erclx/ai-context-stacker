@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Copy Content**: Added "Copy Content for AI Context" command to explorer context menu.
+- **Picker Navigation**: Added Ctrl+J and Ctrl+K for Vim-style navigation within all selection pickers.
 
 ### Changed
 

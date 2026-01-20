@@ -186,10 +186,12 @@ Copy behavior adapts to the current selection:
 
 ### Quick Pickers (when open)
 
-| Shortcut                                                   | Command          |
-| :--------------------------------------------------------- | :--------------- |
-| <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd> | Select All       |
-| <kbd>Ctrl</kbd>+<kbd>Space</kbd>                           | Toggle Selection |
+| Shortcut                                                   | Command                     |
+| :--------------------------------------------------------- | :-------------------------- |
+| <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd> | Select All                  |
+| <kbd>Ctrl</kbd>+<kbd>Space</kbd>                           | Toggle Selection            |
+| <kbd>Ctrl</kbd>+<kbd>J</kbd>                               | Move Focus Down (Vim-style) |
+| <kbd>Ctrl</kbd>+<kbd>K</kbd>                               | Move Focus Up (Vim-style)   |
 
 ### Staged Files View (when focused)
 
