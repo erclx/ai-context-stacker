@@ -323,6 +323,16 @@
         "title": "Unpin All Files",
         "category": "AI Context Stacker",
         "icon": "$(pinned)"
+      },
+      {
+        "command": "aiContextStacker.internalNext",
+        "title": "Select Next Item",
+        "category": "AI Context Stacker"
+      },
+      {
+        "command": "aiContextStacker.internalPrev",
+        "title": "Select Previous Item",
+        "category": "AI Context Stacker"
       }
     ],
     "menus": {
@@ -543,6 +553,18 @@
         "command": "aiContextStacker.internalSelectAll",
         "key": "ctrl+a",
         "mac": "cmd+a",
+        "when": "aiStackerPickerVisible"
+      },
+      {
+        "command": "aiContextStacker.internalNext",
+        "key": "ctrl+j",
+        "mac": "cmd+j",
+        "when": "aiStackerPickerVisible"
+      },
+      {
+        "command": "aiContextStacker.internalPrev",
+        "key": "ctrl+k",
+        "mac": "cmd+k",
         "when": "aiStackerPickerVisible"
       },
       {
