@@ -1,6 +1,7 @@
-erclx
-treedata
+cnorm
 cutcopypaste
+erclx
 pycache
-venv
 softprops
+treedata
+venv

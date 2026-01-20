@@ -1,4 +1,5 @@
 APOS
+civis
 cloudern
 codicons
 commitlint

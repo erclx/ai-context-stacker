@@ -1,74 +1,114 @@
 #!/bin/bash
-# ==============================================================================
-# Script Name: Trigger Release
-# Description: Finalizes the release by tagging the current main commit
-#              and cleaning up the local release branch.
-# Usage:       ./scripts/trigger-release.sh
-# ==============================================================================
-
 set -e
+set -o pipefail
 
-# --- Colors ---
-BLUE='\033[0;34m'
 GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
 RED='\033[0;31m'
+YELLOW='\033[0;33m'
+WHITE='\033[1;37m'
+GREY='\033[0;90m'
 NC='\033[0m'
 
-log_step() { echo -e "\n${BLUE}➜${NC} $1"; }
-log_info() { echo -e "${GREEN}✓${NC} $1"; }
-log_warn() { echo -e "${YELLOW}!${NC} $1"; }
-log_error() { echo -e "${RED}✗${NC} $1"; exit 1; }
+log_info()  { echo -e "${GREY}│${NC} ${GREEN}✓${NC} $1"; }
+log_warn()  { echo -e "${GREY}│${NC} ${YELLOW}!${NC} $1"; }
+log_error() { echo -e "${GREY}│${NC} ${RED}✗${NC} $1"; exit 1; }
+log_step()  { echo -e "${GREY}│${NC}\n${GREY}├${NC} ${WHITE}$1${NC}"; }
 
-# --- 1. Pre-flight Checks ---
-log_step "Syncing with Remote..."
+select_option() {
+  local prompt_text=$1
+  shift
+  local options=("$@")
+  local cur=0
+  local count=${#options[@]}
+  local index=0
+  local esc=$(echo -en "\033")
 
-# Ensure we are on main
+  echo -ne "${GREY}│${NC}\n${GREEN}◆${NC} ${prompt_text}\n"
+  tput civis
+
+  while true; do
+    index=0
+    for o in "${options[@]}"; do
+      if [ "$index" == "$cur" ]; then
+        echo -e "${GREY}│${NC}   ${GREEN}● ${o}${NC}\033[K"
+      else
+        echo -e "${GREY}│${NC}     ${o}\033[K"
+      fi
+      ((index++))
+    done
+
+    read -rsn1 key
+    if [[ "$key" == "$esc" ]]; then
+      read -rsn2 -t 0.001 key
+      [[ "$key" == "[A" ]] && key="k"
+      [[ "$key" == "[B" ]] && key="j"
+    fi
+
+    case "$key" in
+      k|K) ((cur > 0)) && ((cur--)) ;;
+      j|J) ((cur < count-1)) && ((cur++)) ;;
+      "") break ;;
+    esac
+
+    echo -en "\033[${count}A"
+  done
+
+  echo -en "\033[${count}A\033[J"
+  echo -e "\033[1A${GREY}◇${NC} ${prompt_text} ${WHITE}${options[$cur]}${NC}"
+  tput cnorm
+  SELECTED_OPTION="${options[$cur]}"
+}
+
+check_dependencies() {
+  command -v git >/dev/null 2>&1 || log_error "git is required"
+  command -v node >/dev/null 2>&1 || log_error "node is required"
+}
+
+main() {
+  check_dependencies
+
+  echo -e "${GREY}┌${NC}"
+  log_step "Syncing with Remote"
+
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$CURRENT_BRANCH" != "main" ]; then
-    echo -e "${YELLOW}Switching to main...${NC}"
+    log_warn "Switching from $CURRENT_BRANCH to main"
     git checkout main
 fi
-
-# Pull the merged PR code
 git pull origin main
 
-# --- 2. Detect Version ---
+  log_step "Detecting Version"
 VERSION=$(node -p "require('./package.json').version")
 TAG="v$VERSION"
 RELEASE_BRANCH="release/$TAG"
 
-log_step "Detected Version: ${YELLOW}$TAG${NC}"
+  log_info "Detected Version: $TAG"
 
-# Check if tag already exists
 if git rev-parse "$TAG" >/dev/null 2>&1; then
-    log_error "Tag $TAG already exists locally. Has this version already been released?"
-fi
+    log_error "Tag $TAG already exists locally"
+  fi
 
-# --- 3. Confirmation ---
-echo -e "This will create tag ${BOLD}$TAG${NC} and push to origin."
-echo -e "It will also delete the local branch ${BOLD}$RELEASE_BRANCH${NC}."
-echo ""
-read -p "Press Enter to RELEASE (or Ctrl+C to cancel)..."
+  select_option "Confirm release of $TAG?" "Yes" "No"
+  if [ "$SELECTED_OPTION" != "Yes" ]; then
+    log_error "Release cancelled by user"
+  fi
 
-# --- 4. Tag & Push ---
-log_step "Tagging & Pushing..."
-
+  log_step "Tagging & Pushing"
 git tag "$TAG"
 log_info "Created local tag $TAG"
-
 git push origin "$TAG"
 log_info "Pushed tag to GitHub"
 
-# --- 5. Cleanup ---
-log_step "Cleaning up..."
-
+  log_step "Cleaning up"
 if git show-ref --verify --quiet "refs/heads/$RELEASE_BRANCH"; then
     git branch -d "$RELEASE_BRANCH"
     log_info "Deleted local branch $RELEASE_BRANCH"
 else
-    log_warn "Branch $RELEASE_BRANCH not found locally (already deleted?)"
+    log_warn "Branch $RELEASE_BRANCH not found locally"
 fi
 
-echo -e "\n${GREEN}🚀 Release Triggered!${NC}"
-echo -e "Monitor progress here: https://github.com/erclx/ai-context-stacker/actions"
+  echo -e "${GREY}└${NC}\n"
+  echo -e "${GREEN}✓ Release Triggered! Monitor: https://github.com/erclx/ai-context-stacker/actions${NC}"
+}
+
+main "$@"
