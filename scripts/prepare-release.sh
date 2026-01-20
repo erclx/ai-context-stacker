@@ -68,7 +68,7 @@ fi
 ESC_CURRENT=${CURRENT_VERSION//./\\.}
 perl -i -pe "s|\[Unreleased\]: (.*)v$ESC_CURRENT\.\.\.HEAD|[Unreleased]: \$1v$NEXT_VERSION...HEAD\n[$NEXT_VERSION]: \$1v$CURRENT_VERSION...v$NEXT_VERSION|g" CHANGELOG.md
 
-# --- 5. Review & Confirmation (Added Back) ---
+# --- 5. Review & Confirmation ---
 echo -e "\n${GRAY}Changes to be committed:${NC}"
 git --no-pager diff --stat package.json package-lock.json CHANGELOG.md
 
@@ -84,24 +84,26 @@ git push -u origin "$BRANCH_NAME"
 # --- 7. Open Pull Request ---
 log_step "Opening Pull Request..."
 
-# Define the PR Body Template
-PR_BODY="### 🚀 Release $NEXT_VERSION
+PR_BODY="## Summary
+Finalize artifacts for **v$NEXT_VERSION** release.
 
-This PR finalizes the version bump and changelog updates for the **$NEXT_VERSION** release.
+## Key Changes
+- Bump \`package.json\` version from \`$CURRENT_VERSION\` to \`$NEXT_VERSION\`
+- Update \`CHANGELOG.md\` with release date ($DATE)
+- Refresh comparison links for version diffs
 
-### 🛡️ Architectural & Performance Strategy
-- **Optimization**: Synchronizing repository state with latest documentation and configuration refinements.
-- **Safeguards**: Verified \`package.json\` and \`CHANGELOG.md\` alignment.
-- **Logic**: Automated version bump and link generation.
+## Technical Context
+- **Scope**: Release Management
+- **Type**: Patch Bump (Automated)
 
-### ✅ Verification Checklist
-- [x] Version updated to \`$NEXT_VERSION\` in \`package.json\`
-- [x] \`CHANGELOG.md\` updated with correct date and version header
-- [x] Comparison links updated to point to new tag"
+## Testing
+- [x] Verify \`package.json\` version matches branch
+- [x] Verify Changelog links resolve to correct tags
+"
 
 # Create PR using GitHub CLI
 gh pr create \
-  --title "chore: release v$NEXT_VERSION" \
+  --title "chore(release): v$NEXT_VERSION" \
   --body "$PR_BODY" \
   --label "release" \
   --web
