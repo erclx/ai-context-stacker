@@ -4,6 +4,8 @@ export function attachPickerToggle<T extends vscode.QuickPickItem>(picker: vscod
   const contextKey = 'aiStackerPickerVisible'
   const toggleCommandId = 'aiContextStacker.internalToggle'
   const selectAllCommandId = 'aiContextStacker.internalSelectAll'
+  const nextCommandId = 'aiContextStacker.internalNext'
+  const prevCommandId = 'aiContextStacker.internalPrev'
 
   void vscode.commands.executeCommand('setContext', contextKey, true)
 
@@ -35,14 +37,45 @@ export function attachPickerToggle<T extends vscode.QuickPickItem>(picker: vscod
     }
   })
 
+  const nextCommand = vscode.commands.registerCommand(nextCommandId, () => {
+    moveActiveItem(picker, 1)
+  })
+
+  const prevCommand = vscode.commands.registerCommand(prevCommandId, () => {
+    moveActiveItem(picker, -1)
+  })
+
   const cleanup = () => {
     void vscode.commands.executeCommand('setContext', contextKey, false)
     toggleCommand.dispose()
     selectAllCommand.dispose()
+    nextCommand.dispose()
+    prevCommand.dispose()
     hideListener.dispose()
   }
 
   const hideListener = picker.onDidHide(cleanup)
 
-  return vscode.Disposable.from(toggleCommand, selectAllCommand, hideListener)
+  return vscode.Disposable.from(toggleCommand, selectAllCommand, nextCommand, prevCommand, hideListener)
+}
+
+function moveActiveItem<T extends vscode.QuickPickItem>(picker: vscode.QuickPick<T>, direction: number): void {
+  const items = picker.items
+  if (!items.length) return
+
+  const activeItem = picker.activeItems[0]
+  const currentIndex = activeItem ? items.indexOf(activeItem) : -1
+  const count = items.length
+
+  let newIndex = currentIndex
+
+  for (let i = 0; i < count; i++) {
+    newIndex = (((newIndex + direction) % count) + count) % count
+
+    const item = items[newIndex]
+    if (item.kind !== vscode.QuickPickItemKind.Separator) {
+      picker.activeItems = [item]
+      return
+    }
+  }
 }
