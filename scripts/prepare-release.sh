@@ -116,7 +116,7 @@ git --no-pager diff --stat package.json package-lock.json CHANGELOG.md
 
   log_step "Pushing Branch"
 git add package.json package-lock.json CHANGELOG.md
-git commit -m "chore: release v$NEXT_VERSION"
+  git commit -m "chore(release): v$NEXT_VERSION"
 git push -u origin "$BRANCH_NAME"
 
   log_step "Opening Pull Request"

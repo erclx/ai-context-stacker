@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.0.15] - 2026-01-20
+
 ### Added
 
 - **Copy Content**: Added "Copy Content for AI Context" command to explorer context menu.
@@ -115,7 +117,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Safety Limits**: 100MB clipboard cap and 5MB per-file limit for extension stability.
 - **Privacy First**: 100% local processing; no data is sent to external servers.
 
-[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.14...HEAD
+[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.0.15...HEAD
+[0.0.15]: https://github.com/erclx/ai-context-stacker/compare/v0.0.14...v0.0.15
 [0.0.14]: https://github.com/erclx/ai-context-stacker/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/erclx/ai-context-stacker/compare/v0.0.10...v0.0.13
 [0.0.10 - 0.0.11]: https://github.com/erclx/ai-context-stacker/compare/v0.0.9...v0.0.11
