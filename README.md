@@ -28,36 +28,32 @@ This process is repetitive, especially with larger codebases or multi-file tasks
 2. **Open** the AI Context Stacker view in the Activity Bar.
 3. **Stage Files** by dragging them into the Staged Files panel.
    - Or right-click a file in the Explorer to **Add to AI Context Stack** or **Copy Content for AI Context**.
-4. **Quick Add** files from anywhere using <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> (<kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>A</kbd> on Mac). Once the picker is open, use <kbd>Ctrl</kbd>+<kbd>A</kbd> to select all or <kbd>Ctrl</kbd>+<kbd>Space</kbd> to toggle individual selections.
-5. **Preview** context with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> on Mac, except in Markdown files).
-6. **Copy Stack** by clicking the copy icon or pressing <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> on Mac) when focused on the Staged Files view.
+4. **Quick Add** files from anywhere using <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>A</kbd>. Once the picker is open, use <kbd>Ctrl</kbd>+<kbd>A</kbd> to select all or <kbd>Ctrl</kbd>+<kbd>Space</kbd> to toggle individual selections.
+5. **Preview** context with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> (not available in Markdown files on Mac).
+6. **Copy Stack** by clicking the copy icon or pressing <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> when focused on the Staged Files view.
 7. **Paste** into the LLM.
 
-**Tip**: Press <kbd>F1</kbd> or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> on Mac) and type "AI Context Stacker" to view available commands.
+**Tip**: Press <kbd>F1</kbd> or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "AI Context Stacker" to view available commands.
 
 ## Key Features
 
 ### File Staging
 
-Drag files or folders into the staging area. The extension tracks added items and allows copying them in a single action.
+Drag files or folders into the staging area to track and copy them in a single action.
 
-**Token Counting**: Token counts update as you type. Large files and folders are calculated in the background to prevent blocking the VS Code UI.
-
-**Startup**: The sidebar loads when VS Code opens. Staged files are persisted between sessions.
-
-**Manual Refresh**: If changes occur outside VS Code, use the **Refresh Stack** command (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>U</kbd>) to force a re-scan.
-
-**Multi-root Workspace Support**: The extension supports multi-root workspaces. Staged files are grouped by project folder name, which clarifies which project each file belongs to. It works with GitHub Codespaces, WSL2, and SSH Remote sessions.
-
-**Auto-Sync**: The extension uses VS Code events to keep the stack in sync with the file system. Renames and deletes are reflected automatically, and the tree view updates as the project structure changes.
+- **Token Counting**: Token counts update as you type, with large files calculated in the background.
+- **Startup**: Staged files persist between sessions and load automatically when VS Code opens.
+- **Manual Refresh**: Use the **Refresh Stack** command (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>U</kbd>) to force a re-scan.
+- **Multi-root Workspace Support**: Staged files are grouped by project folder name. Works with GitHub Codespaces, WSL2, and SSH Remote sessions.
+- **Auto-Sync**: Renames and deletes are reflected automatically as the project structure changes.
 
 ### Context Tracks
 
 Create separate tracks for different tasks (e.g. _Bug Fix #123_, _Refactor Auth_). Each track maintains its own list of staged files.
 
-- Reorder tracks by dragging or using <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd>
+- Reorder tracks by dragging or using <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Option</kbd>+<kbd>↑</kbd> and <kbd>Alt</kbd>+<kbd>↓</kbd> / <kbd>Option</kbd>+<kbd>↓</kbd>
 - Rename tracks inline with <kbd>F2</kbd>
-- Switch between tracks with <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> (<kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>S</kbd> on Mac)
+- Switch between tracks with <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>S</kbd>
 
 Note: The extension always maintains at least one active track.
 
@@ -70,6 +66,8 @@ Files are color-coded based on estimated token count:
 - **Pinned files** retain their pin icon while inheriting warning colors
 
 ### Pinning and Filtering
+
+Control which files remain in your stack and customize your view with pinning and filtering options.
 
 - Pin files to prevent removal during **Clear Stack**
 - Toggle **Show Pinned Files Only** to filter the view
@@ -106,6 +104,8 @@ Copy behavior adapts to the current selection:
 
 ### Navigation
 
+Quickly locate and access files within your project and staged context.
+
 - Right-click files in the Explorer to add them, copy their content, or reveal them in the stack.
 - Right-click staged files to reveal them in the system file manager.
 - Use **Reveal in AI Context Stack** to locate a file within the staged context.
@@ -114,21 +114,21 @@ Copy behavior adapts to the current selection:
 
 ### Stack Operations
 
-| Command                       | Description                                                   | Keybinding                                                                               |
-| :---------------------------- | :------------------------------------------------------------ | :--------------------------------------------------------------------------------------- |
-| `Add Files...`                | Pick files to add to the stack (includes **Add All** option). | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>A</kbd> |
-| `Add Folder...`               | Recursively scan and add a directory.                         | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>F</kbd> |
-| `Remove Files...`             | Select files to remove from the stack.                        |                                                                                          |
-| `Add All Open Files`          | Stage all currently open text editors.                        |                                                                                          |
-| `Add Current File`            | Stage the active editor.                                      |                                                                                          |
-| `Add to AI Context Stack`     | Add a file to the stack from the Explorer context menu.       |                                                                                          |
-| `Copy Content for AI Context` | Copy file content directly from the Explorer context menu.    |                                                                                          |
-| `Reveal in AI Context Stack`  | Locate and highlight a file within the AI Context Stack.      |                                                                                          |
-| `Clear Stack`                 | Remove all **unpinned** files from the current track.         | <kbd>Shift</kbd>+<kbd>Del</kbd> (when focused)                                           |
-| `Toggle Pin`                  | Pin or unpin selected file(s).                                | <kbd>Space</kbd> (when focused)                                                          |
-| `Unpin All`                   | Unpin all files in the current track (found in `...` menu).   |                                                                                          |
-| `Refresh Stack`               | Re-scan filesystem and discover new files in staged folders.  | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> (when focused)                               |
-| `Select All`                  | Select all staged files.                                      | <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd>                               |
+| Command                       | Description                                                   | Keybinding                                                                                              |
+| :---------------------------- | :------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------ |
+| `Add Files...`                | Pick files to add to the stack (includes **Add All** option). | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>A</kbd>                |
+| `Add Folder...`               | Recursively scan and add a directory.                         | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>F</kbd>                |
+| `Remove Files...`             | Select files to remove from the stack.                        |                                                                                                         |
+| `Add All Open Files`          | Stage all currently open text editors.                        |                                                                                                         |
+| `Add Current File`            | Stage the active editor.                                      |                                                                                                         |
+| `Add to AI Context Stack`     | Add a file to the stack from the Explorer context menu.       |                                                                                                         |
+| `Copy Content for AI Context` | Copy file content directly from the Explorer context menu.    |                                                                                                         |
+| `Reveal in AI Context Stack`  | Locate and highlight a file within the AI Context Stack.      |                                                                                                         |
+| `Clear Stack`                 | Remove all **unpinned** files from the current track.         | <kbd>Shift</kbd>+<kbd>Del</kbd> (when focused)                                                          |
+| `Toggle Pin`                  | Pin or unpin selected file(s).                                | <kbd>Space</kbd> (when focused)                                                                         |
+| `Unpin All`                   | Unpin all files in the current track (found in `...` menu).   |                                                                                                         |
+| `Refresh Stack`               | Re-scan filesystem and discover new files in staged folders.  | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>U</kbd> (when focused) |
+| `Select All`                  | Select all staged files.                                      | <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd>                                              |
 
 ### Output & Clipboard
 
@@ -151,14 +151,14 @@ Copy behavior adapts to the current selection:
 
 ### Track Management
 
-| Command              | Description                                           | Keybinding                                                                               |
-| :------------------- | :---------------------------------------------------- | :--------------------------------------------------------------------------------------- |
-| `New Track...`       | Create a new context track.                           | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>K</kbd> |
-| `Switch Track...`    | Switch between tracks.                                | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>S</kbd> |
-| `Rename Track...`    | Rename the selected track.                            | <kbd>F2</kbd> (when focused on track)                                                    |
-| `Delete Track`       | Delete the selected track (except for the last one).  | <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd> (when focused)                      |
-| `Reset All Tracks`   | Reset the extension state (removes all tracks/files). | <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd>   |
-| `Move Track Up/Down` | Reorder tracks in the sidebar.                        | <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd> (when focused)                 |
+| Command              | Description                                           | Keybinding                                                                                                                 |
+| :------------------- | :---------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- |
+| `New Track...`       | Create a new context track.                           | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>K</kbd>                                   |
+| `Switch Track...`    | Switch between tracks.                                | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>S</kbd>                                   |
+| `Rename Track...`    | Rename the selected track.                            | <kbd>F2</kbd> (when focused on track)                                                                                      |
+| `Delete Track`       | Delete the selected track (except for the last one).  | <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd> (when focused)                                                        |
+| `Reset All Tracks`   | Reset the extension state (removes all tracks/files). | <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                     |
+| `Move Track Up/Down` | Reorder tracks in the sidebar.                        | <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Option</kbd>+<kbd>↑</kbd>, <kbd>Alt</kbd>+<kbd>↓</kbd> / <kbd>Option</kbd>+<kbd>↓</kbd> |
 
 ## Keyboard Shortcuts
 
@@ -196,12 +196,12 @@ Copy behavior adapts to the current selection:
 
 ### Context Tracks View (when focused)
 
-| Shortcut                                                                               | Command          |
-| :------------------------------------------------------------------------------------- | :--------------- |
-| <kbd>F2</kbd>                                                                          | Rename Track     |
-| <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd>                              | Move Track       |
-| <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                   | Delete Track     |
-| <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd> | Reset All Tracks |
+| Shortcut                                                                                                                   | Command          |
+| :------------------------------------------------------------------------------------------------------------------------- | :--------------- |
+| <kbd>F2</kbd>                                                                                                              | Rename Track     |
+| <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Option</kbd>+<kbd>↑</kbd>, <kbd>Alt</kbd>+<kbd>↓</kbd> / <kbd>Option</kbd>+<kbd>↓</kbd> | Move Track       |
+| <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                                                       | Delete Track     |
+| <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                     | Reset All Tracks |
 
 ## Settings
 
