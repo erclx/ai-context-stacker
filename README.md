@@ -10,18 +10,6 @@ Prepare file context and directory maps for models like ChatGPT, Claude, or Gemi
   <img src="https://github.com/erclx/ai-context-stacker/raw/main/demos/hero.gif" alt="Drag and Drop Demo" width="800" />
 </p>
 
-## The Problem
-
-When working with LLMs, the typical workflow involves:
-
-1. Opening a file and copying its contents
-2. Switching to the browser
-3. Pasting into the chat
-4. Returning to VS Code
-5. Repeating for each additional file
-
-This process is repetitive, especially with larger codebases or multi-file tasks.
-
 ## Quick Start
 
 1. **Install** the extension from the VS Code Marketplace.
@@ -46,6 +34,7 @@ Drag files or folders into the staging area to track and copy them in a single a
 - **Manual Refresh**: Use the **Refresh Stack** command (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>U</kbd>) to force a re-scan.
 - **Multi-root Workspace Support**: Staged files are grouped by project folder name. Works with GitHub Codespaces, WSL2, and SSH Remote sessions.
 - **Auto-Sync**: Renames and deletes are reflected automatically as the project structure changes.
+- **Navigation**: Right-click files in the Explorer to add them, copy their content, or reveal them in the stack. Right-click staged files to reveal them in the system file manager. Use **Reveal in AI Context Stack** to locate a file within the staged context.
 
 ### Context Tracks
 
@@ -102,35 +91,7 @@ Copy behavior adapts to the current selection:
 - **Files selected**: Copies only the selected files.
 - **Nothing selected**: Copies the entire visible stack (respecting active filters).
 
-### Navigation
-
-Quickly locate and access files within your project and staged context.
-
-- Right-click files in the Explorer to add them, copy their content, or reveal them in the stack.
-- Right-click staged files to reveal them in the system file manager.
-- Use **Reveal in AI Context Stack** to locate a file within the staged context.
-
 ## Commands
-
-### Stack Operations
-
-| Command                       | Description                                                   | Keybinding                                                                                              |
-| :---------------------------- | :------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------ |
-| `Add Files...`                | Pick files to add to the stack (includes **Add All** option). | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>A</kbd>                |
-| `Add Folder...`               | Recursively scan and add a directory.                         | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>F</kbd>                |
-| `Remove Files...`             | Select files to remove from the stack.                        |                                                                                                         |
-| `Add All Open Files`          | Stage all currently open text editors.                        |                                                                                                         |
-| `Add Current File`            | Stage the active editor.                                      |                                                                                                         |
-| `Add to AI Context Stack`     | Add a file to the stack from the Explorer context menu.       |                                                                                                         |
-| `Copy Content for AI Context` | Copy file content directly from the Explorer context menu.    |                                                                                                         |
-| `Reveal in AI Context Stack`  | Locate and highlight a file within the AI Context Stack.      |                                                                                                         |
-| `Clear Stack`                 | Remove all **unpinned** files from the current track.         | <kbd>Shift</kbd>+<kbd>Del</kbd> (when focused)                                                          |
-| `Toggle Pin`                  | Pin or unpin selected file(s).                                | <kbd>Space</kbd> (when focused)                                                                         |
-| `Unpin All`                   | Unpin all files in the current track (found in `...` menu).   |                                                                                                         |
-| `Refresh Stack`               | Re-scan filesystem and discover new files in staged folders.  | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>U</kbd> (when focused) |
-| `Select All`                  | Select all staged files.                                      | <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd>                                              |
-
-### Output & Clipboard
 
 | Command                | Description                                                   | Keybinding                                                                                   |
 | :--------------------- | :------------------------------------------------------------ | :------------------------------------------------------------------------------------------- |
@@ -138,27 +99,6 @@ Quickly locate and access files within your project and staged context.
 | `Copy and Clear Stack` | Copy context and clear unpinned files.                        | <kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd> (when focused)                    |
 | `Copy Content`         | Copy individual file or folder content.                       | <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>C</kbd> (when item focused)               |
 | `Preview Context`      | Open a Markdown preview of the current stack.                 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> |
-
-### View & Filtering
-
-| Command                  | Description                                           |
-| :----------------------- | :---------------------------------------------------- |
-| `Reveal in Explorer`     | Open the staged file in the system file manager.      |
-| `Collapse All`           | Collapse all folders in the Staged Files view.        |
-| `Show Pinned Files Only` | Filter the view to only show pinned items.            |
-| `Show All Files`         | Reset filters to show the full stack.                 |
-| `Settings...`            | Open VS Code Settings filtered to AI Context Stacker. |
-
-### Track Management
-
-| Command              | Description                                           | Keybinding                                                                                                                 |
-| :------------------- | :---------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- |
-| `New Track...`       | Create a new context track.                           | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>K</kbd>                                   |
-| `Switch Track...`    | Switch between tracks.                                | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>S</kbd>                                   |
-| `Rename Track...`    | Rename the selected track.                            | <kbd>F2</kbd> (when focused on track)                                                                                      |
-| `Delete Track`       | Delete the selected track (except for the last one).  | <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd> (when focused)                                                        |
-| `Reset All Tracks`   | Reset the extension state (removes all tracks/files). | <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                     |
-| `Move Track Up/Down` | Reorder tracks in the sidebar.                        | <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Option</kbd>+<kbd>↑</kbd>, <kbd>Alt</kbd>+<kbd>↓</kbd> / <kbd>Option</kbd>+<kbd>↓</kbd> |
 
 ## Keyboard Shortcuts
 
@@ -219,14 +159,6 @@ Configuration is managed via VS Code Settings.
 | `aiContextStacker.showFileContentsHeader` | `true`            | Show the title text above file contents.                                                |
 | `aiContextStacker.fileContentsText`       | `# File Contents` | Custom text for the contents header.                                                    |
 | `aiContextStacker.logLevel`               | `INFO`            | Control the verbosity of the Output Channel. Options: `DEBUG`, `INFO`, `WARN`, `ERROR`. |
-
-## Tips
-
-- **Sidebar Placement**: Keeping the extension in the **left Activity Bar** improves drag-and-drop from the Explorer.
-- **Model Limits**: Adjust `largeFileThreshold` to match your model's context window.
-- **Fast Iteration**: Use **Copy and Clear Stack** (<kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd>) to reset quickly between prompts.
-- **Selective Copy**: Select specific files to copy only those, or copy everything when nothing is selected.
-- **Bulk Actions**: Use <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> then <kbd>Space</kbd> to pin or unpin multiple files at once.
 
 ## Known Limitations
 
