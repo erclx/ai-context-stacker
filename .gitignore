@@ -1,7 +1,12 @@
-out
-dist
-node_modules
-.vscode-test/
+# Build
+out/
+dist/
 *.vsix
 
+# Deps
+node_modules/
+
+# Tooling
+.vscode-test/
 .gemini/.tmp/
+.gemini/settings.json
