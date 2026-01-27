@@ -46,3 +46,8 @@ export function getSortWeight(item: StackTreeItem): number {
   }
   return weight
 }
+
+export function refreshFileLabel(file: StagedFile): void {
+  file.label = file.uri.path.split('/').pop() || 'unknown'
+  file.pathSegments = undefined
+}

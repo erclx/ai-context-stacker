@@ -1,6 +1,7 @@
+import * as path from 'path'
 import * as vscode from 'vscode'
 
-import { ContextTrack, StagedFile } from '../models'
+import { ContextTrack, refreshFileLabel, StagedFile } from '../models'
 import { HydrationService, PersistenceService } from '../services'
 import { generateId, Logger } from '../utils'
 import { isChildOf } from '../utils/file-scanner'
@@ -239,12 +240,6 @@ export class TrackManager implements vscode.Disposable {
   }
 
   public async replaceUriPrefix(oldRoot: vscode.Uri, newRoot: vscode.Uri): Promise<void> {
-    const oldStr = oldRoot.toString()
-    const newStr = newRoot.toString()
-
-    const oldPrefix = oldStr.endsWith('/') ? oldStr : `${oldStr}/`
-    const newPrefix = newStr.endsWith('/') ? newStr : `${newStr}/`
-
     let changed = false
     let lastYield = Date.now()
     const YIELD_MS = 15
@@ -259,12 +254,14 @@ export class TrackManager implements vscode.Disposable {
           lastYield = Date.now()
         }
 
-        const fileStr = file.uri.toString()
-        if (fileStr.startsWith(oldPrefix)) {
-          const suffix = fileStr.slice(oldPrefix.length)
-          const newUri = vscode.Uri.parse(newPrefix + suffix)
-          this.updateFileUri(file, newUri)
-          changed = true
+        if (isChildOf(oldRoot, file.uri)) {
+          const relativePath = path.relative(oldRoot.fsPath, file.uri.fsPath)
+
+          if (relativePath && !relativePath.startsWith('..')) {
+            const newUri = vscode.Uri.joinPath(newRoot, relativePath)
+            this.updateFileUri(file, newUri)
+            changed = true
+          }
         }
       }
     }
@@ -417,7 +414,7 @@ export class TrackManager implements vscode.Disposable {
 
   private updateFileUri(file: StagedFile, newUri: vscode.Uri): void {
     file.uri = newUri
-    file.label = newUri.path.split('/').pop() || 'unknown'
+    refreshFileLabel(file)
   }
 
   private ensureActiveTrack(): ContextTrack {

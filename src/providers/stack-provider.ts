@@ -21,6 +21,10 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   private renderer = new StackItemRenderer()
   private enrichmentCTS: vscode.CancellationTokenSource | undefined
   private refreshTimer: NodeJS.Timeout | undefined
+  private structuralRefreshTimer: NodeJS.Timeout | undefined
+
+  private readonly STRUCTURAL_REFRESH_DELAY = 150
+  private readonly STANDARD_REFRESH_DELAY = 50
 
   constructor(
     private context: vscode.ExtensionContext,
@@ -201,6 +205,9 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer)
     }
+    if (this.structuralRefreshTimer) {
+      clearTimeout(this.structuralRefreshTimer)
+    }
     this._onDidChangeTreeData.dispose()
     this.disposables.forEach((d) => d.dispose())
   }
@@ -225,18 +232,35 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
   }
 
   private triggerRefresh(): void {
-    if (!this.trackManager.isInitialized) {
-      return
-    }
-
+    if (!this.trackManager.isInitialized) return
     if (this.refreshTimer) return
 
     this.refreshTimer = setTimeout(() => {
       this.refreshTimer = undefined
-      this._onDidChangeTreeData.fire()
-      this.refreshSmartVisibility()
-      this.checkUnstagedOpenFiles()
-    }, 50)
+      this.fireRefresh()
+    }, this.STANDARD_REFRESH_DELAY)
+  }
+
+  private triggerStructuralRefresh(): void {
+    if (!this.trackManager.isInitialized) return
+
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer)
+      this.refreshTimer = undefined
+    }
+
+    if (this.structuralRefreshTimer) return
+
+    this.structuralRefreshTimer = setTimeout(() => {
+      this.structuralRefreshTimer = undefined
+      this.fireRefresh()
+    }, this.STRUCTURAL_REFRESH_DELAY)
+  }
+
+  private fireRefresh(): void {
+    this._onDidChangeTreeData.fire()
+    this.refreshSmartVisibility()
+    this.checkUnstagedOpenFiles()
   }
 
   private async rebuildTreeCache(): Promise<StackTreeItem[]> {
@@ -293,6 +317,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   private registerListeners(): void {
     this.trackManager.onDidChangeTrack(() => {
+      this._cachedTree = undefined
       this._treeDirty = true
       this.treeBuilder.reset()
       this.triggerRefresh()

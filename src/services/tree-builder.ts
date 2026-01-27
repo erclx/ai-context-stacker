@@ -22,6 +22,15 @@ export class TreeBuilder {
     this.refreshWorkspaceRoots()
   }
 
+  public invalidateFolder(folderPath: string): void {
+    const keys = Array.from(this.folderMap.keys())
+    for (const key of keys) {
+      if (key.includes(folderPath)) {
+        this.folderMap.delete(key)
+      }
+    }
+  }
+
   public async buildAsync(files: StagedFile[]): Promise<StackTreeItem[]> {
     this.reset()
     await this.processFileBatch(files)
