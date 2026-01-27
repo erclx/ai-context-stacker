@@ -214,6 +214,22 @@ suite('TreeBuilder Suite', () => {
     })
   })
 
+  test('Should invalidate specific folder paths from cache', async () => {
+    const file = createFile('src/utils/helper.ts')
+    mockPaths([file], ['src/utils/helper.ts'])
+    await builder.buildAsync([file])
+
+    const map = (builder as any).folderMap as Map<string, StagedFolder>
+
+    assert.ok(map.has('folder:src'))
+    assert.ok(map.has('folder:src/utils'))
+
+    builder.invalidateFolder('src/utils')
+
+    assert.ok(map.has('folder:src'), 'Parent folder should remain')
+    assert.strictEqual(map.has('folder:src/utils'), false, 'Target folder should be removed')
+  })
+
   function setupMocks(sb: sinon.SinonSandbox): void {
     sb.stub(vscode.workspace, 'workspaceFolders').value([
       {
