@@ -238,6 +238,43 @@ export class TrackManager implements vscode.Disposable {
     if (changed) this.finalizeChange()
   }
 
+  public async replaceUriPrefix(oldRoot: vscode.Uri, newRoot: vscode.Uri): Promise<void> {
+    const oldStr = oldRoot.toString()
+    const newStr = newRoot.toString()
+
+    const oldPrefix = oldStr.endsWith('/') ? oldStr : `${oldStr}/`
+    const newPrefix = newStr.endsWith('/') ? newStr : `${newStr}/`
+
+    let changed = false
+    let lastYield = Date.now()
+    const YIELD_MS = 15
+
+    for (const track of this.tracks.values()) {
+      if (track.files.length === 0) continue
+
+      for (const file of track.files) {
+        if (Date.now() - lastYield > YIELD_MS) {
+          await new Promise((resolve) => setImmediate(resolve))
+          if (this._isDisposed) return
+          lastYield = Date.now()
+        }
+
+        const fileStr = file.uri.toString()
+        if (fileStr.startsWith(oldPrefix)) {
+          const suffix = fileStr.slice(oldPrefix.length)
+          const newUri = vscode.Uri.parse(newPrefix + suffix)
+          this.updateFileUri(file, newUri)
+          changed = true
+        }
+      }
+    }
+
+    if (changed) {
+      this.finalizeChange()
+      Logger.info(`Processed folder rename: ${oldRoot.fsPath} -> ${newRoot.fsPath}`)
+    }
+  }
+
   public addFilesToActive(uris: vscode.Uri[]): StagedFile[] {
     const track = this.ensureActiveTrack()
     const newFiles = this.filterNewFiles(track, uris)

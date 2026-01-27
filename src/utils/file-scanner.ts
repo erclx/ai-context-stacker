@@ -122,6 +122,7 @@ export function pruneNestedFolders(uris: vscode.Uri[]): vscode.Uri[] {
 }
 
 export function isChildOf(parent: vscode.Uri, child: vscode.Uri): boolean {
+  if (parent.scheme !== child.scheme) return false
   const relative = path.relative(parent.fsPath, child.fsPath)
   return !relative.startsWith('..') && !path.isAbsolute(relative)
 }
