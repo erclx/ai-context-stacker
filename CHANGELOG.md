@@ -4,6 +4,11 @@ All notable changes to the "AI Context Stacker" extension will be documented in 
 
 ## [Unreleased]
 
+### Fixed
+
+- **Stack:** Synchronized staged items when a folder is renamed.
+- **Lifecycle:** Handled recursive folder renames to ensure correct file lifecycle.
+
 ## [0.0.16] - 2026-01-21
 
 ## [0.0.15] - 2026-01-20
