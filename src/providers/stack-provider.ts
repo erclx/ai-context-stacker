@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 
 import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
 import { AnalysisEngine, ContextKeyService, TokenAggregatorService, TreeBuilder } from '../services'
-import { StackItemRenderer } from '../ui'
+import { StackDragDropController, StackItemRenderer } from '../ui'
 import { collectFilesFromFolders, Logger, resolveScanRoots } from '../utils'
 import { IgnoreManager } from './ignore-manager'
 import { TrackManager } from './track-manager'
@@ -10,6 +10,8 @@ import { TrackManager } from './track-manager'
 export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vscode.Disposable {
   private _onDidChangeTreeData = new vscode.EventEmitter<StackTreeItem | undefined | void>()
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event
+
+  public readonly dragDropController: StackDragDropController
 
   private disposables: vscode.Disposable[] = []
 
@@ -35,6 +37,8 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     private tokenAggregator: TokenAggregatorService,
     private contextKeyService: ContextKeyService,
   ) {
+    this.dragDropController = new StackDragDropController(this, this.ignoreManager)
+
     this.refreshConfigCache()
     this.registerListeners()
 
@@ -209,6 +213,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
       clearTimeout(this.structuralRefreshTimer)
     }
     this._onDidChangeTreeData.dispose()
+    this.dragDropController.dispose()
     this.disposables.forEach((d) => d.dispose())
   }
 
