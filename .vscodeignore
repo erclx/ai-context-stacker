@@ -1,14 +1,10 @@
-.vscode/**
-.vscode-test/**
-.husky/**
-.continue/**
-.github/**
-.cspell/**
-src/**
-node_modules/**
-out/**
-demos/**
-
+# Tooling
+.vscode/
+.vscode-test/
+.husky/
+.continue/
+.github/
+.cspell/
 .lintstagedrc
 cspell.json
 commitlint.config.mjs
@@ -18,7 +14,14 @@ esbuild.js
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/eslint.config.mjs
+**/.vscode-test.*
 
+# Deps
+node_modules/
+
+# Build
+src/
+out/
+demos/
 **/*.ts
 **/*.map
-**/.vscode-test.*

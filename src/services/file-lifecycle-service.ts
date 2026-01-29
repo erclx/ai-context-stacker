@@ -73,7 +73,19 @@ export class FileLifecycleService implements vscode.Disposable {
         this.renameQueue.clear()
 
         for (const [oldStr, newStr] of entries) {
-          this.trackManager.replaceUri(vscode.Uri.parse(oldStr), vscode.Uri.parse(newStr))
+          const oldUri = vscode.Uri.parse(oldStr)
+          const newUri = vscode.Uri.parse(newStr)
+
+          try {
+            const stat = await vscode.workspace.fs.stat(newUri)
+            if (stat.type === vscode.FileType.Directory) {
+              await this.trackManager.replaceUriPrefix(oldUri, newUri)
+            } else {
+              this.trackManager.replaceUri(oldUri, newUri)
+            }
+          } catch {
+            this.trackManager.replaceUri(oldUri, newUri)
+          }
         }
       } catch (error) {
         Logger.error('Failed to process rename batch', error as Error)

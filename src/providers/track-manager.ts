@@ -1,6 +1,7 @@
+import * as path from 'path'
 import * as vscode from 'vscode'
 
-import { ContextTrack, StagedFile } from '../models'
+import { ContextTrack, refreshFileLabel, StagedFile } from '../models'
 import { HydrationService, PersistenceService } from '../services'
 import { generateId, Logger } from '../utils'
 import { isChildOf } from '../utils/file-scanner'
@@ -238,6 +239,39 @@ export class TrackManager implements vscode.Disposable {
     if (changed) this.finalizeChange()
   }
 
+  public async replaceUriPrefix(oldRoot: vscode.Uri, newRoot: vscode.Uri): Promise<void> {
+    let changed = false
+    let lastYield = Date.now()
+    const YIELD_MS = 15
+
+    for (const track of this.tracks.values()) {
+      if (track.files.length === 0) continue
+
+      for (const file of track.files) {
+        if (Date.now() - lastYield > YIELD_MS) {
+          await new Promise((resolve) => setImmediate(resolve))
+          if (this._isDisposed) return
+          lastYield = Date.now()
+        }
+
+        if (isChildOf(oldRoot, file.uri)) {
+          const relativePath = path.relative(oldRoot.fsPath, file.uri.fsPath)
+
+          if (relativePath && !relativePath.startsWith('..')) {
+            const newUri = vscode.Uri.joinPath(newRoot, relativePath)
+            this.updateFileUri(file, newUri)
+            changed = true
+          }
+        }
+      }
+    }
+
+    if (changed) {
+      this.finalizeChange()
+      Logger.info(`Processed folder rename: ${oldRoot.fsPath} -> ${newRoot.fsPath}`)
+    }
+  }
+
   public addFilesToActive(uris: vscode.Uri[]): StagedFile[] {
     const track = this.ensureActiveTrack()
     const newFiles = this.filterNewFiles(track, uris)
@@ -380,7 +414,7 @@ export class TrackManager implements vscode.Disposable {
 
   private updateFileUri(file: StagedFile, newUri: vscode.Uri): void {
     file.uri = newUri
-    file.label = newUri.path.split('/').pop() || 'unknown'
+    refreshFileLabel(file)
   }
 
   private ensureActiveTrack(): ContextTrack {
