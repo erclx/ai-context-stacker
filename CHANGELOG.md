@@ -6,6 +6,7 @@ All notable changes to the "AI Context Stacker" extension will be documented in 
 
 ### Fixed
 
+- **UI:** Suppressed internal drag processing in stack view.
 - **Stack:** Synchronized staged items when a folder is renamed.
 - **Lifecycle:** Handled recursive folder renames to ensure correct file lifecycle.
 
