@@ -4,19 +4,7 @@ import * as vscode from 'vscode'
 
 import { TrackManager } from '../../providers/track-manager'
 import { FileLifecycleService } from '../../services/file-lifecycle-service'
-
-function norm(pathStr: string): string {
-  let res = pathStr
-
-  if (process.platform === 'darwin' && res.startsWith('/private/var')) {
-    res = '/var' + res.slice(8)
-  }
-
-  if (process.platform === 'darwin' || process.platform === 'win32') {
-    res = res.toLowerCase()
-  }
-  return res
-}
+import { assertPathEqual, normalizePath } from './test-utils'
 
 suite('Lifecycle Management Suite', () => {
   let trackManager: TrackManager
@@ -76,7 +64,7 @@ suite('Lifecycle Management Suite', () => {
     trackManager.addFilesToActive([fileA, fileB])
 
     fsStatStub
-      .withArgs(sinon.match((uri: vscode.Uri) => norm(uri.fsPath) === norm(newRoot.fsPath)))
+      .withArgs(sinon.match((uri: vscode.Uri) => normalizePath(uri.fsPath) === normalizePath(newRoot.fsPath)))
       .resolves({ type: vscode.FileType.Directory } as vscode.FileStat)
     ;(lifecycleService as any).queueRename(oldRoot, newRoot)
 
@@ -85,10 +73,10 @@ suite('Lifecycle Management Suite', () => {
     const track = trackManager.getActiveTrack()
     assert.strictEqual(track.files.length, 2)
 
-    assert.strictEqual(norm(track.files[0].uri.fsPath), norm('/root/new/fileA.ts'))
+    assertPathEqual(track.files[0].uri.fsPath, '/root/new/fileA.ts')
     assert.strictEqual(track.files[0].label, 'fileA.ts')
 
-    assert.strictEqual(norm(track.files[1].uri.fsPath), norm('/root/new/nested/fileB.ts'))
+    assertPathEqual(track.files[1].uri.fsPath, '/root/new/nested/fileB.ts')
   })
 
   test('Boundary Check: Should not rename partial matches', async () => {
@@ -103,15 +91,17 @@ suite('Lifecycle Management Suite', () => {
     trackManager.addFilesToActive([targetFile, boundaryFile])
 
     fsStatStub
-      .withArgs(sinon.match((uri: vscode.Uri) => norm(uri.fsPath) === norm(newRoot.fsPath)))
+      .withArgs(sinon.match((uri: vscode.Uri) => normalizePath(uri.fsPath) === normalizePath(newRoot.fsPath)))
       .resolves({ type: vscode.FileType.Directory } as vscode.FileStat)
     ;(lifecycleService as any).queueRename(oldRoot, newRoot)
     await new Promise((resolve) => setTimeout(resolve, 150))
 
     const track = trackManager.getActiveTrack()
 
-    const newTarget = track.files.find((f) => norm(f.uri.fsPath) === norm('/root/lib/index.ts'))
-    const originalBoundary = track.files.find((f) => norm(f.uri.fsPath) === norm('/root/src-backup/index.ts'))
+    const newTarget = track.files.find((f) => normalizePath(f.uri.fsPath) === normalizePath('/root/lib/index.ts'))
+    const originalBoundary = track.files.find(
+      (f) => normalizePath(f.uri.fsPath) === normalizePath('/root/src-backup/index.ts'),
+    )
 
     assert.ok(newTarget, 'Target file in /src/ should be renamed to /lib/')
     assert.ok(originalBoundary, 'File in /src-backup/ should NOT be touched')
@@ -129,6 +119,6 @@ suite('Lifecycle Management Suite', () => {
     await new Promise((resolve) => setTimeout(resolve, 150))
 
     const track = trackManager.getActiveTrack()
-    assert.strictEqual(norm(track.files[0].uri.fsPath), norm('/root/new.ts'))
+    assertPathEqual(track.files[0].uri.fsPath, '/root/new.ts')
   })
 })

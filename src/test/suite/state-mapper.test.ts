@@ -4,13 +4,7 @@ import * as vscode from 'vscode'
 
 import { ContextTrack, SerializedState, StagedFile } from '../../models'
 import { StateMapper } from '../../services/state-mapper'
-
-function norm(str: string): string {
-  if (process.platform === 'darwin' || process.platform === 'win32') {
-    return str.toLowerCase()
-  }
-  return str
-}
+import { assertPathEqual, normalizePath } from './test-utils'
 
 suite('StateMapper Suite', () => {
   let sandbox: sinon.SinonSandbox
@@ -32,7 +26,7 @@ suite('StateMapper Suite', () => {
 
     sandbox.stub(vscode.workspace, 'asRelativePath').callsFake((pathOrUri) => {
       const pathStr = pathOrUri.toString()
-      if (norm(pathStr).includes(norm(rootUri.path))) {
+      if (normalizePath(pathStr).includes(normalizePath(rootUri.path))) {
         const p = pathOrUri instanceof vscode.Uri ? pathOrUri.path : pathOrUri
         const relative = p.replace(rootUri.path, '').replace(/^\//, '')
         return relative
@@ -70,7 +64,7 @@ suite('StateMapper Suite', () => {
     const result = StateMapper.toSerialized(tracks, 'track-1', ['track-1'])
     const item = result.tracks['track-1'].items[0]
 
-    assert.strictEqual(norm(item.uri), norm(file.uri.toString()), 'URI should remain absolute in multi-root workspaces')
+    assertPathEqual(item.uri, file.uri.toString(), 'URI should remain absolute in multi-root workspaces')
   })
 
   test('Hydration: Should expand relative paths against first root (Legacy support)', () => {
@@ -92,11 +86,7 @@ suite('StateMapper Suite', () => {
 
     const expectedUri = vscode.Uri.joinPath(rootUri, 'src/auth.ts')
 
-    assert.strictEqual(
-      norm(file.uri.toString()),
-      norm(expectedUri.toString()),
-      'Relative path should expand to full workspace URI',
-    )
+    assertPathEqual(file.uri.toString(), expectedUri.toString(), 'Relative path should expand to full workspace URI')
   })
 
   test('Hydration: Should handle absolute URIs gracefully', () => {
@@ -116,7 +106,7 @@ suite('StateMapper Suite', () => {
     const { tracks } = StateMapper.fromSerialized(serialized)
     const file = tracks.get('legacy')!.files[0]
 
-    assert.strictEqual(norm(file.uri.toString()), norm(absoluteUri), 'Absolute URIs should be preserved')
+    assertPathEqual(file.uri.toString(), absoluteUri, 'Absolute URIs should be preserved')
   })
 
   test('Should ignore runtime cache properties like pathSegments', () => {
@@ -125,7 +115,7 @@ suite('StateMapper Suite', () => {
     const tracks = createTrackMap('t1', [file])
 
     const result = StateMapper.toSerialized(tracks, 't1', ['t1'])
-    const item = result.tracks['t1'].items[0] as any
+    const item = result.tracks['t1'].items[0] as unknown as { pathSegments?: string[] }
 
     assert.strictEqual(item.pathSegments, undefined, 'Runtime cache properties should not be serialized')
   })

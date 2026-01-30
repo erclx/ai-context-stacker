@@ -4,13 +4,7 @@ import * as vscode from 'vscode'
 
 import { isStagedFolder, StagedFile, StagedFolder } from '../../models'
 import { TreeBuilder } from '../../services/tree-builder'
-
-function norm(pathStr: string): string {
-  if (process.platform === 'darwin' || process.platform === 'win32') {
-    return pathStr.toLowerCase()
-  }
-  return pathStr
-}
+import { normalizePath } from './test-utils'
 
 suite('TreeBuilder Suite', () => {
   let builder: TreeBuilder
@@ -76,16 +70,17 @@ suite('TreeBuilder Suite', () => {
 
     const srcFolder = result[0] as StagedFolder
 
-    // Use normalized fsPath check
-    const hasA = srcFolder.containedFiles.some((f) => norm(f.uri.fsPath) === norm(fileA.uri.fsPath))
+    const hasA = srcFolder.containedFiles.some((f) => normalizePath(f.uri.fsPath) === normalizePath(fileA.uri.fsPath))
     assert.strictEqual(hasA, true)
 
-    const hasB = srcFolder.containedFiles.some((f) => norm(f.uri.fsPath) === norm(fileB.uri.fsPath))
+    const hasB = srcFolder.containedFiles.some((f) => normalizePath(f.uri.fsPath) === normalizePath(fileB.uri.fsPath))
     assert.strictEqual(hasB, false)
 
     const nestedFolder = srcFolder.children.find((c) => c.label === 'nested') as StagedFolder
     assert.ok(nestedFolder)
-    const nestedHasB = nestedFolder.containedFiles.some((f) => norm(f.uri.fsPath) === norm(fileB.uri.fsPath))
+    const nestedHasB = nestedFolder.containedFiles.some(
+      (f) => normalizePath(f.uri.fsPath) === normalizePath(fileB.uri.fsPath),
+    )
     assert.strictEqual(nestedHasB, true)
   })
 
@@ -273,7 +268,9 @@ suite('TreeBuilder Suite', () => {
 
   function mockPaths(files: StagedFile[], paths: string[]): void {
     files.forEach((file, index) => {
-      asRelativePathStub.withArgs(sinon.match((u) => norm(u.fsPath) === norm(file.uri.fsPath))).returns(paths[index])
+      asRelativePathStub
+        .withArgs(sinon.match((u) => normalizePath(u.fsPath) === normalizePath(file.uri.fsPath)))
+        .returns(paths[index])
     })
   }
 
