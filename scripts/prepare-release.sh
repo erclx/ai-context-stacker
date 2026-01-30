@@ -14,6 +14,22 @@ log_error() { echo -e "${GREY}│${NC} ${RED}✗${NC} $1"; exit 1; }
 log_step()  { echo -e "${GREY}│${NC}\n${GREY}├${NC} ${WHITE}$1${NC}"; }
 log_add()   { echo -e "${GREY}│${NC} ${GREEN}+${NC} $1"; }
 
+show_help() {
+  echo -e "${GREY}┌${NC}"
+  log_step "Script Usage"
+  echo -e "${GREY}│${NC}  ${WHITE}Usage:${NC} ./prepare-release.sh [options] [type]"
+  echo -e "${GREY}│${NC}"
+  echo -e "${GREY}│${NC}  ${WHITE}Types:${NC}"
+  echo -e "${GREY}│${NC}    patch         ${GREY}# Increment patch version (0.0.X)${NC}"
+  echo -e "${GREY}│${NC}    minor         ${GREY}# Increment minor version (0.X.0)${NC}"
+  echo -e "${GREY}│${NC}    major         ${GREY}# Increment major version (X.0.0)${NC}"
+  echo -e "${GREY}│${NC}"
+  echo -e "${GREY}│${NC}  ${WHITE}Options:${NC}"
+  echo -e "${GREY}│${NC}    -h, --help    ${GREY}# Show this help message${NC}"
+  echo -e "${GREY}└${NC}"
+  exit 0
+}
+
 select_option() {
   local prompt_text=$1
   shift
@@ -26,9 +42,9 @@ select_option() {
   while true; do
     for i in "${!options[@]}"; do
       if [ $i -eq $cur ]; then
-        echo -e "${GREY}│${NC}    ${GREEN}● ${options[$i]}${NC}"
+        echo -e "${GREY}│${NC}    ${GREEN}● ${WHITE}${options[$i]}${NC}"
       else
-        echo -e "${GREY}│${NC}      ${options[$i]}${NC}"
+        echo -e "${GREY}│${NC}    ${GREY}○ ${options[$i]}${NC}"
       fi
     done
 
@@ -60,6 +76,10 @@ check_dependencies() {
 }
 
 main() {
+  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    show_help
+  fi
+
   check_dependencies
 
   echo -e "${GREY}┌${NC}"
@@ -76,10 +96,23 @@ fi
 git pull origin main
 
 CURRENT_VERSION=$(node -p "require('./package.json').version")
-  MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
-  MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
-  PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
-NEXT_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+  BUMP_TYPE="$1"
+
+  if [ -z "$BUMP_TYPE" ]; then
+    select_option "Select release type" "patch" "minor" "major"
+    BUMP_TYPE="$SELECTED_OPTION"
+  fi
+
+  if [[ ! "$BUMP_TYPE" =~ ^(patch|minor|major)$ ]]; then
+    log_error "Invalid bump type: $BUMP_TYPE"
+  fi
+
+  IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+  case "$BUMP_TYPE" in
+    major) NEXT_VERSION="$((major + 1)).0.0" ;;
+    minor) NEXT_VERSION="$major.$((minor + 1)).0" ;;
+    patch) NEXT_VERSION="$major.$minor.$((patch + 1))" ;;
+  esac
 
   select_option "Bump version ($CURRENT_VERSION -> $NEXT_VERSION)?" "Yes" "No"
   if [ "$SELECTED_OPTION" != "Yes" ]; then
@@ -92,7 +125,7 @@ git checkout -b "$BRANCH_NAME"
   log_add "Branch: $BRANCH_NAME"
 
   log_step "Bumping Version & Changelog"
-npm version "$NEXT_VERSION" --no-git-tag-version > /dev/null
+  npm version "$BUMP_TYPE" --no-git-tag-version > /dev/null
   log_add "Updated package.json"
 
 DATE=$(date +%Y-%m-%d)
@@ -130,7 +163,7 @@ Finalize artifacts for **v$NEXT_VERSION** release.
 
 ## Technical Context
 - **Scope**: Release Management
-- **Type**: Patch Bump (Automated)
+- **Type**: $BUMP_TYPE Bump (Automated)
 
 ## Testing
 - [x] Verify \`package.json\` version matches branch
