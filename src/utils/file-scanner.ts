@@ -123,8 +123,17 @@ export function pruneNestedFolders(uris: vscode.Uri[]): vscode.Uri[] {
 
 export function isChildOf(parent: vscode.Uri, child: vscode.Uri): boolean {
   if (parent.scheme !== child.scheme) return false
-  const relative = path.relative(parent.fsPath, child.fsPath)
-  return !relative.startsWith('..') && !path.isAbsolute(relative)
+
+  let parentPath = parent.fsPath
+  let childPath = child.fsPath
+
+  if (process.platform === 'darwin' || process.platform === 'win32') {
+    parentPath = parentPath.toLowerCase()
+    childPath = childPath.toLowerCase()
+  }
+
+  const relative = path.relative(parentPath, childPath)
+  return !!relative && !relative.startsWith('..') && !path.isAbsolute(relative)
 }
 
 async function processStatBatch(batch: vscode.Uri[], files: vscode.Uri[], folders: vscode.Uri[]): Promise<void> {

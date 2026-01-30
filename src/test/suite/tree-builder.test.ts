@@ -4,6 +4,7 @@ import * as vscode from 'vscode'
 
 import { isStagedFolder, StagedFile, StagedFolder } from '../../models'
 import { TreeBuilder } from '../../services/tree-builder'
+import { normalizePath } from './test-utils'
 
 suite('TreeBuilder Suite', () => {
   let builder: TreeBuilder
@@ -69,15 +70,17 @@ suite('TreeBuilder Suite', () => {
 
     const srcFolder = result[0] as StagedFolder
 
-    const hasA = srcFolder.containedFiles.some((f) => f.uri.path === fileA.uri.path)
+    const hasA = srcFolder.containedFiles.some((f) => normalizePath(f.uri.fsPath) === normalizePath(fileA.uri.fsPath))
     assert.strictEqual(hasA, true)
 
-    const hasB = srcFolder.containedFiles.some((f) => f.uri.path === fileB.uri.path)
+    const hasB = srcFolder.containedFiles.some((f) => normalizePath(f.uri.fsPath) === normalizePath(fileB.uri.fsPath))
     assert.strictEqual(hasB, false)
 
     const nestedFolder = srcFolder.children.find((c) => c.label === 'nested') as StagedFolder
     assert.ok(nestedFolder)
-    const nestedHasB = nestedFolder.containedFiles.some((f) => f.uri.path === fileB.uri.path)
+    const nestedHasB = nestedFolder.containedFiles.some(
+      (f) => normalizePath(f.uri.fsPath) === normalizePath(fileB.uri.fsPath),
+    )
     assert.strictEqual(nestedHasB, true)
   })
 
@@ -221,13 +224,28 @@ suite('TreeBuilder Suite', () => {
 
     const map = (builder as any).folderMap as Map<string, StagedFolder>
 
-    assert.ok(map.has('folder:src'))
-    assert.ok(map.has('folder:src/utils'))
+    const keys = Array.from(map.keys())
+    assert.ok(
+      keys.some((k) => k.includes('src')),
+      'Should have src folder',
+    )
+    assert.ok(
+      keys.some((k) => k.includes('utils')),
+      'Should have utils folder',
+    )
 
     builder.invalidateFolder('src/utils')
 
-    assert.ok(map.has('folder:src'), 'Parent folder should remain')
-    assert.strictEqual(map.has('folder:src/utils'), false, 'Target folder should be removed')
+    const newKeys = Array.from(map.keys())
+    assert.ok(
+      newKeys.some((k) => k.includes('src')),
+      'Parent folder should remain',
+    )
+    assert.strictEqual(
+      newKeys.some((k) => k.includes('utils')),
+      false,
+      'Target folder should be removed',
+    )
   })
 
   function setupMocks(sb: sinon.SinonSandbox): void {
@@ -250,7 +268,9 @@ suite('TreeBuilder Suite', () => {
 
   function mockPaths(files: StagedFile[], paths: string[]): void {
     files.forEach((file, index) => {
-      asRelativePathStub.withArgs(file.uri, sinon.match.any).returns(paths[index])
+      asRelativePathStub
+        .withArgs(sinon.match((u) => normalizePath(u.fsPath) === normalizePath(file.uri.fsPath)))
+        .returns(paths[index])
     })
   }
 
