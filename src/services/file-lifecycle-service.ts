@@ -5,6 +5,7 @@ import { Logger } from '../utils'
 
 export class FileLifecycleService implements vscode.Disposable {
   private disposables: vscode.Disposable[] = []
+  private _isDisposed = false
 
   private deleteQueue = new Set<string>()
   private renameQueue = new Map<string, string>()
@@ -16,18 +17,26 @@ export class FileLifecycleService implements vscode.Disposable {
   }
 
   public dispose(): void {
+    if (this._isDisposed) return
+    this._isDisposed = true
+
     this.disposables.forEach((d) => d.dispose())
+    this.disposables = []
+
     if (this.flushTimer) {
       clearTimeout(this.flushTimer)
+      this.flushTimer = undefined
     }
   }
 
   private registerListeners(): void {
     this.disposables.push(
       vscode.workspace.onDidDeleteFiles((e) => {
+        if (this._isDisposed) return
         e.files.forEach((f) => this.queueDelete(f))
       }),
       vscode.workspace.onDidRenameFiles((e) => {
+        if (this._isDisposed) return
         e.files.forEach((f) => this.queueRename(f.oldUri, f.newUri))
       }),
     )
@@ -44,7 +53,7 @@ export class FileLifecycleService implements vscode.Disposable {
   }
 
   private scheduleFlush(): void {
-    if (this.flushTimer) return
+    if (this.flushTimer || this._isDisposed) return
     this.flushTimer = setTimeout(() => {
       this.flushTimer = undefined
       void this.flushQueues()
@@ -52,7 +61,10 @@ export class FileLifecycleService implements vscode.Disposable {
   }
 
   private async flushQueues(): Promise<void> {
+    if (this._isDisposed) return
+
     await new Promise((resolve) => setImmediate(resolve))
+    if (this._isDisposed) return
 
     if (this.deleteQueue.size > 0) {
       try {
@@ -73,6 +85,8 @@ export class FileLifecycleService implements vscode.Disposable {
         this.renameQueue.clear()
 
         for (const [oldStr, newStr] of entries) {
+          if (this._isDisposed) break
+
           const oldUri = vscode.Uri.parse(oldStr)
           const newUri = vscode.Uri.parse(newStr)
 

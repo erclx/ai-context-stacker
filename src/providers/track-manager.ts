@@ -226,10 +226,12 @@ export class TrackManager implements vscode.Disposable {
 
   public replaceUri(oldUri: vscode.Uri, newUri: vscode.Uri): void {
     const oldStr = oldUri.toString()
+    const oldFsPath = oldUri.fsPath
     let changed = false
 
     for (const track of this.tracks.values()) {
-      const file = track.files.find((f) => f.uri.toString() === oldStr)
+      const file = track.files.find((f) => f.uri.toString() === oldStr || f.uri.fsPath === oldFsPath)
+
       if (file) {
         this.updateFileUri(file, newUri)
         changed = true
@@ -242,7 +244,7 @@ export class TrackManager implements vscode.Disposable {
   public async replaceUriPrefix(oldRoot: vscode.Uri, newRoot: vscode.Uri): Promise<void> {
     let changed = false
     let lastYield = Date.now()
-    const YIELD_MS = 15
+    const YIELD_MS = 20
 
     for (const track of this.tracks.values()) {
       if (track.files.length === 0) continue
@@ -254,9 +256,15 @@ export class TrackManager implements vscode.Disposable {
           lastYield = Date.now()
         }
 
-        if (isChildOf(oldRoot, file.uri)) {
-          const relativePath = path.relative(oldRoot.fsPath, file.uri.fsPath)
+        let isChild = isChildOf(oldRoot, file.uri)
 
+        if (!isChild) {
+          const rel = path.relative(oldRoot.fsPath, file.uri.fsPath)
+          isChild = !!rel && !rel.startsWith('..') && !path.isAbsolute(rel)
+        }
+
+        if (isChild) {
+          const relativePath = path.relative(oldRoot.fsPath, file.uri.fsPath)
           if (relativePath && !relativePath.startsWith('..')) {
             const newUri = vscode.Uri.joinPath(newRoot, relativePath)
             this.updateFileUri(file, newUri)
