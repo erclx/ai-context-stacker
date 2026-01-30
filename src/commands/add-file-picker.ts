@@ -54,6 +54,9 @@ async function findUnstagedFiles(stackProvider: StackProvider, ignoreManager: Ig
   const excludePatterns = await ignoreManager.getExcludePatterns()
   const allFiles = await vscode.workspace.findFiles('**/*', excludePatterns)
 
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+  allFiles.sort((a, b) => collator.compare(a.fsPath, b.fsPath))
+
   return allFiles.filter((uri) => !stagedFileIds.has(uri.toString()))
 }
 
