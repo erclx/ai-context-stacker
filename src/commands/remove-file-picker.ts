@@ -20,12 +20,15 @@ export function getRemoveFilePickerCommands(deps: CommandDependencies): Command[
 }
 
 async function handleRemovePicker(provider: StackProvider): Promise<void> {
-  const currentFiles = provider.getFiles()
+  const currentFiles = [...provider.getFiles()]
 
   if (currentFiles.length === 0) {
     void vscode.window.showInformationMessage('Stack is already empty.')
     return
   }
+
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+  currentFiles.sort((a, b) => collator.compare(a.uri.fsPath, b.uri.fsPath))
 
   const items: RemoveFileItem[] = currentFiles.map((file) => ({
     label: vscode.workspace.asRelativePath(file.uri),

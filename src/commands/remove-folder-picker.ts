@@ -110,8 +110,10 @@ function getParentChain(uri: vscode.Uri): vscode.Uri[] {
 }
 
 function createPickerItems(map: Map<string, { uri: vscode.Uri; count: number }>): FolderItem[] {
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+
   return Array.from(map.values())
-    .sort((a, b) => a.uri.fsPath.localeCompare(b.uri.fsPath))
+    .sort((a, b) => collator.compare(a.uri.fsPath, b.uri.fsPath))
     .map((item) => createPickerItem(item.uri, item.count))
 }
 

@@ -4,6 +4,10 @@ All notable changes to the "AI Context Stacker" extension will be documented in 
 
 ## [Unreleased]
 
+### Fixed
+
+- **Pickers:** Correct quickpick select all behavior with active query.
+
 ## [0.1.0] - 2026-01-30
 
 ### Fixed

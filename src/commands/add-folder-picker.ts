@@ -36,6 +36,9 @@ async function executeAddFolderPicker(provider: StackProvider, ignore: IgnoreMan
       return
     }
 
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+    folders.sort((a, b) => collator.compare(a.fsPath, b.fsPath))
+
     const selected = await showFolderPicker(folders)
     if (!selected || selected.length === 0) return
 
