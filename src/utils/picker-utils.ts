@@ -28,12 +28,31 @@ export function attachPickerToggle<T extends vscode.QuickPickItem>(picker: vscod
   })
 
   const selectAllCommand = vscode.commands.registerCommand(selectAllCommandId, () => {
-    const allVisible = picker.items.filter((item) => item.kind !== vscode.QuickPickItemKind.Separator)
+    const allItems = picker.items.filter((item) => item.kind !== vscode.QuickPickItemKind.Separator)
+    const query = picker.value.trim().toLowerCase()
 
-    if (picker.selectedItems.length === allVisible.length) {
-      picker.selectedItems = []
+    const visibleItems = query
+      ? allItems.filter((item) => {
+          if (item.alwaysShow) return true
+          if (picker.activeItems.includes(item as unknown as T)) return true
+
+          const label = item.label.toLowerCase()
+          const desc = (item.description || '').toLowerCase()
+          return label.includes(query) || desc.includes(query)
+        })
+      : allItems
+
+    if (visibleItems.length === 0) return
+
+    const selectedSet = new Set(picker.selectedItems)
+    const allVisibleSelected = visibleItems.every((item) => selectedSet.has(item as unknown as T))
+
+    if (allVisibleSelected) {
+      const visibleSet = new Set(visibleItems)
+      picker.selectedItems = picker.selectedItems.filter((i) => !visibleSet.has(i as unknown as T))
     } else {
-      picker.selectedItems = allVisible
+      const toAdd = visibleItems.filter((item) => !selectedSet.has(item as unknown as T))
+      picker.selectedItems = [...picker.selectedItems, ...toAdd] as T[]
     }
   })
 
