@@ -68,7 +68,7 @@ suite('Lifecycle Management Suite', () => {
       .resolves({ type: vscode.FileType.Directory } as vscode.FileStat)
     ;(lifecycleService as any).queueRename(oldRoot, newRoot)
 
-    await new Promise((resolve) => setTimeout(resolve, 150))
+    await new Promise((resolve) => setTimeout(resolve, 350))
 
     const track = trackManager.getActiveTrack()
     assert.strictEqual(track.files.length, 2)
@@ -94,7 +94,7 @@ suite('Lifecycle Management Suite', () => {
       .withArgs(sinon.match((uri: vscode.Uri) => normalizePath(uri.fsPath) === normalizePath(newRoot.fsPath)))
       .resolves({ type: vscode.FileType.Directory } as vscode.FileStat)
     ;(lifecycleService as any).queueRename(oldRoot, newRoot)
-    await new Promise((resolve) => setTimeout(resolve, 150))
+    await new Promise((resolve) => setTimeout(resolve, 350))
 
     const track = trackManager.getActiveTrack()
 
@@ -116,7 +116,7 @@ suite('Lifecycle Management Suite', () => {
 
     fsStatStub.resolves({ type: vscode.FileType.File } as vscode.FileStat)
     ;(lifecycleService as any).queueRename(oldFile, newFile)
-    await new Promise((resolve) => setTimeout(resolve, 150))
+    await new Promise((resolve) => setTimeout(resolve, 350))
 
     const track = trackManager.getActiveTrack()
     assertPathEqual(track.files[0].uri.fsPath, '/root/new.ts')
