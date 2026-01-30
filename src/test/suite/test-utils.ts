@@ -3,6 +3,8 @@ import * as assert from 'assert'
 export function normalizePath(pathStr: string): string {
   let res = pathStr
 
+  res = res.replace(/\\/g, '/')
+
   if (process.platform === 'darwin' && res.startsWith('/private/var')) {
     res = '/var' + res.slice(8)
   }

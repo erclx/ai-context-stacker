@@ -285,7 +285,13 @@ export class TrackManager implements vscode.Disposable {
   }
 
   private normalizePath(p: string): string {
-    return process.platform === 'darwin' || process.platform === 'win32' ? p.toLowerCase() : p
+    let res = p
+    res = res.replace(/\\/g, '/')
+
+    if (process.platform === 'darwin' || process.platform === 'win32') {
+      res = res.toLowerCase()
+    }
+    return res
   }
 
   public addFilesToActive(uris: vscode.Uri[]): StagedFile[] {
