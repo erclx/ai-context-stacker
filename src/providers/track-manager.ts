@@ -267,6 +267,13 @@ export class TrackManager implements vscode.Disposable {
             this.updateFileUri(file, newUri)
             changed = true
           }
+        } else {
+          const rel = path.relative(this.normalizePath(oldRoot.fsPath), this.normalizePath(file.uri.fsPath))
+          if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) {
+            const newUri = vscode.Uri.file(path.join(newRoot.fsPath, rel))
+            this.updateFileUri(file, newUri)
+            changed = true
+          }
         }
       }
     }
