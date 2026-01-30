@@ -51,9 +51,14 @@ select_option() {
     read -rsn1 key
     case "$key" in
       $'\x1b')
-        read -rsn2 key
-        if [[ "$key" == "[A" ]]; then cur=$(( (cur - 1 + count) % count )); fi
-        if [[ "$key" == "[B" ]]; then cur=$(( (cur + 1) % count )); fi
+        if read -rsn2 -t 0.001 key_seq; then
+          if [[ "$key_seq" == "[A" ]]; then cur=$(( (cur - 1 + count) % count )); fi
+          if [[ "$key_seq" == "[B" ]]; then cur=$(( (cur + 1) % count )); fi
+        else
+          echo -en "\033[${count}A\033[J"
+          echo -e "\033[1A${GREY}◇${NC} ${prompt_text} ${RED}Cancelled${NC}"
+          log_error "Selection cancelled"
+        fi
         ;;
       "k") cur=$(( (cur - 1 + count) % count ));;
       "j") cur=$(( (cur + 1) % count ));;
