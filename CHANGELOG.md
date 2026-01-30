@@ -4,6 +4,8 @@ All notable changes to the "AI Context Stacker" extension will be documented in 
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-01-30
+
 ### Fixed
 
 - **Pickers:** Correct quickpick select all behavior with active query.
@@ -129,7 +131,8 @@ All notable changes to the "AI Context Stacker" extension will be documented in 
 - **Safety Limits**: 100MB clipboard cap and 5MB per-file limit for extension stability.
 - **Privacy First**: 100% local processing; no data is sent to external servers.
 
-[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/erclx/ai-context-stacker/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/erclx/ai-context-stacker/compare/v0.0.16...v0.1.0
 [0.0.16]: https://github.com/erclx/ai-context-stacker/compare/v0.0.15...v0.0.16
 [0.0.15]: https://github.com/erclx/ai-context-stacker/compare/v0.0.14...v0.0.15
