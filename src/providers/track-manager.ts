@@ -226,11 +226,14 @@ export class TrackManager implements vscode.Disposable {
 
   public replaceUri(oldUri: vscode.Uri, newUri: vscode.Uri): void {
     const oldStr = oldUri.toString()
-    const oldFsPath = oldUri.fsPath
+    const oldFsPath = this.normalizePath(oldUri.fsPath)
     let changed = false
 
     for (const track of this.tracks.values()) {
-      const file = track.files.find((f) => f.uri.toString() === oldStr || f.uri.fsPath === oldFsPath)
+      const file = track.files.find((f) => {
+        if (f.uri.toString() === oldStr) return true
+        return this.normalizePath(f.uri.fsPath) === oldFsPath
+      })
 
       if (file) {
         this.updateFileUri(file, newUri)
@@ -256,17 +259,11 @@ export class TrackManager implements vscode.Disposable {
           lastYield = Date.now()
         }
 
-        let isChild = isChildOf(oldRoot, file.uri)
-
-        if (!isChild) {
-          const rel = path.relative(oldRoot.fsPath, file.uri.fsPath)
-          isChild = !!rel && !rel.startsWith('..') && !path.isAbsolute(rel)
-        }
-
-        if (isChild) {
+        if (isChildOf(oldRoot, file.uri)) {
           const relativePath = path.relative(oldRoot.fsPath, file.uri.fsPath)
+
           if (relativePath && !relativePath.startsWith('..')) {
-            const newUri = vscode.Uri.joinPath(newRoot, relativePath)
+            const newUri = vscode.Uri.file(path.join(newRoot.fsPath, relativePath))
             this.updateFileUri(file, newUri)
             changed = true
           }
@@ -278,6 +275,10 @@ export class TrackManager implements vscode.Disposable {
       this.finalizeChange()
       Logger.info(`Processed folder rename: ${oldRoot.fsPath} -> ${newRoot.fsPath}`)
     }
+  }
+
+  private normalizePath(p: string): string {
+    return process.platform === 'darwin' || process.platform === 'win32' ? p.toLowerCase() : p
   }
 
   public addFilesToActive(uris: vscode.Uri[]): StagedFile[] {
