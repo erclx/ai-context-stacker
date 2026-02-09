@@ -250,14 +250,20 @@
         "icon": "$(eye)"
       },
       {
-        "command": "aiContextStacker.refreshFolder",
-        "title": "Refresh Folder Context",
+        "command": "aiContextStacker.refreshStack",
+        "title": "Sync All Staged Folders",
         "category": "AI Context Stacker",
         "icon": "$(refresh)"
       },
       {
-        "command": "aiContextStacker.refreshStack",
-        "title": "Refresh Stack",
+        "command": "aiContextStacker.syncFolder",
+        "title": "Sync Folder",
+        "category": "AI Context Stacker",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "aiContextStacker.syncExplorerFolder",
+        "title": "Sync Folder with Context Stack",
         "category": "AI Context Stacker",
         "icon": "$(refresh)"
       },
@@ -361,7 +367,7 @@
           "group": "7_modification@3"
         },
         {
-          "command": "aiContextStacker.refreshFolder",
+          "command": "aiContextStacker.syncExplorerFolder",
           "when": "resourceScheme == file && resourceFileType == directory",
           "group": "7_modification@4"
         }
@@ -528,7 +534,7 @@
           "group": "1_primary"
         },
         {
-          "command": "aiContextStacker.refreshFolder",
+          "command": "aiContextStacker.syncFolder",
           "when": "view == aiContextStackerView && viewItem == stagedFolder",
           "group": "2_secondary"
         },
@@ -615,6 +621,12 @@
         "command": "aiContextStacker.refreshStack",
         "key": "ctrl+alt+u",
         "mac": "cmd+alt+u",
+        "when": "focusedView == aiContextStackerView && !inputFocus"
+      },
+      {
+        "command": "aiContextStacker.refreshStack",
+        "key": "ctrl+r",
+        "mac": "cmd+r",
         "when": "focusedView == aiContextStackerView && !inputFocus"
       },
       {

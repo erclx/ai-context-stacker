@@ -11,7 +11,7 @@ import { getCopyAndClearCommands } from './copy-and-clear'
 import { getCopyFileCommands } from './copy-file'
 import { getFilterCommands } from './filter-commands'
 import { getPreviewContextCommands } from './preview-context'
-import { getRefreshFolderCommand, getRefreshStackCommands } from './refresh-stack'
+import { getRefreshStackCommands } from './refresh-stack'
 import { getRemoveFileCommands } from './remove-file'
 import { getRemoveFilePickerCommands } from './remove-file-picker'
 import { getRemoveFolderPickerCommands } from './remove-folder-picker'
@@ -41,7 +41,6 @@ export function registerAllCommands(deps: CommandDependencies): void {
     getClearAllCommands,
     getSelectAllCommands,
     getRefreshStackCommands,
-    getRefreshFolderCommand,
 
     getCopyAllCommands,
     getCopyAndClearCommands,
