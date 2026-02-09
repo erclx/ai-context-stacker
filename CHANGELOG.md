@@ -4,6 +4,14 @@ All notable changes to the "AI Context Stacker" extension will be documented in 
 
 ## [Unreleased]
 
+### Added
+
+- **Commands:** Add command to refresh folder context.
+
+### Fixed
+
+- **Stack:** Improve file refresh with folder scanning.
+
 ## [0.1.1] - 2026-01-30
 
 ### Fixed
