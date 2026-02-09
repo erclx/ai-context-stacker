@@ -3,7 +3,7 @@ import * as vscode from 'vscode'
 import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
 import { AnalysisEngine, ContextKeyService, TokenAggregatorService, TreeBuilder } from '../services'
 import { StackDragDropController, StackItemRenderer } from '../ui'
-import { collectFilesFromFolders, Logger, resolveScanRoots } from '../utils'
+import { Logger, resolveScanRoots, syncFilesWithFileSystem } from '../utils'
 import { IgnoreManager } from './ignore-manager'
 import { TrackManager } from './track-manager'
 
@@ -174,9 +174,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   public async reScanFileSystem(): Promise<void> {
     const currentFiles = this.getFiles()
-    if (currentFiles.length === 0) {
-      return this.forceRefresh()
-    }
+    if (currentFiles.length === 0) return this.forceRefresh()
 
     await vscode.window.withProgress(
       {
@@ -186,33 +184,8 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
       },
       async (_, token) => {
         const { filesToVerify, foldersToRescan } = resolveScanRoots(currentFiles)
-        const foundUris: vscode.Uri[] = []
 
-        const BATCH = 50
-        for (let i = 0; i < filesToVerify.length; i += BATCH) {
-          if (token.isCancellationRequested) break
-          const chunk = filesToVerify.slice(i, i + BATCH)
-
-          await Promise.all(
-            chunk.map(async (uri) => {
-              try {
-                const stat = await vscode.workspace.fs.stat(uri)
-                if (stat.type === vscode.FileType.File) {
-                  foundUris.push(uri)
-                }
-              } catch {
-                // File missing or inaccessible
-              }
-            }),
-          )
-
-          await new Promise((resolve) => setImmediate(resolve))
-        }
-
-        if (token.isCancellationRequested) return
-
-        const folderFound = await collectFilesFromFolders(foldersToRescan, this.ignoreManager, token)
-        foundUris.push(...folderFound)
+        const foundUris = await syncFilesWithFileSystem(filesToVerify, foldersToRescan, this.ignoreManager, token)
 
         if (token.isCancellationRequested) return
 

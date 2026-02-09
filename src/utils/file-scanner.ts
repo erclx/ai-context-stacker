@@ -55,6 +55,44 @@ export async function handleFolderScanning(
   )
 }
 
+export async function syncFilesWithFileSystem(
+  filesToVerify: vscode.Uri[],
+  foldersToRescan: vscode.Uri[],
+  ignoreManager: IgnoreManager,
+  token: vscode.CancellationToken,
+): Promise<vscode.Uri[]> {
+  const validFiles: vscode.Uri[] = []
+
+  for (let i = 0; i < filesToVerify.length; i += BATCH_SIZE_STAT) {
+    if (token.isCancellationRequested) break
+    const chunk = filesToVerify.slice(i, i + BATCH_SIZE_STAT)
+
+    await Promise.all(
+      chunk.map(async (uri) => {
+        try {
+          const stat = await vscode.workspace.fs.stat(uri)
+          if (stat.type === vscode.FileType.File) {
+            validFiles.push(uri)
+          }
+        } catch {
+          // File missing or inaccessible
+        }
+      }),
+    )
+
+    await new Promise((resolve) => setImmediate(resolve))
+  }
+
+  if (token.isCancellationRequested) return validFiles
+
+  if (foldersToRescan.length > 0) {
+    const folderFound = await collectFilesFromFolders(foldersToRescan, ignoreManager, token)
+    validFiles.push(...folderFound)
+  }
+
+  return validFiles
+}
+
 export async function collectFilesFromFolders(
   folders: vscode.Uri[],
   ignoreProvider: IgnoreManager,
