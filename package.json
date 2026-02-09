@@ -250,6 +250,12 @@
         "icon": "$(eye)"
       },
       {
+        "command": "aiContextStacker.refreshFolder",
+        "title": "Refresh Folder Context",
+        "category": "AI Context Stacker",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "aiContextStacker.refreshStack",
         "title": "Refresh Stack",
         "category": "AI Context Stacker",
@@ -353,6 +359,11 @@
           "command": "aiContextStacker.revealInView",
           "when": "resourceScheme == file",
           "group": "7_modification@3"
+        },
+        {
+          "command": "aiContextStacker.refreshFolder",
+          "when": "resourceScheme == file && resourceFileType == directory",
+          "group": "7_modification@4"
         }
       ],
       "editor/title/context": [
@@ -515,6 +526,11 @@
           "command": "aiContextStacker.copyFile",
           "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
           "group": "1_primary"
+        },
+        {
+          "command": "aiContextStacker.refreshFolder",
+          "when": "view == aiContextStackerView && viewItem == stagedFolder",
+          "group": "2_secondary"
         },
         {
           "command": "aiContextStacker.togglePin",
