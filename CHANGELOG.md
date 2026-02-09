@@ -6,11 +6,11 @@ All notable changes to the "AI Context Stacker" extension will be documented in 
 
 ### Added
 
-- **Commands:** Add command to refresh folder context.
+- **Folder Sync:** New commands to refresh specific folders or the entire stack.
 
-### Fixed
+### Changed
 
-- **Stack:** Improve file refresh with folder scanning.
+- **Shortcuts:** Standardized the refresh shortcut to Ctrl+R / Cmd+R.
 
 ## [0.1.1] - 2026-01-30
 
