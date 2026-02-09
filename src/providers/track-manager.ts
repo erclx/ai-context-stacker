@@ -237,6 +237,7 @@ export class TrackManager implements vscode.Disposable {
 
       if (file) {
         this.updateFileUri(file, newUri)
+        this.checkAndResetFolderFlag(file)
         changed = true
       }
     }
@@ -265,6 +266,7 @@ export class TrackManager implements vscode.Disposable {
           if (relativePath && !relativePath.startsWith('..')) {
             const newUri = vscode.Uri.file(path.join(newRoot.fsPath, relativePath))
             this.updateFileUri(file, newUri)
+            this.checkAndResetFolderFlag(file)
             changed = true
           }
         } else {
@@ -272,6 +274,7 @@ export class TrackManager implements vscode.Disposable {
           if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) {
             const newUri = vscode.Uri.file(path.join(newRoot.fsPath, rel))
             this.updateFileUri(file, newUri)
+            this.checkAndResetFolderFlag(file)
             changed = true
           }
         }
@@ -292,6 +295,20 @@ export class TrackManager implements vscode.Disposable {
       res = res.toLowerCase()
     }
     return res
+  }
+
+  private checkAndResetFolderFlag(file: StagedFile): void {
+    if (!file.isFromFolderAddition) return
+
+    const wsFolder = vscode.workspace.getWorkspaceFolder(file.uri)
+    if (!wsFolder) return
+
+    const fileDir = this.normalizePath(path.dirname(file.uri.fsPath))
+    const rootDir = this.normalizePath(wsFolder.uri.fsPath)
+
+    if (fileDir === rootDir) {
+      file.isFromFolderAddition = false
+    }
   }
 
   public addFilesToActive(uris: vscode.Uri[], fromFolder: boolean = false): StagedFile[] {
