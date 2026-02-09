@@ -8,5 +8,9 @@ node_modules/
 
 # Tooling
 .vscode-test/
-.gemini/.tmp/
+.gemini/*
 .gemini/settings.json
+
+# Secrets
+.env
+.env.*

@@ -1,8 +1,15 @@
-# Tooling
-.gemini/.tmp/
+# Secrets 
+.env
+.env.*
 
 # Deps
 node_modules/
 package-lock.json
-bun.lockb
-yarn.lock
+
+# Infrastructure
+.sandbox/
+.git/
+
+# Tooling
+.gemini/*
+!.gemini/settings.json
