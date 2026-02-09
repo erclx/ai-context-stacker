@@ -619,12 +619,6 @@
       },
       {
         "command": "aiContextStacker.refreshStack",
-        "key": "ctrl+alt+u",
-        "mac": "cmd+alt+u",
-        "when": "focusedView == aiContextStackerView && !inputFocus"
-      },
-      {
-        "command": "aiContextStacker.refreshStack",
         "key": "ctrl+r",
         "mac": "cmd+r",
         "when": "focusedView == aiContextStackerView && !inputFocus"
