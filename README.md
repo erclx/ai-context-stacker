@@ -31,8 +31,7 @@ Drag files or folders into the staging area to track and copy them in a single a
 
 - **Token Counting**: Token counts update as you type, with large files calculated in the background.
 - **Startup**: Staged files persist between sessions and load automatically when VS Code opens.
-- **Manual Refresh**: Use the **Refresh Stack** command (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>U</kbd>) to force a re-scan.
-- **Folder Refresh**: Use the **Refresh Folder Context** command from the Explorer context menu to rescan a staged folder.
+- **Folder Syncing**: Rescan all staged folders or sync individual folders from their context menu.
 - **Multi-root Workspace Support**: Staged files are grouped by project folder name. Works with GitHub Codespaces, WSL2, and SSH Remote sessions.
 - **Auto-Sync**: Renames and deletes are reflected automatically as the project structure changes.
 - **Navigation**: Right-click files in the Explorer to add them, copy their content, or reveal them in the stack. Right-click staged files to reveal them in the system file manager. Use **Reveal in AI Context Stack** to locate a file within the staged context.
@@ -94,13 +93,15 @@ Copy behavior adapts to the current selection:
 
 ## Commands
 
-| Command                  | Description                                                   | Keybinding                                                                                   |
-| :----------------------- | :------------------------------------------------------------ | :------------------------------------------------------------------------------------------- |
-| `Copy Stack`             | Copy all staged content based on active settings and filters. | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> |
-| `Copy and Clear Stack`   | Copy context and clear unpinned files.                        | <kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd> (when focused)                    |
-| `Copy Content`           | Copy individual file or folder content.                       | <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>C</kbd> (when item focused)               |
-| `Preview Context`        | Open a Markdown preview of the current stack.                 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> |
-| `Refresh Folder Context` | Rescan a staged folder for changes.                           |                                                                                              |
+| Command                          | Description                                                   | Keybinding                                                                                   |
+| :------------------------------- | :------------------------------------------------------------ | :------------------------------------------------------------------------------------------- |
+| `Copy Stack`                     | Copy all staged content based on active settings and filters. | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> |
+| `Copy and Clear Stack`           | Copy context and clear unpinned files.                        | <kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd> (when focused)                    |
+| `Copy Content`                   | Copy individual file or folder content.                       | <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>C</kbd> (when item focused)               |
+| `Preview Context`                | Open a Markdown preview of the current stack.                 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> |
+| `Sync All Staged Folders`        | Rescan all staged folders for changes.                        | <kbd>Ctrl</kbd>+<kbd>R</kbd> / <kbd>Cmd</kbd>+<kbd>R</kbd> (when focused)                    |
+| `Sync Folder`                    | Rescan a specific staged folder for changes.                  |                                                                                              |
+| `Sync Folder with Context Stack` | Rescan a folder from the Explorer and update the stack.       |                                                                                              |
 
 ## Keyboard Shortcuts
 
@@ -125,16 +126,16 @@ Copy behavior adapts to the current selection:
 
 ### Staged Files View (when focused)
 
-| Shortcut                                                                                     | Command              |
-| :------------------------------------------------------------------------------------------- | :------------------- |
-| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>U</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>U</kbd>     | Refresh Stack        |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | Copy Stack           |
-| <kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd>                                   | Copy and Clear Stack |
-| <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>C</kbd>                                   | Copy File            |
-| <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd>                                   | Select All           |
-| <kbd>Space</kbd>                                                                             | Toggle Pin           |
-| <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                         | Remove File          |
-| <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd>       | Clear Stack          |
+| Shortcut                                                                                     | Command                 |
+| :------------------------------------------------------------------------------------------- | :---------------------- |
+| <kbd>Ctrl</kbd>+<kbd>R</kbd> / <kbd>Cmd</kbd>+<kbd>R</kbd>                                   | Sync All Staged Folders |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | Copy Stack              |
+| <kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd>                                   | Copy and Clear Stack    |
+| <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>C</kbd>                                   | Copy File               |
+| <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd>                                   | Select All              |
+| <kbd>Space</kbd>                                                                             | Toggle Pin              |
+| <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                         | Remove File             |
+| <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd>       | Clear Stack             |
 
 ### Context Tracks View (when focused)
 
