@@ -132,11 +132,13 @@
       "aiContextStacker": [
         {
           "id": "aiContextTracksView",
-          "name": "Context Tracks"
+          "name": "Context Tracks",
+          "icon": "assets/activity-bar.svg"
         },
         {
           "id": "aiContextStackerView",
-          "name": "Staged Files"
+          "name": "Staged Files",
+          "icon": "assets/activity-bar.svg"
         }
       ]
     },
