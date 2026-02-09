@@ -2,6 +2,7 @@ import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 
+import { StagedFile } from '../models'
 import { IgnoreManager, StackProvider } from '../providers'
 import { Logger } from './logger'
 
@@ -45,7 +46,7 @@ export async function handleFolderScanning(
     async (_, token) => {
       const excludes = await ignoreProvider.getExcludePatterns()
 
-      await scanMultipleFolders(folders, excludes, (files) => provider.addFiles(files), token)
+      await scanMultipleFolders(folders, excludes, (files) => provider.addFiles(files, true), token)
 
       if (!token.isCancellationRequested) {
         vscode.window.showInformationMessage('Finished adding files.')
@@ -99,13 +100,22 @@ export async function discoverWorkspaceFolders(ignore: IgnoreManager): Promise<v
   return mergeFolderLists(shallow, deep)
 }
 
-export function resolveScanRoots(fileUris: vscode.Uri[]): vscode.Uri[] {
-  const parents = fileUris.map((uri) => vscode.Uri.joinPath(uri, '..'))
+export function resolveScanRoots(items: StagedFile[]): {
+  filesToVerify: vscode.Uri[]
+  foldersToRescan: vscode.Uri[]
+} {
+  const explicitFiles = items.filter((f) => !f.isFromFolderAddition).map((f) => f.uri)
+  const folderFiles = items.filter((f) => f.isFromFolderAddition).map((f) => f.uri)
 
+  const parents = folderFiles.map((uri) => vscode.Uri.joinPath(uri, '..'))
   const uniquePaths = new Set(parents.map((p) => p.toString()))
   const uniqueUris = Array.from(uniquePaths).map((s) => vscode.Uri.parse(s))
+  const uniqueParents = pruneNestedFolders(uniqueUris)
 
-  return pruneNestedFolders(uniqueUris)
+  return {
+    filesToVerify: explicitFiles,
+    foldersToRescan: uniqueParents,
+  }
 }
 
 export function pruneNestedFolders(uris: vscode.Uri[]): vscode.Uri[] {

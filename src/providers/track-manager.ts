@@ -294,9 +294,9 @@ export class TrackManager implements vscode.Disposable {
     return res
   }
 
-  public addFilesToActive(uris: vscode.Uri[]): StagedFile[] {
+  public addFilesToActive(uris: vscode.Uri[], fromFolder: boolean = false): StagedFile[] {
     const track = this.ensureActiveTrack()
-    const newFiles = this.filterNewFiles(track, uris)
+    const newFiles = this.filterNewFiles(track, uris, fromFolder)
 
     if (newFiles.length > 0) {
       track.files.push(...newFiles)
@@ -465,7 +465,7 @@ export class TrackManager implements vscode.Disposable {
     }
   }
 
-  private filterNewFiles(track: ContextTrack, uris: vscode.Uri[]): StagedFile[] {
+  private filterNewFiles(track: ContextTrack, uris: vscode.Uri[], fromFolder: boolean): StagedFile[] {
     const existing = new Set(track.files.map((f) => f.uri.toString()))
     return uris
       .filter((u) => !existing.has(u.toString()))
@@ -474,6 +474,7 @@ export class TrackManager implements vscode.Disposable {
         uri,
         label: uri.path.split('/').pop() || 'unknown',
         isPinned: false,
+        isFromFolderAddition: fromFolder,
       }))
   }
 }

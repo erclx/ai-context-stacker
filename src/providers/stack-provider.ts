@@ -125,8 +125,8 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     return this.addFiles([uri])
   }
 
-  public async addFiles(uris: vscode.Uri[]): Promise<boolean> {
-    const newFiles = this.trackManager.addFilesToActive(uris)
+  public async addFiles(uris: vscode.Uri[], fromFolder: boolean = false): Promise<boolean> {
+    const newFiles = this.trackManager.addFilesToActive(uris, fromFolder)
 
     if (newFiles.length === 0) return false
 
@@ -185,9 +185,34 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
         cancellable: true,
       },
       async (_, token) => {
-        const scanRoots = resolveScanRoots(currentFiles.map((f) => f.uri))
+        const { filesToVerify, foldersToRescan } = resolveScanRoots(currentFiles)
+        const foundUris: vscode.Uri[] = []
 
-        const foundUris = await collectFilesFromFolders(scanRoots, this.ignoreManager, token)
+        const BATCH = 50
+        for (let i = 0; i < filesToVerify.length; i += BATCH) {
+          if (token.isCancellationRequested) break
+          const chunk = filesToVerify.slice(i, i + BATCH)
+
+          await Promise.all(
+            chunk.map(async (uri) => {
+              try {
+                const stat = await vscode.workspace.fs.stat(uri)
+                if (stat.type === vscode.FileType.File) {
+                  foundUris.push(uri)
+                }
+              } catch {
+                // File missing or inaccessible
+              }
+            }),
+          )
+
+          await new Promise((resolve) => setImmediate(resolve))
+        }
+
+        if (token.isCancellationRequested) return
+
+        const folderFound = await collectFilesFromFolders(foldersToRescan, this.ignoreManager, token)
+        foundUris.push(...folderFound)
 
         if (token.isCancellationRequested) return
 
@@ -195,7 +220,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
         const newUris = foundUris.filter((uri) => !currentSet.has(uri.toString()))
 
         if (newUris.length > 0) {
-          this.addFiles(newUris)
+          this.addFiles(newUris, true)
           vscode.window.setStatusBarMessage(`Found ${newUris.length} new files.`, 3000)
         } else {
           vscode.window.setStatusBarMessage('No new files found.', 3000)
