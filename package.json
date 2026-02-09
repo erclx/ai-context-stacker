@@ -132,11 +132,13 @@
       "aiContextStacker": [
         {
           "id": "aiContextTracksView",
-          "name": "Context Tracks"
+          "name": "Context Tracks",
+          "icon": "assets/activity-bar.svg"
         },
         {
           "id": "aiContextStackerView",
-          "name": "Staged Files"
+          "name": "Staged Files",
+          "icon": "assets/activity-bar.svg"
         }
       ]
     },
@@ -249,7 +251,19 @@
       },
       {
         "command": "aiContextStacker.refreshStack",
-        "title": "Refresh Stack",
+        "title": "Sync All Staged Folders",
+        "category": "AI Context Stacker",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "aiContextStacker.syncFolder",
+        "title": "Sync Folder",
+        "category": "AI Context Stacker",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "aiContextStacker.syncExplorerFolder",
+        "title": "Sync Folder with Context Stack",
         "category": "AI Context Stacker",
         "icon": "$(refresh)"
       },
@@ -351,6 +365,11 @@
           "command": "aiContextStacker.revealInView",
           "when": "resourceScheme == file",
           "group": "7_modification@3"
+        },
+        {
+          "command": "aiContextStacker.syncExplorerFolder",
+          "when": "resourceScheme == file && resourceFileType == directory",
+          "group": "7_modification@4"
         }
       ],
       "editor/title/context": [
@@ -515,6 +534,11 @@
           "group": "1_primary"
         },
         {
+          "command": "aiContextStacker.syncFolder",
+          "when": "view == aiContextStackerView && viewItem == stagedFolder",
+          "group": "2_secondary"
+        },
+        {
           "command": "aiContextStacker.togglePin",
           "when": "view == aiContextStackerView && viewItem =~ /stagedFile|stagedFolder/",
           "group": "2_secondary"
@@ -595,8 +619,8 @@
       },
       {
         "command": "aiContextStacker.refreshStack",
-        "key": "ctrl+alt+u",
-        "mac": "cmd+alt+u",
+        "key": "ctrl+r",
+        "mac": "cmd+r",
         "when": "focusedView == aiContextStackerView && !inputFocus"
       },
       {
@@ -691,7 +715,7 @@
     "@commitlint/cli": "^20.2.0",
     "@commitlint/config-conventional": "^20.2.0",
     "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
+    "@types/node": "^22.19.10",
     "@types/sinon": "^21.0.0",
     "@types/vscode": "^1.85.0",
     "@vscode/test-cli": "^0.0.12",

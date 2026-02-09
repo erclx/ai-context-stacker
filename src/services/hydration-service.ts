@@ -62,7 +62,11 @@ export class HydrationService {
 
   private async deserializeTrackAsync(trackData: unknown): Promise<ContextTrack> {
     const files: StagedFile[] = []
-    const data = trackData as { id: string; name: string; items?: Array<{ uri: string; isPinned?: boolean }> }
+    const data = trackData as {
+      id: string
+      name: string
+      items?: Array<{ uri: string; isPinned?: boolean; isFromFolderAddition?: boolean }>
+    }
 
     if (data.items && Array.isArray(data.items)) {
       const VALIDATION_CONCURRENCY = Math.max(4, os.cpus().length)
@@ -81,6 +85,7 @@ export class HydrationService {
                   uri: validatedUri,
                   label: StateMapper.extractLabel(validatedUri),
                   isPinned: !!item.isPinned,
+                  isFromFolderAddition: !!item.isFromFolderAddition,
                 })
               }
             } catch (error) {

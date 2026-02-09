@@ -3,7 +3,7 @@ import * as vscode from 'vscode'
 import { isStagedFolder, StackTreeItem, StagedFile } from '../models'
 import { AnalysisEngine, ContextKeyService, TokenAggregatorService, TreeBuilder } from '../services'
 import { StackDragDropController, StackItemRenderer } from '../ui'
-import { collectFilesFromFolders, Logger, resolveScanRoots } from '../utils'
+import { Logger, resolveScanRoots, syncFilesWithFileSystem } from '../utils'
 import { IgnoreManager } from './ignore-manager'
 import { TrackManager } from './track-manager'
 
@@ -125,8 +125,8 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
     return this.addFiles([uri])
   }
 
-  public async addFiles(uris: vscode.Uri[]): Promise<boolean> {
-    const newFiles = this.trackManager.addFilesToActive(uris)
+  public async addFiles(uris: vscode.Uri[], fromFolder: boolean = false): Promise<boolean> {
+    const newFiles = this.trackManager.addFilesToActive(uris, fromFolder)
 
     if (newFiles.length === 0) return false
 
@@ -174,9 +174,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
 
   public async reScanFileSystem(): Promise<void> {
     const currentFiles = this.getFiles()
-    if (currentFiles.length === 0) {
-      return this.forceRefresh()
-    }
+    if (currentFiles.length === 0) return this.forceRefresh()
 
     await vscode.window.withProgress(
       {
@@ -185,9 +183,9 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
         cancellable: true,
       },
       async (_, token) => {
-        const scanRoots = resolveScanRoots(currentFiles.map((f) => f.uri))
+        const { filesToVerify, foldersToRescan } = resolveScanRoots(currentFiles)
 
-        const foundUris = await collectFilesFromFolders(scanRoots, this.ignoreManager, token)
+        const foundUris = await syncFilesWithFileSystem(filesToVerify, foldersToRescan, this.ignoreManager, token)
 
         if (token.isCancellationRequested) return
 
@@ -195,7 +193,7 @@ export class StackProvider implements vscode.TreeDataProvider<StackTreeItem>, vs
         const newUris = foundUris.filter((uri) => !currentSet.has(uri.toString()))
 
         if (newUris.length > 0) {
-          this.addFiles(newUris)
+          this.addFiles(newUris, true)
           vscode.window.setStatusBarMessage(`Found ${newUris.length} new files.`, 3000)
         } else {
           vscode.window.setStatusBarMessage('No new files found.', 3000)

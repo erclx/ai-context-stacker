@@ -9,6 +9,7 @@ export interface ContextTrack {
 export interface SerializedFile {
   uri: string
   isPinned: boolean
+  isFromFolderAddition?: boolean
 }
 
 export interface SerializedTrack {

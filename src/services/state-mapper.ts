@@ -21,6 +21,7 @@ export class StateMapper {
         items: t.files.map((f) => ({
           uri: this.compressUri(f.uri),
           isPinned: !!f.isPinned,
+          isFromFolderAddition: f.isFromFolderAddition,
         })),
       }
     })
@@ -91,6 +92,7 @@ export class StateMapper {
         uri,
         label: this.extractLabel(uri),
         isPinned: !!item.isPinned,
+        isFromFolderAddition: !!item.isFromFolderAddition,
       }
     })
   }

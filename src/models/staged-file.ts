@@ -13,6 +13,7 @@ export interface StagedFile {
   isBinary?: boolean
   isPinned?: boolean
   pathSegments?: string[]
+  isFromFolderAddition?: boolean
 }
 
 export interface StagedFolder {
