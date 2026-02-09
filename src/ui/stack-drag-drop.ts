@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import { isStagedFolder, StackTreeItem } from '../models'
+import { StackTreeItem } from '../models'
 import { IgnoreManager, StackProvider } from '../providers'
 import { categorizeTargets, handleFolderScanning, Logger } from '../utils'
 import { extractUrisFromTransfer } from '../utils/drag-drop'
@@ -8,7 +8,8 @@ import { extractUrisFromTransfer } from '../utils/drag-drop'
 export class StackDragDropController implements vscode.TreeDragAndDropController<StackTreeItem>, vscode.Disposable {
   private static readonly INTERNAL_MIME_TYPE = 'application/vnd.code.tree.stack-provider.internal'
 
-  public readonly dragMimeTypes: readonly string[] = ['text/uri-list', StackDragDropController.INTERNAL_MIME_TYPE]
+  public readonly dragMimeTypes: readonly string[] = [StackDragDropController.INTERNAL_MIME_TYPE]
+
   public readonly dropMimeTypes: readonly string[] = ['text/uri-list', StackDragDropController.INTERNAL_MIME_TYPE]
 
   constructor(
@@ -22,10 +23,6 @@ export class StackDragDropController implements vscode.TreeDragAndDropController
     token: vscode.CancellationToken,
   ): Promise<void> {
     dataTransfer.set(StackDragDropController.INTERNAL_MIME_TYPE, new vscode.DataTransferItem(source))
-
-    const uris = source.map((item) => (isStagedFolder(item) ? item.resourceUri : item.uri))
-    const uriList = uris.map((u) => u.toString()).join('\r\n')
-    dataTransfer.set('text/uri-list', new vscode.DataTransferItem(uriList))
   }
 
   public async handleDrop(
