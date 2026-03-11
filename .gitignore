@@ -16,3 +16,6 @@ node_modules/
 # Gemini
 .gemini/.tmp/
 .gemini/settings.json
+
+# Claude
+.claude/.tmp/
