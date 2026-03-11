@@ -708,9 +708,9 @@
     "lint:spelling": "cspell \"**\"",
     "test": "vscode-test",
     "prepare": "husky",
-    "release": "bash scripts/prepare-release.sh",
-    "publish": "bash scripts/trigger-release.sh",
-    "snapshot": "./scripts/core/snapshot.sh"
+    "release": "./scripts/prepare-release.sh",
+    "publish": "./scripts/trigger-release.sh",
+    "snapshot": "./scripts/snapshot.sh"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.2.0",
