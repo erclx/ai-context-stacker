@@ -7,11 +7,13 @@ disposables
 esbenp
 esbuild
 eslintrc
+frontmatter
 l10n
 lintstagedrc
 prettierrc
 quickpick
 Rescan
+scannability
 sidebar
 vscode
 vsix
