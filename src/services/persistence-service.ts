@@ -84,7 +84,7 @@ export class PersistenceService implements vscode.Disposable {
         Logger.warn(
           `State size ${size} bytes exceeds limit of ${PersistenceService.STORAGE_LIMIT_BYTES}. Aborting save.`,
         )
-        vscode.window.showWarningMessage('AI Context Stacker: State is too large to save. Please remove some files.')
+        vscode.window.showWarningMessage('Stackr: State is too large to save. Please remove some files.')
         return
       }
 

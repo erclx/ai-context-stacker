@@ -1,6 +1,6 @@
 # Architecture
 
-AI Context Stacker is a VS Code extension for staging files into a named collection, then copying the combined content to the clipboard for use with AI tools. State persists per workspace across sessions.
+Stackr is a VS Code extension for staging files into a named collection, then copying the combined content to the clipboard for use with AI tools. State persists per workspace across sessions.
 
 ## Mental model
 

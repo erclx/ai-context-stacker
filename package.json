@@ -1,6 +1,6 @@
 {
   "name": "ai-context-stacker",
-  "displayName": "AI Context Stacker",
+  "displayName": "Stackr",
   "publisher": "erclx",
   "description": "Collect, organize, and copy multiple files and directory structures for use in AI prompts.",
   "version": "0.1.2",
@@ -32,7 +32,7 @@
   "main": "./dist/extension.js",
   "contributes": {
     "configuration": {
-      "title": "AI Context Stacker",
+      "title": "Stackr",
       "properties": {
         "aiContextStacker.logLevel": {
           "type": "string",
@@ -123,7 +123,7 @@
       "activitybar": [
         {
           "id": "aiContextStacker",
-          "title": "AI Context Stacker",
+          "title": "Stackr",
           "icon": "assets/activity-bar.svg"
         }
       ]
@@ -146,207 +146,207 @@
       {
         "command": "aiContextStacker.addCurrentFile",
         "title": "Add Current Open File",
-        "category": "AI Context Stacker"
+        "category": "Stackr"
       },
       {
         "command": "aiContextStacker.addFilePicker",
         "title": "Add Files...",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(add)"
       },
       {
         "command": "aiContextStacker.addFileToStack",
-        "title": "Add to AI Context Stack",
-        "category": "AI Context Stacker"
+        "title": "Add to Stackr",
+        "category": "Stackr"
       },
       {
         "command": "aiContextStacker.addFolderPicker",
         "title": "Add Folder...",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(new-folder)"
       },
       {
         "command": "aiContextStacker.addOpenFiles",
         "title": "Add All Open Files",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(editor-layout)"
       },
       {
         "command": "aiContextStacker.clearAll",
         "title": "Clear Stack",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(clear-all)"
       },
       {
         "command": "aiContextStacker.collapseAll",
         "title": "Collapse All",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(collapse-all)"
       },
       {
         "command": "aiContextStacker.copyAll",
         "title": "Copy Stack",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(copy)"
       },
       {
         "command": "aiContextStacker.copyAndClear",
         "title": "Copy and Clear Stack",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(save-all)"
       },
       {
         "command": "aiContextStacker.copyFile",
         "title": "Copy Content",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(copy)"
       },
       {
         "command": "aiContextStacker.copyExplorerContent",
-        "title": "Copy Content for AI Context",
-        "category": "AI Context Stacker",
+        "title": "Copy Content for Stackr",
+        "category": "Stackr",
         "icon": "$(copy)"
       },
       {
         "command": "aiContextStacker.deleteAllTracks",
         "title": "Reset All Tracks",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(clear-all)"
       },
       {
         "command": "aiContextStacker.deleteTrack",
         "title": "Delete Track",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(trash)"
       },
       {
         "command": "aiContextStacker.moveTrackDown",
         "title": "Move Down",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(arrow-down)"
       },
       {
         "command": "aiContextStacker.moveTrackUp",
         "title": "Move Up",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(arrow-up)"
       },
       {
         "command": "aiContextStacker.newTrack",
         "title": "New Track...",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(add)"
       },
       {
         "command": "aiContextStacker.openSettings",
         "title": "Settings...",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(settings-gear)"
       },
       {
         "command": "aiContextStacker.previewContext",
         "title": "Preview Context",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(eye)"
       },
       {
         "command": "aiContextStacker.refreshStack",
         "title": "Sync All Staged Folders",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(refresh)"
       },
       {
         "command": "aiContextStacker.syncFolder",
         "title": "Sync Folder",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(refresh)"
       },
       {
         "command": "aiContextStacker.syncExplorerFolder",
         "title": "Sync Folder with Context Stack",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(refresh)"
       },
       {
         "command": "aiContextStacker.removeFile",
         "title": "Remove from Stack",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(trash)"
       },
       {
         "command": "aiContextStacker.removeFilePicker",
         "title": "Remove Files...",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(list-unordered)"
       },
       {
         "command": "aiContextStacker.removeFolderPicker",
         "title": "Remove Folder...",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(folder-opened)"
       },
       {
         "command": "aiContextStacker.renameTrack",
         "title": "Rename Track...",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(edit)"
       },
       {
         "command": "aiContextStacker.revealInExplorer",
         "title": "Reveal in Explorer",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(folder-opened)"
       },
       {
         "command": "aiContextStacker.revealInView",
-        "title": "Reveal in AI Context Stack",
-        "category": "AI Context Stacker"
+        "title": "Reveal in Stackr",
+        "category": "Stackr"
       },
       {
         "command": "aiContextStacker.selectAll",
         "title": "Select All",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(check-all)"
       },
       {
         "command": "aiContextStacker.showAllFiles",
         "title": "Show All Files",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(list-flat)"
       },
       {
         "command": "aiContextStacker.showPinnedOnly",
         "title": "Show Pinned Files Only",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(pin)"
       },
       {
         "command": "aiContextStacker.switchTrack",
         "title": "Switch Track...",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(layers)"
       },
       {
         "command": "aiContextStacker.togglePin",
         "title": "Toggle Pin",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(pin)"
       },
       {
         "command": "aiContextStacker.unpinAll",
         "title": "Unpin All Files",
-        "category": "AI Context Stacker",
+        "category": "Stackr",
         "icon": "$(pinned)"
       },
       {
         "command": "aiContextStacker.internalNext",
         "title": "Select Next Item",
-        "category": "AI Context Stacker"
+        "category": "Stackr"
       },
       {
         "command": "aiContextStacker.internalPrev",
         "title": "Select Previous Item",
-        "category": "AI Context Stacker"
+        "category": "Stackr"
       }
     ],
     "menus": {
