@@ -2,7 +2,7 @@
   "name": "ai-context-stacker",
   "displayName": "Stackr",
   "publisher": "erclx",
-  "description": "Collect, organize, and copy multiple files and directory structures for use in AI prompts.",
+  "description": "Prepare and copy file context for AI assistants within VS Code.",
   "version": "0.1.2",
   "license": "MIT",
   "icon": "assets/icon.png",
