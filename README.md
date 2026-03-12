@@ -10,173 +10,102 @@ Prepare file context and directory maps for models like ChatGPT, Claude, or Gemi
   <img src="https://github.com/erclx/ai-context-stacker/raw/main/demos/hero.gif" alt="Drag and Drop Demo" width="800" />
 </p>
 
-## Quick Start
+## Quick start
 
 1. **Install** the extension from the VS Code Marketplace.
 2. **Open** the AI Context Stacker view in the Activity Bar.
-3. **Stage Files** by dragging them into the Staged Files panel.
-   - Or right-click a file in the Explorer to **Add to AI Context Stack** or **Copy Content for AI Context**.
-4. **Quick Add** files from anywhere using <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>A</kbd>. Once the picker is open, use <kbd>Ctrl</kbd>+<kbd>A</kbd> to select all or <kbd>Ctrl</kbd>+<kbd>Space</kbd> to toggle individual selections.
-5. **Preview** context with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> (not available in Markdown files on Mac).
-6. **Copy Stack** by clicking the copy icon or pressing <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> when focused on the Staged Files view.
-7. **Paste** into the LLM.
+3. **Stage files** by dragging them into the Staged Files panel, or right-click any file in the Explorer to add it directly.
+4. **Quick add** files with <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>A</kbd>. Use <kbd>Ctrl</kbd>+<kbd>A</kbd> to select all or <kbd>Ctrl</kbd>+<kbd>Space</kbd> to toggle individual items in the picker.
+5. **Preview** the context with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>.
+6. **Copy** with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> when focused on the Staged Files view.
+7. **Paste** into the model.
 
-**Tip**: Press <kbd>F1</kbd> or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "AI Context Stacker" to view available commands.
+Press <kbd>F1</kbd> and type "AI Context Stacker" to see all available commands.
 
-## Key Features
+## Features
 
-### File Staging
+### File staging
 
-Drag files or folders into the staging area to track and copy them in a single action.
+- **Token counting:** counts update as you type; large files calculate in the background
+- **Persistence:** staged files survive session restarts and load automatically on open
+- **Folder syncing:** rescan all staged folders or sync individual folders from their context menu
+- **Auto-sync:** renames and deletes reflect automatically as the project structure changes
+- **Multi-root support:** works with GitHub Codespaces, WSL2, and SSH Remote sessions
 
-- **Token Counting**: Token counts update as you type, with large files calculated in the background.
-- **Startup**: Staged files persist between sessions and load automatically when VS Code opens.
-- **Folder Syncing**: Rescan all staged folders or sync individual folders from their context menu.
-- **Multi-root Workspace Support**: Staged files are grouped by project folder name. Works with GitHub Codespaces, WSL2, and SSH Remote sessions.
-- **Auto-Sync**: Renames and deletes are reflected automatically as the project structure changes.
-- **Navigation**: Right-click files in the Explorer to add them, copy their content, or reveal them in the stack. Right-click staged files to reveal them in the system file manager. Use **Reveal in AI Context Stack** to locate a file within the staged context.
+### Context tracks
 
-### Context Tracks
+Create separate tracks for different tasks, for example "Bug Fix #123" or "Refactor Auth." Each track maintains its own staged file list.
 
-Create separate tracks for different tasks (e.g. _Bug Fix #123_, _Refactor Auth_). Each track maintains its own list of staged files.
+- Switch tracks with <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>S</kbd>
+- Rename inline with <kbd>F2</kbd>
+- Reorder by dragging or with <kbd>Alt</kbd>+<kbd>↑↓</kbd> / <kbd>Option</kbd>+<kbd>↑↓</kbd>
 
-- Reorder tracks by dragging or using <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Option</kbd>+<kbd>↑</kbd> and <kbd>Alt</kbd>+<kbd>↓</kbd> / <kbd>Option</kbd>+<kbd>↓</kbd>
-- Rename tracks inline with <kbd>F2</kbd>
-- Switch between tracks with <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>S</kbd>
+### Pinning and filtering
 
-Note: The extension always maintains at least one active track.
+- Pin files to keep them through a **Clear Stack**
+- Toggle **Show Pinned Only** to filter the view; copy commands respect the active filter
+- Press <kbd>Space</kbd> to toggle pin on selected files
 
-### Token Warnings
+### Context map
 
-Files are color-coded based on estimated token count:
+Copied output optionally includes an ASCII directory tree:
 
-- **Amber** over 5,000 tokens (configurable via settings)
-- **Red** over 10,000 tokens
-- **Pinned files** retain their pin icon while inheriting warning colors
-
-### Pinning and Filtering
-
-Control which files remain in your stack and customize your view with pinning and filtering options.
-
-- Pin files to prevent removal during **Clear Stack**
-- Toggle **Show Pinned Files Only** to filter the view
-- Copy commands respect the active filter
-- Use <kbd>Space</kbd> to toggle pin on selected files
-
-Pinned files persist across clears. This is useful for keeping core instruction files in the context.
-
-### Context Map
-
-Optionally include an ASCII directory tree in the copied output.
-
-```
-
+```plaintext
 # Context Map
 
 ├── components
 │   ├── Header.tsx
-│   ├── Sidebar.tsx
 │   └── Footer.tsx
-├── utils
-│   ├── api.ts
-│   └── helpers.ts
-└── README.md
-
+└── utils
+    └── api.ts
 ```
 
-### Selection-Aware Copying
+### Token warnings
 
-Copy behavior adapts to the current selection:
+- **Amber** above 5,000 tokens
+- **Red** above 10,000 tokens
 
-- **Files selected**: Copies only the selected files.
-- **Nothing selected**: Copies the entire visible stack (respecting active filters).
+Both thresholds are configurable in settings.
 
 ## Commands
 
-| Command                          | Description                                                   | Keybinding                                                                                   |
-| :------------------------------- | :------------------------------------------------------------ | :------------------------------------------------------------------------------------------- |
-| `Copy Stack`                     | Copy all staged content based on active settings and filters. | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> |
-| `Copy and Clear Stack`           | Copy context and clear unpinned files.                        | <kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd> (when focused)                    |
-| `Copy Content`                   | Copy individual file or folder content.                       | <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>C</kbd> (when item focused)               |
-| `Preview Context`                | Open a Markdown preview of the current stack.                 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> |
-| `Sync All Staged Folders`        | Rescan all staged folders for changes.                        | <kbd>Ctrl</kbd>+<kbd>R</kbd> / <kbd>Cmd</kbd>+<kbd>R</kbd> (when focused)                    |
-| `Sync Folder`                    | Rescan a specific staged folder for changes.                  |                                                                                              |
-| `Sync Folder with Context Stack` | Rescan a folder from the Explorer and update the stack.       |                                                                                              |
+The most common commands and their default keybindings. Press <kbd>F1</kbd> and type "AI Context Stacker" to see the full list.
 
-## Keyboard Shortcuts
-
-### Global Shortcuts
-
-| Shortcut                                                                                     | Command           |
-| :------------------------------------------------------------------------------------------- | :---------------- |
-| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>A</kbd>     | Add Files Picker  |
-| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>F</kbd>     | Add Folder Picker |
-| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>K</kbd>     | New Track         |
-| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>S</kbd>     | Switch Track      |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> | Preview Context   |
-
-### Quick Pickers (when open)
-
-| Shortcut                                                   | Command                     |
-| :--------------------------------------------------------- | :-------------------------- |
-| <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd> | Select All                  |
-| <kbd>Ctrl</kbd>+<kbd>Space</kbd>                           | Toggle Selection            |
-| <kbd>Ctrl</kbd>+<kbd>J</kbd>                               | Move Focus Down (Vim-style) |
-| <kbd>Ctrl</kbd>+<kbd>K</kbd>                               | Move Focus Up (Vim-style)   |
-
-### Staged Files View (when focused)
-
-| Shortcut                                                                                     | Command                 |
-| :------------------------------------------------------------------------------------------- | :---------------------- |
-| <kbd>Ctrl</kbd>+<kbd>R</kbd> / <kbd>Cmd</kbd>+<kbd>R</kbd>                                   | Sync All Staged Folders |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | Copy Stack              |
-| <kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd>                                   | Copy and Clear Stack    |
-| <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>C</kbd>                                   | Copy File               |
-| <kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>A</kbd>                                   | Select All              |
-| <kbd>Space</kbd>                                                                             | Toggle Pin              |
-| <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                         | Remove File             |
-| <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd>       | Clear Stack             |
-
-### Context Tracks View (when focused)
-
-| Shortcut                                                                                                                   | Command          |
-| :------------------------------------------------------------------------------------------------------------------------- | :--------------- |
-| <kbd>F2</kbd>                                                                                                              | Rename Track     |
-| <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Option</kbd>+<kbd>↑</kbd>, <kbd>Alt</kbd>+<kbd>↓</kbd> / <kbd>Option</kbd>+<kbd>↓</kbd> | Move Track       |
-| <kbd>Del</kbd> / <kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                                                       | Delete Track     |
-| <kbd>Shift</kbd>+<kbd>Del</kbd> / <kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>Backspace</kbd>                                     | Reset All Tracks |
+| Command                | Description                                        | Keybinding                                                                                   |
+| :--------------------- | :------------------------------------------------- | :------------------------------------------------------------------------------------------- |
+| `Copy Stack`           | Copy all staged content respecting active filters. | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> |
+| `Copy and Clear Stack` | Copy context then clear unpinned files.            | <kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Cmd</kbd>+<kbd>X</kbd> (when focused)                    |
+| `Preview Context`      | Open a Markdown preview of the current stack.      | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> |
+| `Add Files`            | Open the file picker.                              | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>A</kbd>     |
+| `Switch Track`         | Switch the active track.                           | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>S</kbd>     |
 
 ## Settings
 
-Configuration is managed via VS Code Settings.
+| Setting                                   | Default           | Description                                                          |
+| :---------------------------------------- | :---------------- | :------------------------------------------------------------------- |
+| `aiContextStacker.excludes`               | `[]`              | Glob patterns to exclude from file operations.                       |
+| `aiContextStacker.defaultExcludes`        | `[]`              | Base exclude patterns applied to all tracks.                         |
+| `aiContextStacker.largeFileThreshold`     | `5000`            | Token count for the amber warning. Red at 2x this value.             |
+| `aiContextStacker.showTreeMap`            | `true`            | Include the ASCII directory tree in copied output.                   |
+| `aiContextStacker.showTreeMapHeader`      | `true`            | Show the header above the tree map.                                  |
+| `aiContextStacker.treeMapText`            | `# Context Map`   | Custom header text for the tree map.                                 |
+| `aiContextStacker.includeFileContents`    | `true`            | Include file contents in copied output.                              |
+| `aiContextStacker.showFileContentsHeader` | `true`            | Show the header above file contents.                                 |
+| `aiContextStacker.fileContentsText`       | `# File Contents` | Custom header text for file contents.                                |
+| `aiContextStacker.logLevel`               | `INFO`            | Output channel verbosity. Options: `DEBUG`, `INFO`, `WARN`, `ERROR`. |
 
-| Setting                                   | Default           | Description                                                                             |
-| :---------------------------------------- | :---------------- | :-------------------------------------------------------------------------------------- |
-| `aiContextStacker.excludes`               | `[]`              | File patterns to exclude (glob patterns).                                               |
-| `aiContextStacker.defaultExcludes`        | `[]`              | Base exclude patterns applied to all tracks.                                            |
-| `aiContextStacker.largeFileThreshold`     | `5000`            | Token count for **Heavy** warning (Amber). Red at 2x this value.                        |
-| `aiContextStacker.showTreeMap`            | `true`            | Include the ASCII directory tree in output.                                             |
-| `aiContextStacker.showTreeMapHeader`      | `true`            | Show the title text above the tree map.                                                 |
-| `aiContextStacker.treeMapText`            | `# Context Map`   | Custom text for the map header.                                                         |
-| `aiContextStacker.includeFileContents`    | `true`            | Include the actual code/text of staged files.                                           |
-| `aiContextStacker.showFileContentsHeader` | `true`            | Show the title text above file contents.                                                |
-| `aiContextStacker.fileContentsText`       | `# File Contents` | Custom text for the contents header.                                                    |
-| `aiContextStacker.logLevel`               | `INFO`            | Control the verbosity of the Output Channel. Options: `DEBUG`, `INFO`, `WARN`, `ERROR`. |
+## Known limitations
 
-## Known Limitations
-
-- **Clipboard Size**: Output is capped at 100MB to protect VS Code stability.
-- **Large Files**: Files over 5MB are excluded from context.
-- **Token Estimates**: Counts are approximate and may differ slightly from model-specific tokenizers.
-- **Binary Files**: Binary assets are automatically skipped.
-- **Large Folders**: Adding folders with more than 200 files requires confirmation.
-- **Web VS Code**: Clipboard access in browser-based VS Code requires a secure HTTPS context.
+- Output is capped at 100MB
+- Files over 5MB are excluded from context
+- Token counts are approximate and may differ from model-specific tokenizers
+- Binary files are skipped automatically
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/erclx/ai-context-stacker/issues)
-- **Changelog**: [CHANGELOG.md](CHANGELOG.md)
+- **Issues:** [GitHub Issues](https://github.com/erclx/ai-context-stacker/issues)
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+[MIT](LICENSE)
