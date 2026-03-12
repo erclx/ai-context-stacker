@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-03-12
+
 ### Changed
 
 - branding: renamed from "AI Context Stacker" to "Stackr" and updated marketplace description
@@ -142,7 +144,8 @@ All notable changes to this project will be documented in this file.
 - tokens: real-time token counting with configurable warning thresholds
 - limits: 100MB clipboard cap and 5MB per-file limit
 
-[Unreleased]: https://github.com/erclx/stackr/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/erclx/stackr/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/erclx/stackr/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/erclx/stackr/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/erclx/stackr/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/erclx/stackr/compare/v0.0.16...v0.1.0

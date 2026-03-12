@@ -3,7 +3,7 @@
   "displayName": "Stackr",
   "publisher": "erclx",
   "description": "Prepare and copy file context for AI assistants within VS Code.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "license": "MIT",
   "icon": "assets/icon.png",
   "repository": {
