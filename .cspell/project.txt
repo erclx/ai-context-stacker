@@ -1,6 +1,8 @@
 cnorm
 cutcopypaste
 erclx
+ovsx
+OVSX
 pycache
 softprops
 Stackr
