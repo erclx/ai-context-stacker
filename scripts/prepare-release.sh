@@ -4,7 +4,6 @@ set -o pipefail
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
-YELLOW='\033[0;33m'
 WHITE='\033[1;37m'
 GREY='\033[0;90m'
 NC='\033[0m'
@@ -16,8 +15,7 @@ log_add()   { echo -e "${GREY}│${NC} ${GREEN}+${NC} $1"; }
 
 show_help() {
   echo -e "${GREY}┌${NC}"
-  log_step "Script Usage"
-  echo -e "${GREY}│${NC}  ${WHITE}Usage:${NC} ./prepare-release.sh [options] [type]"
+  echo -e "${GREY}├${NC} ${WHITE}Usage:${NC} ./prepare-release.sh [options] [type]"
   echo -e "${GREY}│${NC}"
   echo -e "${GREY}│${NC}  ${WHITE}Types:${NC}"
   echo -e "${GREY}│${NC}    patch         ${GREY}# Increment patch version (0.0.X)${NC}"
@@ -41,10 +39,10 @@ select_option() {
 
   while true; do
     for i in "${!options[@]}"; do
-      if [ $i -eq $cur ]; then
-        echo -e "${GREY}│${NC}    ${GREEN}● ${WHITE}${options[$i]}${NC}"
+      if [ "$i" -eq "$cur" ]; then
+        echo -e "${GREY}│${NC}  ${GREEN}❯ ${options[$i]}${NC}"
       else
-        echo -e "${GREY}│${NC}    ${GREY}○ ${options[$i]}${NC}"
+        echo -e "${GREY}│${NC}    ${GREY}${options[$i]}${NC}"
       fi
     done
 
@@ -55,21 +53,26 @@ select_option() {
           if [[ "$key_seq" == "[A" ]]; then cur=$(( (cur - 1 + count) % count )); fi
           if [[ "$key_seq" == "[B" ]]; then cur=$(( (cur + 1) % count )); fi
         else
-          echo -en "\033[${count}A\033[J"
-          echo -e "\033[1A${GREY}◇${NC} ${prompt_text} ${RED}Cancelled${NC}"
-          log_error "Selection cancelled"
+          echo -en "\033[$((count + 1))A\033[J"
+          echo -e "\033[1A${GREY}│${NC}\n${GREY}◇${NC} ${prompt_text} ${RED}Cancelled${NC}"
+          exit 1
         fi
         ;;
       "k") cur=$(( (cur - 1 + count) % count ));;
       "j") cur=$(( (cur + 1) % count ));;
+      "q")
+        echo -en "\033[$((count + 1))A\033[J"
+        echo -e "\033[1A${GREY}│${NC}\n${GREY}◇${NC} ${prompt_text} ${RED}Cancelled${NC}"
+        exit 1
+        ;;
       "") break ;;
     esac
 
     echo -en "\033[${count}A"
   done
 
-  echo -en "\033[${count}A\033[J"
-  echo -e "\033[1A${GREY}◇${NC} ${prompt_text} ${WHITE}${options[$cur]}${NC}"
+  echo -en "\033[$((count + 1))A\033[J"
+  echo -e "\033[1A${GREY}│${NC}\n${GREY}◇${NC} ${prompt_text} ${WHITE}${options[$cur]}${NC}"
   SELECTED_OPTION="${options[$cur]}"
 }
 
@@ -88,7 +91,8 @@ main() {
   check_dependencies
 
   echo -e "${GREY}┌${NC}"
-  log_step "Checking Git State"
+  echo -e "${GREY}│${NC} ${WHITE}Prepare release${NC}"
+  echo -e "${GREY}├${NC} ${WHITE}Checking Git state${NC}"
 
 if [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
     log_error "Must start from 'main' branch"
@@ -124,12 +128,12 @@ CURRENT_VERSION=$(node -p "require('./package.json').version")
     log_error "Cancelled by user"
   fi
 
-  log_step "Creating Release Branch"
+  log_step "Creating release branch"
 BRANCH_NAME="release/v$NEXT_VERSION"
 git checkout -b "$BRANCH_NAME"
   log_add "Branch: $BRANCH_NAME"
 
-  log_step "Bumping Version & Changelog"
+  log_step "Bumping version & changelog"
   npm version "$BUMP_TYPE" --no-git-tag-version > /dev/null
   log_add "Updated package.json"
 
@@ -144,7 +148,7 @@ ESC_CURRENT=${CURRENT_VERSION//./\\.}
 perl -i -pe "s|\[Unreleased\]: (.*)v$ESC_CURRENT\.\.\.HEAD|[Unreleased]: \$1v$NEXT_VERSION...HEAD\n[$NEXT_VERSION]: \$1v$CURRENT_VERSION...v$NEXT_VERSION|g" CHANGELOG.md
   log_add "Updated CHANGELOG.md"
 
-  log_step "Review Changes"
+  log_step "Review changes"
 git --no-pager diff --stat package.json package-lock.json CHANGELOG.md
 
   select_option "Commit and push changes?" "Yes" "No"
@@ -152,12 +156,12 @@ git --no-pager diff --stat package.json package-lock.json CHANGELOG.md
     log_error "Cancelled by user"
   fi
 
-  log_step "Pushing Branch"
+  log_step "Pushing branch"
 git add package.json package-lock.json CHANGELOG.md
   git commit -m "chore(release): v$NEXT_VERSION"
 git push -u origin "$BRANCH_NAME"
 
-  log_step "Opening Pull Request"
+  log_step "Opening pull request"
 PR_BODY="## Summary
 Finalize artifacts for **v$NEXT_VERSION** release.
 
