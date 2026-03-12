@@ -86,7 +86,7 @@ export class Logger {
   }
 
   private static notifyUser(message: string): void {
-    const userMessage = `AI Context Stacker: ${message}`
+    const userMessage = `Stackr: ${message}`
 
     void vscode.window.showErrorMessage(userMessage, 'Show Log').then((selection) => {
       if (selection === 'Show Log') {

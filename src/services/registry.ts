@@ -111,7 +111,7 @@ export class ServiceRegistry implements vscode.Disposable {
   private initializeLogger(): void {
     const config = vscode.workspace.getConfiguration('aiContextStacker')
     const level = config.get<LogLevel>('logLevel') || 'INFO'
-    Logger.configure('AI Context Stacker', level)
+    Logger.configure('Stackr', level)
   }
 
   private handleConfigChange(e: vscode.ConfigurationChangeEvent): void {

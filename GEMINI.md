@@ -1,4 +1,4 @@
-## AI Context Stacker
+## Stackr
 
 VS Code extension for staging files into named tracks and copying combined content to the clipboard for use with AI tools. State persists per workspace across sessions.
 

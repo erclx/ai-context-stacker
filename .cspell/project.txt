@@ -3,5 +3,6 @@ cutcopypaste
 erclx
 pycache
 softprops
+Stackr
 treedata
 venv

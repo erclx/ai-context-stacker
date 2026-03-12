@@ -1,4 +1,4 @@
-# AI Context Stacker
+# Stackr
 
 [![Current Version](https://img.shields.io/visual-studio-marketplace/v/erclx.ai-context-stacker?cacheSeconds=3600)](https://marketplace.visualstudio.com/items?itemName=erclx.ai-context-stacker)
 [![VS Code Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/erclx.ai-context-stacker?label=vscode&cacheSeconds=3600)](https://marketplace.visualstudio.com/items?itemName=erclx.ai-context-stacker)
@@ -13,14 +13,14 @@ Prepare file context and directory maps for models like ChatGPT, Claude, or Gemi
 ## Quick start
 
 1. **Install** the extension from the VS Code Marketplace.
-2. **Open** the AI Context Stacker view in the Activity Bar.
+2. **Open** the Stackr view in the Activity Bar.
 3. **Stage files** by dragging them into the Staged Files panel, or right-click any file in the Explorer to add it directly.
 4. **Quick add** files with <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>A</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>A</kbd>. Use <kbd>Ctrl</kbd>+<kbd>A</kbd> to select all or <kbd>Ctrl</kbd>+<kbd>Space</kbd> to toggle individual items in the picker.
 5. **Preview** the context with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>.
 6. **Copy** with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> when focused on the Staged Files view.
 7. **Paste** into the model.
 
-Press <kbd>F1</kbd> and type "AI Context Stacker" to see all available commands.
+Press <kbd>F1</kbd> and type "Stackr" to see all available commands.
 
 ## Features
 
@@ -69,7 +69,7 @@ Both thresholds are configurable in settings.
 
 ## Commands
 
-The most common commands and their default keybindings. Press <kbd>F1</kbd> and type "AI Context Stacker" to see the full list.
+The most common commands and their default keybindings. Press <kbd>F1</kbd> and type "Stackr" to see the full list.
 
 | Command                | Description                                        | Keybinding                                                                                   |
 | :--------------------- | :------------------------------------------------- | :------------------------------------------------------------------------------------------- |
@@ -80,6 +80,8 @@ The most common commands and their default keybindings. Press <kbd>F1</kbd> and 
 | `Switch Track`         | Switch the active track.                           | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>S</kbd>     |
 
 ## Settings
+
+All settings are prefixed with `aiContextStacker` in `settings.json`.
 
 | Setting                                   | Default           | Description                                                          |
 | :---------------------------------------- | :---------------- | :------------------------------------------------------------------- |

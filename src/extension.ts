@@ -8,7 +8,7 @@ import { Logger } from './utils'
 export async function activate(context: vscode.ExtensionContext): Promise<ServiceRegistry> {
   ServiceRegistry.disposeExisting()
 
-  Logger.configure('AI Context Stacker')
+  Logger.configure('Stackr')
   Logger.info('Activation sequence started.')
 
   const services = new ServiceRegistry(context)
