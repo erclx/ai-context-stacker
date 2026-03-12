@@ -25,10 +25,10 @@ select_option() {
 
   while true; do
     for i in "${!options[@]}"; do
-      if [ $i -eq $cur ]; then
-        echo -e "${GREY}│${NC}    ${GREEN}● ${WHITE}${options[$i]}${NC}"
+      if [ "$i" -eq "$cur" ]; then
+        echo -e "${GREY}│${NC}  ${GREEN}❯ ${options[$i]}${NC}"
       else
-        echo -e "${GREY}│${NC}    ${GREY}○ ${options[$i]}${NC}"
+        echo -e "${GREY}│${NC}    ${GREY}${options[$i]}${NC}"
       fi
     done
 
@@ -39,21 +39,26 @@ select_option() {
           if [[ "$key_seq" == "[A" ]]; then cur=$(( (cur - 1 + count) % count )); fi
           if [[ "$key_seq" == "[B" ]]; then cur=$(( (cur + 1) % count )); fi
         else
-          echo -en "\033[${count}A\033[J"
-          echo -e "\033[1A${GREY}◇${NC} ${prompt_text} ${RED}Cancelled${NC}"
-          log_error "Selection cancelled"
+          echo -en "\033[$((count + 1))A\033[J"
+          echo -e "\033[1A${GREY}│${NC}\n${GREY}◇${NC} ${prompt_text} ${RED}Cancelled${NC}"
+          exit 1
         fi
         ;;
       "k") cur=$(( (cur - 1 + count) % count ));;
       "j") cur=$(( (cur + 1) % count ));;
+      "q")
+        echo -en "\033[$((count + 1))A\033[J"
+        echo -e "\033[1A${GREY}│${NC}\n${GREY}◇${NC} ${prompt_text} ${RED}Cancelled${NC}"
+        exit 1
+        ;;
       "") break ;;
     esac
 
     echo -en "\033[${count}A"
   done
 
-  echo -en "\033[${count}A\033[J"
-  echo -e "\033[1A${GREY}◇${NC} ${prompt_text} ${WHITE}${options[$cur]}${NC}"
+  echo -en "\033[$((count + 1))A\033[J"
+  echo -e "\033[1A${GREY}│${NC}\n${GREY}◇${NC} ${prompt_text} ${WHITE}${options[$cur]}${NC}"
   SELECTED_OPTION="${options[$cur]}"
 }
 
@@ -66,7 +71,8 @@ main() {
   check_dependencies
 
   echo -e "${GREY}┌${NC}"
-  log_step "Syncing with Remote"
+  echo -e "${GREY}│${NC} ${WHITE}Trigger release${NC}"
+  echo -e "${GREY}├${NC} ${WHITE}Syncing with remote${NC}"
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$CURRENT_BRANCH" != "main" ]; then
@@ -75,12 +81,12 @@ if [ "$CURRENT_BRANCH" != "main" ]; then
 fi
 git pull origin main
 
-  log_step "Detecting Version"
+  log_step "Detecting version"
 VERSION=$(node -p "require('./package.json').version")
 TAG="v$VERSION"
 RELEASE_BRANCH="release/$TAG"
 
-  log_info "Detected Version: $TAG"
+  log_info "Detected version: $TAG"
 
 if git rev-parse "$TAG" >/dev/null 2>&1; then
     log_error "Tag $TAG already exists locally"
@@ -91,7 +97,7 @@ if git rev-parse "$TAG" >/dev/null 2>&1; then
     log_error "Release cancelled by user"
   fi
 
-  log_step "Tagging & Pushing"
+  log_step "Tagging & pushing"
 git tag "$TAG"
 log_info "Created local tag $TAG"
 git push origin "$TAG"
@@ -106,7 +112,7 @@ else
 fi
 
   echo -e "${GREY}└${NC}\n"
-  echo -e "${GREEN}✓ Release Triggered! Monitor: https://github.com/erclx/ai-context-stacker/actions${NC}"
+  echo -e "${GREEN}✓ Release triggered! Monitor: https://github.com/erclx/stackr/actions${NC}"
 }
 
 main "$@"
