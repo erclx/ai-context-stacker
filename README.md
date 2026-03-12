@@ -81,6 +81,8 @@ The most common commands and their default keybindings. Press <kbd>F1</kbd> and 
 
 ## Settings
 
+All settings are prefixed with `aiContextStacker` in `settings.json`.
+
 | Setting                                   | Default           | Description                                                          |
 | :---------------------------------------- | :---------------- | :------------------------------------------------------------------- |
 | `aiContextStacker.excludes`               | `[]`              | Glob patterns to exclude from file operations.                       |
