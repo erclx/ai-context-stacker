@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- branding: renamed from "AI Context Stacker" to "Stackr" and updated marketplace description
+
 ## [0.1.2] - 2026-02-09
 
 ### Added
