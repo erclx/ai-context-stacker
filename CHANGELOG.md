@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the "AI Context Stacker" extension will be documented in this file.
+All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
@@ -8,144 +8,140 @@ All notable changes to the "AI Context Stacker" extension will be documented in 
 
 ### Added
 
-- **Folder Sync:** New commands to refresh specific folders or the entire stack.
+- stack: new commands to refresh specific folders or the entire stack
 
 ### Changed
 
-- **Shortcuts:** Standardized the refresh shortcut to Ctrl+R / Cmd+R.
+- shortcuts: standardized the refresh shortcut to Ctrl+R / Cmd+R
 
 ## [0.1.1] - 2026-01-30
 
 ### Fixed
 
-- **Pickers:** Correct quickpick select all behavior with active query.
+- pickers: correct quickpick select all behavior with active query
 
 ## [0.1.0] - 2026-01-30
 
 ### Fixed
 
-- **UI:** Suppressed internal drag processing in stack view.
-- **Stack:** Synchronized staged items when a folder is renamed.
-- **Lifecycle:** Handled recursive folder renames to ensure correct file lifecycle.
-
-## [0.0.16] - 2026-01-21
+- ui: suppressed internal drag processing in stack view
+- stack: synchronized staged items when a folder is renamed
+- lifecycle: handled recursive folder renames to ensure correct file tracking
 
 ## [0.0.15] - 2026-01-20
 
 ### Added
 
-- **Copy Content**: Added "Copy Content for AI Context" command to explorer context menu.
-- **Picker Navigation**: Added Ctrl+J and Ctrl+K for Vim-style navigation within all selection pickers.
+- explorer: added "Copy Content for AI Context" command to explorer context menu
+- pickers: added Ctrl+J and Ctrl+K for Vim-style navigation within all selection pickers
 
 ### Changed
 
-- **UI Wording**: Standardized command titles for consistency (e.g., "Reveal in AI Context Stack").
-- **Menu Order**: Explicitly ordered items in the explorer context menu.
+- ui: standardized command titles for consistency
+- menus: explicitly ordered items in the explorer context menu
 
 ## [0.0.14] - 2026-01-20
 
 ### Changed
 
-- **Marketplace Visibility**: Added Open VSX badges and refined README labels for better display on extension registries.
+- marketplace: added Open VSX badges and refined README labels for better display on extension registries
 
 ## [0.0.13] - 2026-01-18
 
 ### Added
 
-- **Open VSX Support**: Extension is now officially published to the Open VSX Registry.
-- **Picker Keybindings**: Added Select All and Toggle Selection shortcuts to the file pickers.
+- registry: extension published to the Open VSX Registry
+- pickers: added select all and toggle selection shortcuts to file pickers
 
 ## [0.0.10 - 0.0.11] - 2026-01-05
 
 ### Added
 
-- **Visual Feedback**: The status bar now displays a success checkmark upon successful clipboard copies.
-- **Smart Pinning**: Folders now visually inherit pinned status from their contents, and pinned items automatically sort to the top.
+- status bar: displays a success checkmark after successful clipboard copies
+- pinning: folders visually inherit pinned status from contents; pinned items sort to the top
 
 ### Fixed
 
-- **Multi-Root Stability**: Optimized path resolution and hydration for multi-root workspaces to prevent file pruning.
-- **Extension Reliability**: Fixed several potential crashes during rapid activation cycles and window shutdowns.
+- multi-root: optimized path resolution and hydration to prevent file pruning
+- activation: fixed crashes during rapid activation cycles and window shutdowns
 
 ## [0.0.9] - 2026-01-05
 
 ### Added
 
-- **Performance Optimization**: Implemented background analysis yielding and state dirty-checking to keep the VS Code UI highly responsive in large projects.
-- **Tree View Patching**: The staged files view now performs granular updates instead of full refreshes for better performance.
+- analysis: background analysis yielding and state dirty-checking to keep the UI responsive on large projects
+- tree: staged files view performs granular updates instead of full refreshes
 
 ## [0.0.8] - 2025-12-30
 
 ### Added
 
-- **Incremental Loading**: Tracks now load in chunks to prevent UI blocking during startup.
-- **Batched File Events**: Optimized handling of rapid file renames and deletions.
-- **Tree Node Patching**: UI now updates specific branches instead of rebuilding the entire tree.
+- tracks: load in chunks to prevent UI blocking during startup
+- file events: optimized handling of rapid file renames and deletions
+- tree: updates specific branches instead of rebuilding the entire tree
 
 ## [0.0.7] - 2025-12-30
 
 ### Added
 
-- **Deep Refresh**: Added recursive re-scanning of staged directories to discover new files.
-- **Folder Interaction**: Added support for pinning and removing folders (affects all nested files).
+- stack: recursive re-scanning of staged directories to discover new files
+- folders: support for pinning and removing folders, affecting all nested files
 
 ### Fixed
 
-- **Sync Logic**: Resolved "Zombie Folder" issues where deleted directories persisted in the stack.
+- sync: resolved zombie folder issue where deleted directories persisted in the stack
 
 ## [0.0.6] - 2025-12-29
 
 ### Added
 
-- **Performance Engine**: Added analysis caching and multi-core hardware scaling for faster token counting.
-- **Background Processing**: Background analysis now pauses when the editor is blurred or the sidebar is hidden.
-- **Token Feedback**: Added a status bar indicator to show active background analysis.
+- analysis: caching and hardware scaling for faster token counting
+- background: analysis pauses when the editor is blurred or sidebar is hidden
+- status bar: indicator for active background analysis
 
 ### Changed
 
-- **Safety Guards**: Implemented streaming tree generation to minimize memory usage during large copies.
-- **Customization**: Added global ignore patterns to exclude files from token analysis.
+- output: streaming tree generation to reduce memory usage during large copies
+- ignore: global ignore patterns to exclude files from token analysis
 
 ## [0.0.5] - 2025-12-28
 
 ### Added
 
-- **Recursive Stats**: Folders now display aggregated token counts for all nested files.
-- **Live Sync**: Integrated native VS Code events for immediate rename/delete tracking.
+- folders: aggregated token counts for all nested files
+- sync: native VS Code events for immediate rename and delete tracking
 
 ### Fixed
 
-- **UI Freeze**: Fixed freeze caused by async loops persisting across window reloads.
-- **Resource Leak**: Fixed CPU spikes from undisposed timers and token calculators.
+- ui: fixed freeze caused by async loops persisting across window reloads
+- resources: fixed CPU spikes from undisposed timers and token calculators
 
 ## [0.0.4] - 2025-12-28
 
 ### Changed
 
-- **UX Refinement**: Improved folder picker visibility and standardized multi-root project labeling.
+- ux: improved folder picker visibility and standardized multi-root project labeling
 
 ## [0.0.3] - 2025-12-27
 
 ### Added
 
-- **Initialization UI**: Added loading indicators and a non-blocking warmup sequence for extension startup.
+- startup: loading indicators and non-blocking warmup sequence
 
 ## [0.0.1] - 2025-12-27
 
 ### Added
 
-- **Core Staging**: Drag-and-drop file staging with support for multiple "Context Tracks."
-- **AI Context Map**: Optional ASCII directory tree generation for clipboard output.
-- **Smart Formatting**: Automatic binary file skipping and Markdown preview of staged context.
-- **Token Estimation**: Real-time token counting with configurable warning thresholds.
-- **Safety Limits**: 100MB clipboard cap and 5MB per-file limit for extension stability.
-- **Privacy First**: 100% local processing; no data is sent to external servers.
+- staging: drag-and-drop file staging with support for multiple context tracks
+- context map: optional ASCII directory tree generation for clipboard output
+- output: automatic binary file skipping and Markdown preview of staged context
+- tokens: real-time token counting with configurable warning thresholds
+- limits: 100MB clipboard cap and 5MB per-file limit
 
 [Unreleased]: https://github.com/erclx/ai-context-stacker/compare/v0.1.2...HEAD
 [0.1.2]: https://github.com/erclx/ai-context-stacker/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/erclx/ai-context-stacker/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/erclx/ai-context-stacker/compare/v0.0.16...v0.1.0
-[0.0.16]: https://github.com/erclx/ai-context-stacker/compare/v0.0.15...v0.0.16
 [0.0.15]: https://github.com/erclx/ai-context-stacker/compare/v0.0.14...v0.0.15
 [0.0.14]: https://github.com/erclx/ai-context-stacker/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/erclx/ai-context-stacker/compare/v0.0.10...v0.0.13
