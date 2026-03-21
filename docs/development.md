@@ -32,26 +32,9 @@ To compile tests without running them:
 npm run compile-tests
 ```
 
-## Commits
-
-Commit messages follow the [Conventional Commits](https://www.conventionalcommits.org) spec, enforced by commitlint. The format is:
-
-```plaintext
-type(scope): description
-
-feat(stack): add optimistic patch on file removal
-fix(hydration): prune dead URIs before tree render
-chore(build): update esbuild to 0.27
-```
-
-Common types: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`.
-
 ## Release
 
-Two scripts handle releasing:
-
-- `npm run release` — runs `scripts/prepare-release.sh`, bumps the version and prepares the changelog
-- `npm run publish` — runs `scripts/trigger-release.sh`, triggers the publish pipeline
+`npm run release` runs `scripts/release.sh`. It prompts for a bump type, creates a release branch, updates `package.json` and `CHANGELOG.md`, opens a PR, polls until the PR merges, then pushes the version tag that triggers CI to publish.
 
 Snapshots for testing pre-release builds:
 
