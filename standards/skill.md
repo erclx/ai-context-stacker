@@ -1,5 +1,9 @@
 # Claude skill reference
 
+## Overview
+
+Skills provide Claude Code with domain-specific constraints and rules inline, so it can act immediately without reading all docs. Each skill body contains actionable rules for its domain. Full reference docs are the fallback for edge cases and deeper context. Skills use progressive disclosure: Claude reads only frontmatter at session start (~100 tokens each), matches a query against descriptions, then loads the full skill body.
+
 ## Structure
 
 - Skill is a folder named in kebab-case containing `SKILL.md` (required), `scripts/` (optional), `references/` (optional), `assets/` (optional)
@@ -19,7 +23,7 @@
 
 - Structure: `[What it does] + [When to use it] + [Key trigger phrases]`
 - Include specific phrases users would say to trigger it
-- Be specific, not vague — Claude routes based on this field alone
+- Be specific, not vague. Claude routes based on this field alone.
 - Add negative triggers if skill is over-triggering: `Do NOT use for X`
 
 ## Body
@@ -60,7 +64,7 @@ description: Reviews code for bugs, clarity, and standards compliance. Use when 
 
 Before reviewing, read:
 
-- `standards/code.md` — coding standards and conventions
+- `standards/code.md`: coding standards and conventions
 
 ## Guards
 

@@ -1,36 +1,22 @@
-## Stackr
+# Project
 
 VS Code extension for staging files into named tracks and copying combined content to the clipboard for use with AI tools. State persists per workspace across sessions.
 
-## Mental model
+## Key paths
 
-A track is a named group of files. The stack is whichever track is currently active. Staged files carry pin state, folder scan origin, and token count.
+- `commands/`: thin handlers, one file per command
+- `models/`: pure data shapes, no VS Code imports
+- `providers/`: bridge between services and VS Code; `TrackManager` owns mutations, `StackProvider` owns the tree view
+- `services/`: persistence, hydration, token analysis, tree building, file watching
+- `ui/`: tree rendering, status bar, drag and drop, webview preview
+- `utils/`: stateless helpers for clipboard, formatting, file scanning, token estimation
 
-Dependencies flow in one direction: `models → services → providers → commands / ui`
+## Behavior
 
-- `commands/` — thin handlers, one file per command
-- `models/` — pure data shapes, no VS Code imports
-- `providers/` — bridge between services and VS Code; `TrackManager` owns mutations, `StackProvider` owns the tree view
-- `services/` — core logic: persistence, hydration, token analysis, tree building, file watching
-- `ui/` — tree rendering, status bar, drag and drop, webview preview; owns no state
-- `utils/` — stateless helpers: clipboard, formatting, file scanning, token estimation
-- `constants.ts` — shared constants: file size limits, exclude patterns, known extensions
-- `extension.ts` — activation entry point, wires `ServiceRegistry` and registers commands
+- For any command that produces a FINAL COMMAND block, always show PREVIEW first. Never run a command without it.
+- If the user responds with a short affirmation or clearly signals intent to proceed, execute the FINAL COMMAND immediately without re-explaining or re-previewing.
 
-## Build and test
+## Spelling
 
-```plaintext
-npm install       # install dependencies
-npm run compile   # type check, lint, bundle
-npm run watch     # parallel watch for esbuild and tsc
-npm run test      # compile tests then run suite
-```
-
-Press `F5` in VS Code to launch the Extension Development Host.
-
-## Standards
-
-- Commits follow Conventional Commits: `type(scope): description`
-- Common types: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`
-- Prose follows `standards/prose.md` — active voice, no buzzwords, no vague qualifiers
-- Changelog entries follow `standards/changelog.md` — `component: fragment` format, no bold, no periods
+- Add unknown words to the appropriate dictionary defined in `cspell.json`
+- Keep dictionary files sorted alphabetically

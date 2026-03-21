@@ -1,0 +1,1 @@
+Update `.claude/` docs to reflect decisions made during this session. In TASKS.md, mark completed items `[x]` in place within "Up next"; do not move them to Done. Add any new tasks identified during implementation. Update ARCHITECTURE.md, DESIGN.md, WIREFRAMES.md, and REQUIREMENTS.md if any decisions were made or changed. Follow `standards/prose.md` for all edits.
