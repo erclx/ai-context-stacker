@@ -4,6 +4,9 @@ import typescriptEslint from 'typescript-eslint'
 
 export default [
   {
+    ignores: ['out/', 'dist/', 'node_modules/', '.vscode-test/'],
+  },
+  {
     files: ['**/*.ts'],
   },
   {
