@@ -10,10 +10,13 @@ eslintrc
 frontmatter
 l10n
 lintstagedrc
+parallelizable
 prettierrc
 quickpick
 Rescan
 scannability
+shellcheck
+shfmt
 sidebar
 vscode
 vsix
