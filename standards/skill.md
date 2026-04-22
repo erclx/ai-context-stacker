@@ -1,8 +1,13 @@
+---
+title: Claude skill reference
+description: Claude skill structure and authoring rules
+---
+
 # Claude skill reference
 
 ## Overview
 
-Skills provide Claude Code with domain-specific constraints and rules inline, so it can act immediately without reading all docs. Each skill body contains actionable rules for its domain. Full reference docs are the fallback for edge cases and deeper context. Skills use progressive disclosure: Claude reads only frontmatter at session start (~100 tokens each), matches a query against descriptions, then loads the full skill body.
+Skills give Claude Code domain-specific constraints and rules inline, so it can act immediately without reading all docs. Each skill body contains actionable rules for its domain. Full reference docs are the fallback for edge cases and deeper context. Skills use progressive disclosure: Claude reads only frontmatter at session start (~100 tokens each), matches a query against descriptions, then loads the full skill body.
 
 ## Structure
 
@@ -30,15 +35,24 @@ Skills provide Claude Code with domain-specific constraints and rules inline, so
 
 - Use imperative voice throughout
 - Front-load critical instructions
-- Keep `SKILL.md` under 5,000 words — move detailed docs to `references/`
+- Keep `SKILL.md` under 5,000 words. Move detailed docs to `references/`.
 - Link to `references/` files explicitly so Claude knows to load them
 - Use progressive disclosure: `SKILL.md` for core instructions, `references/` for detail, `scripts/` for deterministic operations
-- Headers: sentence case for all levels (H1, H2, H3)
+- Use sentence case for all headings (H1, H2, H3)
+- When executing multiple independent operations (file reads, shell commands), run them in parallel to reduce latency
+- When referencing project files, include "from the project root" in the read instruction
+- Contain only behavioral rules (what to do, what not to do) and pointers to reference docs. Narrative descriptions of what files are or how the system works belong in `docs/`, not in the skill body.
+- State rules, not inventories. Reference docs for lists that change. Enumerating items in a skill body creates drift when items are added or removed.
+- When a rule could enumerate allowed options, phrase it as a ban on the forbidden shape so the rule stays stable as categories are added.
+- Cut any rule that resists crisp one-line phrasing. Vague guidance is worse than none.
+- Avoid flags that dispatch between alternate flows. The model misreads them and runs the vanilla path. Dry-run-style toggles are fine. For alternate flows, prefer a separate skill or manual invocation of two skills in sequence.
+- Before collapsing a manual multi-step flow into a skill, ask what the manual pauses do. Pauses that carry external timing, error-surfacing, or judgment weight are the feature. Prefer a snippet over a skill, or require explicit per-step confirmation.
+- Skill success lines emit the full relative path from the project root (`<dir>/<file>`) for any file written, updated, or deleted. Bare filenames are not clickable in the terminal.
 
 ## Scripts
 
 - Use `scripts/` for operations that must be deterministic or repetitive
-- Claude executes scripts and receives stdout — scripts are not loaded into context
+- Claude executes scripts and receives stdout. Scripts are not loaded into context.
 - Use XML tags in script output for reliable parsing: `<SECTION>content</SECTION>`
 - Use `#!/usr/bin/env bash` shebang
 - Always include `2>/dev/null || echo "FALLBACK"` guards on git and shell commands
@@ -49,6 +63,11 @@ Skills provide Claude Code with domain-specific constraints and rules inline, so
 - Invoke manually with `/skill-name` or `/<plugin>:skill-name` for plugin skills
 - Plugin skills are namespaced: `plugin-name:skill-name`
 - Priority order when names conflict: enterprise > personal > project > plugin
+
+## Execution
+
+- Task skills with preview+execute patterns must execute commands immediately after outputting the preview. Do not include "confirm before running" language or pause for user input.
+- Claude Code's tool permission dialog is the confirmation gate. The user hits Enter to approve or Escape to interrupt and revise.
 
 ## Examples
 
@@ -62,7 +81,7 @@ description: Reviews code for bugs, clarity, and standards compliance. Use when 
 
 # Code review
 
-Before reviewing, read:
+Before reviewing, read from the project root:
 
 - `standards/code.md`: coding standards and conventions
 
