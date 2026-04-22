@@ -28,5 +28,4 @@ vscode
 vsix
 webview
 worktree
-worktrees
 yarnrc
