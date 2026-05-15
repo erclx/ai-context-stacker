@@ -1,8 +1,8 @@
 ---
 description: Enforce strict TypeScript type safety and patterns
-globs: '**/*.ts,**/*.tsx'
-alwaysApply: false
-priority: 100
+paths:
+  - '**/*.ts'
+  - '**/*.tsx'
 ---
 
 # TYPESCRIPT STANDARDS
@@ -21,7 +21,7 @@ priority: 100
 - Use `interface` for object shapes and component props.
 - Use `type` for unions, intersections, and utility types.
 - Do not prefix interfaces with `I`.
-- Do not use `enum`; use constant objects or unions.
+- Use constant objects or union types instead of `enum`.
 
 ## Type safety
 

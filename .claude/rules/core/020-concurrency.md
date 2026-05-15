@@ -1,18 +1,16 @@
 ---
 description: Enforce safe concurrency and async operation patterns
-alwaysApply: true
-priority: 20
 ---
 
 # CONCURRENCY STANDARDS
 
 ## Async lifecycle
 
-- Make async operations cancellable; clean up on scope exit or caller cancellation.
-- Coordinate dependent async operations explicitly; document execution order.
+- Make async operations cancellable. Clean up on scope exit or caller cancellation.
+- Coordinate dependent async operations explicitly. Document execution order.
 - Set explicit timeouts on all external async operations.
 - Do not fire-and-forget async operations without cleanup handlers.
-- Batch independent async operations; avoid sequential execution when parallelizable.
+- Batch independent async operations. Do not run them sequentially when parallelizable.
 
 ## Race conditions
 
@@ -21,4 +19,4 @@ priority: 20
 
 ## Failure handling
 
-- Handle partial failures in batched operations independently; do not fail the entire batch for a single error.
+- Handle partial failures in batched operations independently. Do not fail the entire batch for a single error.

@@ -1,7 +1,5 @@
 ---
 description: Enforce structured logging and observability
-alwaysApply: true
-priority: 50
 ---
 
 # LOGGING STANDARDS
@@ -19,4 +17,4 @@ priority: 50
 ## Log safety
 
 - Do not log credentials, tokens, or personally identifiable information.
-- Do not log implementation details; log observable behavior.
+- Log observable behavior, not implementation details.

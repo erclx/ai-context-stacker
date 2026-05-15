@@ -1,14 +1,12 @@
 ---
 description: Enforce consistent error handling patterns
-alwaysApply: true
-priority: 30
 ---
 
 # ERROR HANDLING STANDARDS
 
 ## Boundary validation
 
-- Validate inputs at system boundaries; reject invalid data immediately.
+- Validate inputs at system boundaries. Reject invalid data immediately.
 - Do not use exceptions for control flow.
 
 ## Error classification
