@@ -4,14 +4,14 @@ Capture visual intent and the decisions behind it: the why behind how things loo
 
 What belongs:
 
-- Tokens described as intent ("mid gray, muted text"), not computed values; exact values live in code
+- Tokens described as intent ("mid gray, muted text"), not computed values. Exact values live in code
 - Layout constraints and sizing rules not obvious from wireframes
 - Visual rules a developer could get wrong without guidance
 - Non-obvious omissions ("no motion", "no custom icons") that prevent scope creep
 
 What does not belong:
 
-- CSS classes, computed values, component filenames, or prop names; those live in code
+- CSS classes, computed values, component filenames, or prop names. Those live in code
 - UX copy and interaction flows, which live in WIREFRAMES.md
 - Anything that requires updating every time the code is refactored
 
@@ -46,7 +46,7 @@ None added. VS Code panel chrome handles all structural separation.
 
 ## Motion
 
-None. No animations, transitions, or loading spinners. Tree updates render immediately; token count placeholders replace in place when analysis completes.
+None. No animations, transitions, or loading spinners. Tree updates render immediately. Token count placeholders replace in place when analysis completes.
 
 ## Icons
 

@@ -1,20 +1,20 @@
 # Requirements
 
-Describe what the product does and why. Not how it works; that lives in ARCHITECTURE.md. Update this doc when scope changes, goals shift, or a non-goal is promoted to a feature.
+Describe what the product does and why. Not how it works. That lives in ARCHITECTURE.md. Update this doc when scope changes, goals shift, or a non-goal is promoted to a feature.
 
 What belongs:
 
 - The problem being solved and for whom
 - User-facing goals stated as outcomes, not implementation
 - Explicit non-goals: scope boundaries that prevent feature creep. Mark deferred items "(deferred)" to signal they are not permanently excluded.
-- MVP features as a numbered list: feature name and one-line description; no implementation detail
-- Tech stack as a plain list of tools; rationale lives in ARCHITECTURE.md
+- MVP features as a numbered list: feature name and one-line description, no implementation detail
+- Tech stack as a plain list of tools. Rationale lives in ARCHITECTURE.md
 - Hard constraints that shape all decisions
 
 What does not belong:
 
 - Implementation details, API names, or internal component references
-- Rationale for tech choices; that lives in ARCHITECTURE.md
+- Rationale for tech choices. That lives in ARCHITECTURE.md
 - Anything that describes how a feature is built rather than what it does
 
 ## Problem
@@ -44,8 +44,8 @@ Developers using AI assistants need to assemble relevant file contents into a si
 4. Track ordering: reorder tracks via drag-and-drop or move-up/move-down commands
 5. Copy stack: copy combined content of the active stack to the clipboard
 6. Copy and clear: copy then immediately clear the stack in one action
-7. Pin files: pin files to survive clear operations; pinned files remain until explicitly removed
-8. Token counts: display per-file and total token estimates; flag heavy and critical files by threshold
+7. Pin files: pin files to survive clear operations. Pinned files remain until explicitly removed
+8. Token counts: display per-file and total token estimates. Flag heavy and critical files by threshold
 9. Status bar: show the active track name and total token count
 10. Preview: render the combined context in a webview panel before copying
 11. File lifecycle: auto-update or remove staged files when they are renamed or deleted on disk
@@ -64,5 +64,5 @@ Developers using AI assistants need to assemble relevant file contents into a si
 
 - `workspaceState` storage cap: 100KB hard limit per workspace
 - Must work fully offline with no network access
-- No new runtime dependencies without strong justification; prefer VS Code native APIs
-- Must not affect VS Code startup time; activation is event-driven
+- No new runtime dependencies without strong justification. Prefer VS Code native APIs
+- Must not affect VS Code startup time. Activation is event-driven
