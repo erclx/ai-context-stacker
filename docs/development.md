@@ -1,3 +1,8 @@
+---
+title: Development
+description: Local setup, dev loop, test commands, and release workflow
+---
+
 # Development
 
 ## Setup
@@ -10,7 +15,7 @@ Requires Node.js and VS Code. No other dependencies.
 
 ## Running locally
 
-Open the repo in VS Code and press `F5`. This launches the Extension Development Host with the extension loaded. Changes to source require restarting the host; use `Ctrl+Shift+F5` to relaunch quickly.
+Open the repo in VS Code and press `F5`. This launches the Extension Development Host with the extension loaded. Changes to source require restarting the host. Use `Ctrl+Shift+F5` to relaunch quickly.
 
 For continuous compilation during development:
 

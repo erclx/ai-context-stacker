@@ -24,6 +24,7 @@ description: Readme structure and content conventions
 
 ## Content
 
+- Open public-facing READMEs with universal problems any reader recognizes, not repo-specific artifact names. Save artifact names for feature or "What is inside" sections.
 - Use relative paths for repository files. Use absolute URLs for external resources.
 - Include practical usage snippets for core functionality
 - For libraries/tools: include API quickstart
@@ -69,7 +70,7 @@ See the [full documentation](https://docs.example.com) for detailed API referenc
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See the [contributing guidelines](CONTRIBUTING.md).
 
 ## License
 

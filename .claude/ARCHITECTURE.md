@@ -11,17 +11,17 @@ What belongs:
 
 What does not belong:
 
-- Setup commands or install instructions; those live in README
-- How individual functions work line by line; that belongs in code comments
-- Full type definitions; those live in code. Reference the shape conceptually if needed.
+- Setup commands or install instructions. Those live in README
+- How individual functions work line by line. That belongs in code comments
+- Full type definitions. Those live in code. Reference the shape conceptually if needed.
 
 Name each decision clearly. Give the reasoning, especially for non-obvious choices. Skip entries where the rationale is self-evident.
 
 ## Overview
 
-Stackr is a VS Code extension with a strict unidirectional dependency graph: `models → services → providers → commands / ui`. `ServiceRegistry` is the composition root; it constructs every service, wires dependencies, and owns the disposal lifecycle. `extension.ts` calls `services.register()` then hands off to `ViewManager` and command registration.
+Stackr is a VS Code extension with a strict unidirectional dependency graph: `models → services → providers → commands / ui`. `ServiceRegistry` is the composition root. It constructs every service, wires dependencies, and owns the disposal lifecycle. `extension.ts` calls `services.register()` then hands off to `ViewManager` and command registration.
 
-State flows in one direction: `TrackManager` owns all mutations to tracks and files. `StackProvider` and `TrackProvider` observe `TrackManager` via events and push updates to the tree views. Commands delegate to providers; providers delegate to services.
+State flows in one direction: `TrackManager` owns all mutations to tracks and files. `StackProvider` and `TrackProvider` observe `TrackManager` via events and push updates to the tree views. Commands delegate to providers, which delegate to services.
 
 ## Structure
 
@@ -41,15 +41,15 @@ src/
 
 ### esbuild for bundling, tsc for type checking
 
-esbuild handles bundling; `tsc --noEmit` runs separately for type errors. Both run as part of `compile` and `package`. This keeps the bundle step fast while keeping strict type safety. The two processes are independent: esbuild does not perform type checking, and tsc does not emit files.
+esbuild handles bundling. `tsc --noEmit` runs separately for type errors. Both run as part of `compile` and `package`. This keeps the bundle step fast while keeping strict type safety. The two processes are independent: esbuild does not perform type checking, and tsc does not emit files.
 
 ### ServiceRegistry as a singleton with disposal tiers
 
-`ServiceRegistry` is constructed fresh on every activation and stores itself as a static `_instance`. `ServiceRegistry.disposeExisting()` runs first on activation to kill any zombie instance from a previous dev host session. Disposal runs in three tiers — foundation services first, then stateful services, then view providers — to prevent use-after-dispose errors during shutdown.
+`ServiceRegistry` is constructed fresh on every activation and stores itself as a static `_instance`. `ServiceRegistry.disposeExisting()` runs first on activation to kill any zombie instance from a previous dev host session. Disposal runs in three tiers (foundation services first, then stateful services, then view providers) to prevent use-after-dispose errors during shutdown.
 
 ### workspaceState for persistence
 
-State is stored in VS Code's `workspaceState`, keyed as `aiContextStacker.tracks.v1`. This gives per-workspace isolation with no filesystem writes and no file-watching overhead. The tradeoff is a hard 100KB storage cap enforced in `PersistenceService`. Files that exceed the cap are not saved; a warning message is shown instead.
+State is stored in VS Code's `workspaceState`, keyed as `aiContextStacker.tracks.v1`. This gives per-workspace isolation with no filesystem writes and no file-watching overhead. The tradeoff is a hard 100KB storage cap enforced in `PersistenceService`. Files that exceed the cap are not saved. A warning message is shown instead.
 
 ### Debounced, fingerprinted saves
 
@@ -57,7 +57,7 @@ State is stored in VS Code's `workspaceState`, keyed as `aiContextStacker.tracks
 
 ### Async hydration deferred by 10ms
 
-`TrackManager` schedules hydration via `setTimeout(..., 10)` rather than calling it in the constructor. This lets the extension activate and register its views before the first storage read. Missing files are dropped silently during hydration; the tree renders with whatever survives validation.
+`TrackManager` schedules hydration via `setTimeout(..., 10)` rather than calling it in the constructor. This lets the extension activate and register its views before the first storage read. Missing files are dropped silently during hydration. The tree renders with whatever survives validation.
 
 ### Optimistic tree patching
 

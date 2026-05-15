@@ -1,3 +1,8 @@
+---
+title: CI/CD
+description: GitHub Actions workflow that tests on push and PR and publishes on v* tags
+---
+
 # CI/CD
 
 ## Overview
@@ -6,8 +11,8 @@ One workflow file handles everything: `.github/workflows/publish.yml`. It runs o
 
 Two jobs run in sequence:
 
-1. `test` — runs on every trigger
-2. `publish` — runs only when a `v*` tag is pushed, and only after `test` passes
+1. `test` runs on every trigger
+2. `publish` runs only when a `v*` tag is pushed, and only after `test` passes
 
 ## Test job
 
