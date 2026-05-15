@@ -5,6 +5,7 @@ Describe the system shape and the decisions behind it. Not a tutorial, setup gui
 What belongs:
 
 - A high-level overview of how the system is structured and why
+- A file tree with brief inline annotations, enough to orient a new developer
 - Key technical decisions as named H3 entries: what was chosen and why this over the alternatives, including stack and library choices
 - Risks and open questions still unresolved
 
@@ -21,6 +22,20 @@ Name each decision clearly. Give the reasoning, especially for non-obvious choic
 Stackr is a VS Code extension with a strict unidirectional dependency graph: `models → services → providers → commands / ui`. `ServiceRegistry` is the composition root. It constructs every service, wires dependencies, and owns the disposal lifecycle. `extension.ts` calls `services.register()` then hands off to `ViewManager` and command registration.
 
 State flows in one direction: `TrackManager` owns all mutations to tracks and files. `StackProvider` and `TrackProvider` observe `TrackManager` via events and push updates to the tree views. Commands delegate to providers, which delegate to services.
+
+## Structure
+
+```plaintext
+src/
+├── commands/          ← one file per command group, all thin handlers
+├── models/            ← pure data shapes, no VS Code imports
+├── providers/         ← VS Code TreeDataProvider implementations and track/ignore management
+├── services/          ← core logic: persistence, hydration, analysis, tree building, file watching
+├── ui/                ← tree rendering, status bar, drag and drop, webview preview
+├── utils/             ← stateless helpers: clipboard, formatting, file scanning, token estimation
+├── constants.ts       ← shared constants: file size limits, exclude patterns, known extensions
+└── extension.ts       ← activation entry point, wires ServiceRegistry and registers commands
+```
 
 ## Key technical decisions
 
