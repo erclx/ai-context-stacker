@@ -7,5 +7,6 @@
   "**/*.{json,md}": [
     "prettier --write",
     "cspell --no-must-find-files"
-  ]
+  ],
+  "**/*.md": "aitk indexes regen"
 }
