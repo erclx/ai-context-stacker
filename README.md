@@ -26,7 +26,7 @@ Press <kbd>F1</kbd> and type "Stackr" to see all available commands.
 
 ### File staging
 
-- **Token counting:** counts update as you type. Large files calculate in the background
+- **Token counting:** live counts as you type, with large files analyzed in the background
 - **Persistence:** staged files survive session restarts and load automatically on open
 - **Folder syncing:** rescan all staged folders or sync individual folders from their context menu
 - **Auto-sync:** renames and deletes reflect automatically as the project structure changes
@@ -43,7 +43,7 @@ Create separate tracks for different tasks, for example "Bug Fix #123" or "Refac
 ### Pinning and filtering
 
 - Pin files to keep them through a **Clear Stack**
-- Toggle **Show Pinned Only** to filter the view. Copy commands respect the active filter
+- **Show Pinned Only** filters the view, and copy commands respect that filter
 - Press <kbd>Space</kbd> to toggle pin on selected files
 
 ### Context map
