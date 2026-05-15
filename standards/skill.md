@@ -46,8 +46,10 @@ Skills give Claude Code domain-specific constraints and rules inline, so it can 
 - When a rule could enumerate allowed options, phrase it as a ban on the forbidden shape so the rule stays stable as categories are added.
 - Cut any rule that resists crisp one-line phrasing. Vague guidance is worse than none.
 - Avoid flags that dispatch between alternate flows. The model misreads them and runs the vanilla path. Dry-run-style toggles are fine. For alternate flows, prefer a separate skill or manual invocation of two skills in sequence.
+- When a skill should fire from multiple callers, rely on description matching with strong trigger phrases. Do not hardcode `Skill` calls in sibling skills that could trigger it naturally.
 - Before collapsing a manual multi-step flow into a skill, ask what the manual pauses do. Pauses that carry external timing, error-surfacing, or judgment weight are the feature. Prefer a snippet over a skill, or require explicit per-step confirmation.
 - Skill success lines emit the full relative path from the project root (`<dir>/<file>`) for any file written, updated, or deleted. Bare filenames are not clickable in the terminal.
+- Separate correctness axes (routing, sourcing, escalation, decline) from shape axes (line count, formatting, variant sprawl) when tuning a skill. Tighten only on correctness regressions. Do not convert soft caps to hard caps for aesthetic drift when correctness passes.
 
 ## Scripts
 
@@ -83,7 +85,8 @@ description: Reviews code for bugs, clarity, and standards compliance. Use when 
 
 Before reviewing, read from the project root:
 
-- `standards/code.md`: coding standards and conventions
+- `CLAUDE.md`: project conventions and behavior rules
+- `.claude/rules/`: path-scoped coding rules
 
 ## Guards
 
