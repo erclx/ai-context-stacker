@@ -6,10 +6,10 @@ VS Code extension for staging files into named tracks and copying combined conte
 
 - Check `.claude/TASKS.md` for current scope and status
 - Check `.claude/ARCHITECTURE.md` for decisions already made
-- Check `.claude/WIREFRAMES.md` for intended UI layout and behavior
+- Check `.claude/wireframes/` for intended UI layout and behavior
 - Check `.claude/DESIGN.md` for tokens, typography, spacing, and component rules
 - Check `.claude/REQUIREMENTS.md` for feature scope and non-goals
-- Check `.claude/GOV.md` for coding standards before writing or editing any code
+- Check `.claude/rules/` for coding standards before writing or editing any code
 
 ## Rules
 
@@ -19,7 +19,13 @@ VS Code extension for staging files into named tracks and copying combined conte
 
 ## Context
 
-- Check `.claude/` state docs (`TASKS.md`, `ARCHITECTURE.md`, `REQUIREMENTS.md`, `DESIGN.md`, `WIREFRAMES.md`, `GOV.md`) for context before making changes, when present. The `claude-feature` skill reads them in parallel when planning a feature.
+The project uses a three-tier context model. Know which tier holds what before reading or writing:
+
+- Always loaded: root `CLAUDE.md`, `.claude/REQUIREMENTS.md`, `.claude/ARCHITECTURE.md`, and `.claude/context/index.md`. Project-wide invariants, product scope, and the discovery anchor for domain context.
+- Path-scoped lazy: `.claude/rules/*.md` with `paths:` frontmatter. Coding standards that load only when files matching the glob are touched. Always-on rules apply every session.
+- On-demand lookup: `.claude/context/<domain>.md` entries. Per-domain narrative (how a domain is structured, decisions made, gotchas). Use the always-loaded `.claude/context/index.md` to pick which entries to read. Entries are populated by `claude-docs` at ship time.
+
+@.claude/context/index.md
 
 ## Behavior
 
@@ -34,12 +40,21 @@ VS Code extension for staging files into named tracks and copying combined conte
 ## Markdown
 
 - When editing any markdown file, follow `standards/prose.md`.
+- When writing or updating `.claude/context/<domain>.md`, also follow `standards/context.md`.
+
+## Output
+
+- After creating or modifying a file, include its path on its own line so terminal emulators can make it clickable. Do not paraphrase paths into prose ("the seeds folder", "your CLAUDE.md").
+- Use the path the user's editor can resolve. The editor is rooted at the main project root.
+- In the main worktree: relative from `pwd` works because `pwd` equals the editor root.
+- In a linked worktree (under `.claude/worktrees/<name>/`): use absolute paths. Relative paths from worktree `pwd` would not resolve against the editor's project root.
+- When the response covers multiple files, group paths under headers: `**Created:**`, `**Modified:**`, `**Deleted:**`. For single-file changes, the path on its own line is enough.
 
 ## Key paths
 
 - `commands/`: thin handlers, one file per command
 - `models/`: pure data shapes, no VS Code imports
-- `providers/`: bridge between services and VS Code; `TrackManager` owns mutations, `StackProvider` owns the tree view
+- `providers/`: bridge between services and VS Code. `TrackManager` owns mutations, `StackProvider` owns the tree view
 - `services/`: persistence, hydration, token analysis, tree building, file watching
 - `ui/`: tree rendering, status bar, drag and drop, webview preview
 - `utils/`: stateless helpers for clipboard, formatting, file scanning, token estimation
@@ -57,9 +72,10 @@ VS Code extension for staging files into named tracks and copying combined conte
 
 ## Tasks
 
+- `.claude/TASKS.md` is gitignored local session scratch. Edit freely. No staging or revert before commits.
 - Only create a task for work that spans multiple sessions or has real dependencies. Handle small edits immediately without a task entry.
 - Do not add tasks retroactively for work already completed. Completed work is visible in git.
-- When a task needs execution detail beyond `.claude/TASKS.md`, create a plan in `.claude/plans/` and link to it from the task block's intro paragraph. Delete the plan when the task ships.
+- When a task needs execution detail beyond `.claude/TASKS.md`, create a plan in `.claude/plans/` and link to it from the task block's intro paragraph. When that task ships, delete its plan file.
 - Write the plan in the same session as the task block. The session that executes the plan later inherits reasoning context it would otherwise have to re-derive.
 
 ## Memory
@@ -75,5 +91,6 @@ VS Code extension for staging files into named tracks and copying combined conte
 
 ## Worktrees
 
-- Shared session scratch (`.claude/plans/`, `.claude/review/`, `.claude/memory/`) lives at the main worktree root, not inside a linked worktree. From a linked worktree, resolve these paths against the main root via `git worktree list --porcelain | awk '/^worktree /{print $2; exit}'`. Fall back to `pwd` if not a git repo.
-- From a linked worktree, every `Edit` or `Write` to a tracked file (source, docs, `TASKS.md`) must use a path starting with `pwd`. Only untracked scratch (`.claude/plans/`, `.claude/review/`, `.claude/memory/`) resolves to the main worktree root.
+- Implementation work runs in a linked worktree. From the main worktree, enter one with `/claude-worktree` before editing tracked files for a feature.
+- Shared session scratch (`.claude/plans/`, `.claude/review/`, `.claude/memory/`, `.claude/briefs/`, `.claude/TASKS.md`) lives at the main worktree root, not inside a linked worktree. From a linked worktree, resolve these paths against the main root via `git worktree list --porcelain | grep -m 1 '^worktree ' | cut -d' ' -f2-`. Fall back to `pwd` if not a git repo.
+- From a linked worktree, every `Edit` or `Write` to a tracked file (source, docs) must use a path starting with `pwd`. Only shared session scratch (`.claude/plans/`, `.claude/review/`, `.claude/memory/`, `.claude/briefs/`, `.claude/TASKS.md`) resolves to the main worktree root.
