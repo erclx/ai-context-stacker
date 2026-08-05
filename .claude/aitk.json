@@ -1,6 +1,31 @@
 {
-  "covers": ["governance"],
+  "covers": ["standards", "governance"],
   "domains": {
+    "standards": {
+      "syncedAt": "2026-08-05T05:47:28.660Z",
+      "files": {
+        ".claude/standards/architecture.md": "sha256:a79b7d69a3d9d695a87d025afcff3ea5972a03b10c1dd4f148206a332e6f56dc",
+        ".claude/standards/context.md": "sha256:68aff546005892f86a9746ec11f1d7f8968b7a6369a765e08fe52c867e42072f",
+        ".claude/standards/design.md": "sha256:3ffb517fc76312a63e63dbde02dd1a7e2050586ec600ec883969b097bc7f01c3",
+        ".claude/standards/diagrams.md": "sha256:c3bdcd013a43d54db5cafa8f31263d439d22b907c738cc38fa97492053e56b73",
+        ".claude/standards/groundwork.md": "sha256:59a7ccf1c25eb0a14061d1bb14a50000e8fdfdfa2c895ead1c2daebee9624b0e",
+        ".claude/standards/intake.md": "sha256:a6b714a4b44e0be085128f89dc90c97ffbd18f2f33e07c4c52409f4098881b16",
+        ".claude/standards/markdown.md": "sha256:30a2cc9c61fa9f639fee363b25e2f2541bae2fb7d9bcaa367537f554aa2ca0c4",
+        ".claude/standards/memory.md": "sha256:cdde98e2adfd32e8ed5eebe0bfd6c5db19b32861eee33358a9bd30a43ea6c39a",
+        ".claude/standards/plan.md": "sha256:d088e65076c8b8d9740902461daee80ce3e3f59e130c5729904931dd8780d2f4",
+        ".claude/standards/prose.md": "sha256:c47fd1ff6c3a703ca811767d7dcc301199ac4c82a032c67a6fac6eeee7936569",
+        ".claude/standards/publish.md": "sha256:56c03659bd1880ecadfa9b40f82e6fd08356a2e68b6c20eaf3ed869b5561c4c3",
+        ".claude/standards/readme.md": "sha256:ee90c3e48176a9958b9de7c437e91d7639e943fee5405f7684b3c187132513d7",
+        ".claude/standards/requirements.md": "sha256:1a9be54cf38f6ac6d3b84366fac14df203912d758d437924431934639316eb34",
+        ".claude/standards/rule.md": "sha256:91f6954be38916b8279d3ef0f817e8b506c1f3939ac90db9dd13ecb77e7200fe",
+        ".claude/standards/skill.md": "sha256:8ca6b174bd309b0e40d03cf155c0b6ccf9452b8abe1daf829b93fd55c4d8be6c",
+        ".claude/standards/slug.md": "sha256:ac99f03d3f1ab7c1dabb2be60b1f05a0c53ca22406bcd40d29b8447dbbfd49e5",
+        ".claude/standards/standard.md": "sha256:8d64bbed395c84a67a28b3805a7ae043ed7fbc25b840d7968f68a1de638cf2c2",
+        ".claude/standards/tasks.md": "sha256:64777390fd887fcc8ab9f930737bdf4d20742df3b1ebaefe203d9b6df61d87f4",
+        ".claude/standards/versioning.md": "sha256:b30bdc246d2859c9a39b20e6975a050e560e2754cf8e196aa7a2d37ecbb3a9aa",
+        ".claude/standards/wireframes.md": "sha256:2317cbda84ecfdb03e13a0c98f37a7d93c560746aa191df043e689d573fb1f2f"
+      }
+    },
     "governance": {
       "syncedAt": "2026-08-05T05:38:39.571Z",
       "files": {
