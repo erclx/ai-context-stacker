@@ -2,7 +2,7 @@
   "covers": ["governance"],
   "domains": {
     "governance": {
-      "syncedAt": "2026-08-05T05:36:06.540Z",
+      "syncedAt": "2026-08-05T05:38:39.571Z",
       "files": {
         ".claude/rules/core/000-constitution.md": "sha256:f0a61628b5a95bee868d6b62204df8a63c647906aa66af6157c6a6e8a3ecb7cc",
         ".claude/rules/core/010-testing.md": "sha256:6506b7092bec6c633687d5311e880cf1adc800fb4413ed99aaa213d6697223bd",

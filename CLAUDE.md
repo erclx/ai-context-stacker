@@ -13,7 +13,7 @@ VS Code extension for staging files into named tracks and copying combined conte
 
 ## Rules
 
-- Before editing any doc, re-read `standards/prose.md` and the document's own preamble
+- Before editing any doc, re-read `.claude/standards/prose.md` and the document's own preamble
 - When editing any doc, read surrounding content first and match its depth, length, and tone
 - After implementing changes, run `npm run format && npm run lint && npm run test`
 
@@ -39,8 +39,8 @@ The project uses a three-tier context model. Know which tier holds what before r
 
 ## Markdown
 
-- When editing any markdown file, follow `standards/prose.md`.
-- When writing or updating `.claude/context/<domain>.md`, also follow `standards/context.md`.
+- When editing any markdown file, follow `.claude/standards/prose.md`.
+- When writing or updating `.claude/context/<domain>.md`, also follow `.claude/standards/context.md`.
 
 ## Output
 
