@@ -1,0 +1,19 @@
+{
+  "covers": ["governance"],
+  "domains": {
+    "governance": {
+      "syncedAt": "2026-08-05T05:36:06.540Z",
+      "files": {
+        ".claude/rules/core/000-constitution.md": "sha256:f0a61628b5a95bee868d6b62204df8a63c647906aa66af6157c6a6e8a3ecb7cc",
+        ".claude/rules/core/010-testing.md": "sha256:6506b7092bec6c633687d5311e880cf1adc800fb4413ed99aaa213d6697223bd",
+        ".claude/rules/core/020-concurrency.md": "sha256:df6a2e89d3f0ef02a5718caf7e1b17c67e1360f1386ace7f4661a33fbadd3908",
+        ".claude/rules/core/030-error-handling.md": "sha256:b3c028abf2229f245fe9a173b8bb84502843f1d73ac1940d10f48eebff0764b5",
+        ".claude/rules/core/040-performance.md": "sha256:174d2f9e6ad58b2b2ae43b7ab69d2efeaf344bc52ddebf9d38a47b2eb8882cda",
+        ".claude/rules/core/050-logging.md": "sha256:6257b92add0effa81c034c3a220698dd77c107e8736205e0ddbe7fc53df16297",
+        ".claude/rules/core/060-naming.md": "sha256:7b4bf67615c18078852b1e6fece426ba91689a5ac2842db031f580e13bba4481",
+        ".claude/rules/core/070-planning.md": "sha256:397743338a6a0c5d49af4a3c46da9f796297292ce0f1996ed22a9cc6285d8740",
+        ".claude/rules/lang/100-typescript.md": "sha256:5378af975febe5b4b2e2ac4edf4163fc0d9fddf406df8055a858a11bd9656416"
+      }
+    }
+  }
+}
