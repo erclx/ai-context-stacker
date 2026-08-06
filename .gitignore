@@ -15,7 +15,6 @@ node_modules/
 
 # Claude
 .claude/.tmp/
-.claude/briefs/
 .claude/groundwork/
 .claude/intake/
 .claude/memory/
@@ -25,4 +24,3 @@ node_modules/
 .claude/task-archive/
 .claude/tasks/
 .claude/worktrees/
-.claude/TASKS.md

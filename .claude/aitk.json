@@ -1,33 +1,41 @@
 {
-  "covers": ["standards", "governance"],
+  "covers": ["standards", "snippets", "governance"],
   "domains": {
     "standards": {
-      "syncedAt": "2026-08-05T05:47:28.660Z",
+      "syncedAt": "2026-08-06T07:13:26.454Z",
       "files": {
-        ".claude/standards/architecture.md": "sha256:a79b7d69a3d9d695a87d025afcff3ea5972a03b10c1dd4f148206a332e6f56dc",
-        ".claude/standards/context.md": "sha256:68aff546005892f86a9746ec11f1d7f8968b7a6369a765e08fe52c867e42072f",
+        ".claude/standards/architecture.md": "sha256:ba5250a926df3a943bbd4a830ed99c0cb109b72c35e17a43687f24709ee13e8c",
+        ".claude/standards/context.md": "sha256:165b7e2a3aef0d05be54910faf420db8fb67bbdfc57ca523e9c3848a1abed4ea",
         ".claude/standards/design.md": "sha256:3ffb517fc76312a63e63dbde02dd1a7e2050586ec600ec883969b097bc7f01c3",
         ".claude/standards/diagrams.md": "sha256:c3bdcd013a43d54db5cafa8f31263d439d22b907c738cc38fa97492053e56b73",
         ".claude/standards/groundwork.md": "sha256:59a7ccf1c25eb0a14061d1bb14a50000e8fdfdfa2c895ead1c2daebee9624b0e",
         ".claude/standards/intake.md": "sha256:a6b714a4b44e0be085128f89dc90c97ffbd18f2f33e07c4c52409f4098881b16",
-        ".claude/standards/markdown.md": "sha256:30a2cc9c61fa9f639fee363b25e2f2541bae2fb7d9bcaa367537f554aa2ca0c4",
+        ".claude/standards/markdown.md": "sha256:97f99ed27fbc844c41d459d9239c93c5967936e948423f1037c6d920ef9eb27d",
         ".claude/standards/memory.md": "sha256:cdde98e2adfd32e8ed5eebe0bfd6c5db19b32861eee33358a9bd30a43ea6c39a",
-        ".claude/standards/plan.md": "sha256:d088e65076c8b8d9740902461daee80ce3e3f59e130c5729904931dd8780d2f4",
+        ".claude/standards/plan.md": "sha256:9080fa6d0214ae2a866e3d8cce0615dff80f6ef2ea4d0b636c62ab8293c09c23",
         ".claude/standards/prose.md": "sha256:c47fd1ff6c3a703ca811767d7dcc301199ac4c82a032c67a6fac6eeee7936569",
         ".claude/standards/publish.md": "sha256:56c03659bd1880ecadfa9b40f82e6fd08356a2e68b6c20eaf3ed869b5561c4c3",
         ".claude/standards/readme.md": "sha256:ee90c3e48176a9958b9de7c437e91d7639e943fee5405f7684b3c187132513d7",
         ".claude/standards/requirements.md": "sha256:1a9be54cf38f6ac6d3b84366fac14df203912d758d437924431934639316eb34",
         ".claude/standards/rule.md": "sha256:91f6954be38916b8279d3ef0f817e8b506c1f3939ac90db9dd13ecb77e7200fe",
-        ".claude/standards/skill.md": "sha256:8ca6b174bd309b0e40d03cf155c0b6ccf9452b8abe1daf829b93fd55c4d8be6c",
-        ".claude/standards/slug.md": "sha256:ac99f03d3f1ab7c1dabb2be60b1f05a0c53ca22406bcd40d29b8447dbbfd49e5",
+        ".claude/standards/skill.md": "sha256:fff8e24a24cd97f4e570dec03d8cb2a37d0fdfd3c01e7d070bb09c7b9b0671ec",
+        ".claude/standards/slug.md": "sha256:2632c57d33be681a9181f88e6d30d403b4ed7bae2269a5eac04534c55ec7894f",
         ".claude/standards/standard.md": "sha256:8d64bbed395c84a67a28b3805a7ae043ed7fbc25b840d7968f68a1de638cf2c2",
-        ".claude/standards/tasks.md": "sha256:64777390fd887fcc8ab9f930737bdf4d20742df3b1ebaefe203d9b6df61d87f4",
+        ".claude/standards/tasks.md": "sha256:96058c85a88a2e02f9fcaa72c399f83a4c520e43b1cb3efaf764645d9be71cbf",
         ".claude/standards/versioning.md": "sha256:b30bdc246d2859c9a39b20e6975a050e560e2754cf8e196aa7a2d37ecbb3a9aa",
         ".claude/standards/wireframes.md": "sha256:2317cbda84ecfdb03e13a0c98f37a7d93c560746aa191df043e689d573fb1f2f"
       }
     },
+    "snippets": {
+      "syncedAt": "2026-08-06T07:13:26.538Z",
+      "files": {
+        ".claude/snippets/compact-summary.md": "sha256:bc5194176a43efd367ba50f612192817fb5f9e4553e0996cf41b40b9402351aa",
+        ".claude/snippets/decision-help.md": "sha256:21c940028d8de16f22d025499fded57620afe6fc7c994d094d270f60f69032a1",
+        ".claude/snippets/step-by-step.md": "sha256:9b6c210fa1fe88e9222fb5e81f0a943cf71fb3a8e072d27402764ab37dcff735"
+      }
+    },
     "governance": {
-      "syncedAt": "2026-08-05T05:38:39.571Z",
+      "syncedAt": "2026-08-06T07:13:26.638Z",
       "files": {
         ".claude/rules/core/000-constitution.md": "sha256:f0a61628b5a95bee868d6b62204df8a63c647906aa66af6157c6a6e8a3ecb7cc",
         ".claude/rules/core/010-testing.md": "sha256:6506b7092bec6c633687d5311e880cf1adc800fb4413ed99aaa213d6697223bd",
@@ -36,7 +44,7 @@
         ".claude/rules/core/040-performance.md": "sha256:174d2f9e6ad58b2b2ae43b7ab69d2efeaf344bc52ddebf9d38a47b2eb8882cda",
         ".claude/rules/core/050-logging.md": "sha256:6257b92add0effa81c034c3a220698dd77c107e8736205e0ddbe7fc53df16297",
         ".claude/rules/core/060-naming.md": "sha256:7b4bf67615c18078852b1e6fece426ba91689a5ac2842db031f580e13bba4481",
-        ".claude/rules/core/070-planning.md": "sha256:397743338a6a0c5d49af4a3c46da9f796297292ce0f1996ed22a9cc6285d8740",
+        ".claude/rules/core/070-planning.md": "sha256:b7cb355b67eb4cd3d4fa404bccca0aa115327c88a962f4349df6e818ce822601",
         ".claude/rules/lang/100-typescript.md": "sha256:5378af975febe5b4b2e2ac4edf4163fc0d9fddf406df8055a858a11bd9656416"
       }
     }
