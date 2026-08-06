@@ -28,4 +28,4 @@ How `PersistenceService` writes track state to `workspaceState`, how fingerprint
 ## Gotchas
 
 - `workspaceState` is per-workspace and per-machine. There is no sync across machines and no migration path off the 100KB cap. A user who hits the cap loses any further additions until they remove files.
-- Hydration drops missing files silently. A user who renames a file outside VS Code and reopens the workspace will see the file simply gone from the track, with no notification.
+- Hydration drops missing files silently. A user who renames a file outside VS Code and reopens the workspace will see the file gone from the track, with no notification.

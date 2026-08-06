@@ -4,7 +4,7 @@ VS Code extension for staging files into named tracks and copying combined conte
 
 ## Before making changes
 
-- Check `.claude/TASKS.md` for current scope and status
+- Check `.claude/tasks/` for current scope and status
 - Check `.claude/ARCHITECTURE.md` for decisions already made
 - Check `.claude/wireframes/` for intended UI layout and behavior
 - Check `.claude/DESIGN.md` for tokens, typography, spacing, and component rules
@@ -72,10 +72,10 @@ The project uses a three-tier context model. Know which tier holds what before r
 
 ## Tasks
 
-- `.claude/TASKS.md` is gitignored local session scratch. Edit freely. No staging or revert before commits.
+- `.claude/tasks/` is gitignored local session scratch. Edit freely. No staging or revert before commits.
 - Only create a task for work that spans multiple sessions or has real dependencies. Handle small edits immediately without a task entry.
 - Do not add tasks retroactively for work already completed. Completed work is visible in git.
-- When a task needs execution detail beyond `.claude/TASKS.md`, create a plan in `.claude/plans/` and link to it from the task block's intro paragraph. When that task ships, delete its plan file.
+- When a task needs execution detail beyond its own file in `.claude/tasks/`, create a plan in `.claude/plans/` and link to it from the task's intro paragraph. When that task ships, delete its plan file.
 - Write the plan in the same session as the task block. The session that executes the plan later inherits reasoning context it would otherwise have to re-derive.
 
 ## Memory
@@ -92,5 +92,5 @@ The project uses a three-tier context model. Know which tier holds what before r
 ## Worktrees
 
 - Implementation work runs in a linked worktree. From the main worktree, enter one with `/claude-worktree` before editing tracked files for a feature.
-- Shared session scratch (`.claude/plans/`, `.claude/review/`, `.claude/memory/`, `.claude/briefs/`, `.claude/TASKS.md`) lives at the main worktree root, not inside a linked worktree. From a linked worktree, resolve these paths against the main root via `git worktree list --porcelain | grep -m 1 '^worktree ' | cut -d' ' -f2-`. Fall back to `pwd` if not a git repo.
-- From a linked worktree, every `Edit` or `Write` to a tracked file (source, docs) must use a path starting with `pwd`. Only shared session scratch (`.claude/plans/`, `.claude/review/`, `.claude/memory/`, `.claude/briefs/`, `.claude/TASKS.md`) resolves to the main worktree root.
+- Shared session scratch (`.claude/plans/`, `.claude/review/`, `.claude/memory/`, `.claude/tasks/`) lives at the main worktree root, not inside a linked worktree. From a linked worktree, resolve these paths against the main root via `git worktree list --porcelain | grep -m 1 '^worktree ' | cut -d' ' -f2-`. Fall back to `pwd` if not a git repo.
+- From a linked worktree, every `Edit` or `Write` to a tracked file (source, docs) must use a path starting with `pwd`. Only shared session scratch (`.claude/plans/`, `.claude/review/`, `.claude/memory/`, `.claude/tasks/`) resolves to the main worktree root.
