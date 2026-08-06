@@ -9,11 +9,14 @@ WHITE='\033[1;37m'
 GREY='\033[0;90m'
 NC='\033[0m'
 
-log_info()  { echo -e "${GREY}│${NC} ${GREEN}✓${NC} $1"; }
-log_warn()  { echo -e "${GREY}│${NC} ${YELLOW}!${NC} $1"; }
-log_error() { echo -e "${GREY}│${NC} ${RED}✗${NC} $1"; exit 1; }
-log_step()  { echo -e "${GREY}│${NC}\n${GREY}├${NC} ${WHITE}$1${NC}"; }
-log_add()   { echo -e "${GREY}│${NC} ${GREEN}+${NC} $1"; }
+log_info() { echo -e "${GREY}│${NC} ${GREEN}✓${NC} $1"; }
+log_warn() { echo -e "${GREY}│${NC} ${YELLOW}!${NC} $1"; }
+log_error() {
+  echo -e "${GREY}│${NC} ${RED}✗${NC} $1"
+  exit 1
+}
+log_step() { echo -e "${GREY}│${NC}\n${GREY}├${NC} ${WHITE}$1${NC}"; }
+log_add() { echo -e "${GREY}│${NC} ${GREEN}+${NC} $1"; }
 
 close_timeline() {
   echo -e "${GREY}└${NC}"
@@ -54,24 +57,24 @@ select_option() {
 
     read -rsn1 key
     case "$key" in
-      $'\x1b')
-        if read -rsn2 -t 0.001 key_seq; then
-          if [[ "$key_seq" == "[A" ]]; then cur=$(( (cur - 1 + count) % count )); fi
-          if [[ "$key_seq" == "[B" ]]; then cur=$(( (cur + 1) % count )); fi
-        else
-          echo -en "\033[$((count + 1))A\033[J"
-          echo -e "\033[1A${GREY}│${NC}\n${GREY}◇${NC} ${prompt_text} ${RED}Cancelled${NC}"
-          exit 1
-        fi
-        ;;
-      "k") cur=$(( (cur - 1 + count) % count ));;
-      "j") cur=$(( (cur + 1) % count ));;
-      "q")
+    $'\x1b')
+      if read -rsn2 -t 0.001 key_seq; then
+        if [[ "$key_seq" == "[A" ]]; then cur=$(((cur - 1 + count) % count)); fi
+        if [[ "$key_seq" == "[B" ]]; then cur=$(((cur + 1) % count)); fi
+      else
         echo -en "\033[$((count + 1))A\033[J"
         echo -e "\033[1A${GREY}│${NC}\n${GREY}◇${NC} ${prompt_text} ${RED}Cancelled${NC}"
         exit 1
-        ;;
-      "") break ;;
+      fi
+      ;;
+    "k") cur=$(((cur - 1 + count) % count)) ;;
+    "j") cur=$(((cur + 1) % count)) ;;
+    "q")
+      echo -en "\033[$((count + 1))A\033[J"
+      echo -e "\033[1A${GREY}│${NC}\n${GREY}◇${NC} ${prompt_text} ${RED}Cancelled${NC}"
+      exit 1
+      ;;
+    "") break ;;
     esac
 
     echo -en "\033[${count}A"
@@ -83,10 +86,10 @@ select_option() {
 }
 
 check_dependencies() {
-  command -v git >/dev/null 2>&1  || log_error "git is required"
+  command -v git >/dev/null 2>&1 || log_error "git is required"
   command -v node >/dev/null 2>&1 || log_error "node is required"
-  command -v npm >/dev/null 2>&1  || log_error "npm is required"
-  command -v gh >/dev/null 2>&1   || log_error "gh is required"
+  command -v npm >/dev/null 2>&1 || log_error "npm is required"
+  command -v gh >/dev/null 2>&1 || log_error "gh is required"
   command -v perl >/dev/null 2>&1 || log_error "perl is required"
 }
 
@@ -104,11 +107,11 @@ validate_git_state() {
 compute_next_version() {
   local bump_type=$1
   CURRENT_VERSION=$(node -p "require('./package.json').version")
-  IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+  IFS='.' read -r major minor patch <<<"$CURRENT_VERSION"
   case "$bump_type" in
-    major) NEXT_VERSION="$((major + 1)).0.0" ;;
-    minor) NEXT_VERSION="${major}.$((minor + 1)).0" ;;
-    patch) NEXT_VERSION="${major}.${minor}.$((patch + 1))" ;;
+  major) NEXT_VERSION="$((major + 1)).0.0" ;;
+  minor) NEXT_VERSION="${major}.$((minor + 1)).0" ;;
+  patch) NEXT_VERSION="${major}.${minor}.$((patch + 1))" ;;
   esac
 }
 
@@ -119,7 +122,7 @@ create_release_branch() {
 }
 
 bump_version() {
-  npm version "$BUMP_TYPE" --no-git-tag-version > /dev/null
+  npm version "$BUMP_TYPE" --no-git-tag-version >/dev/null
   log_add "package.json → $NEXT_VERSION"
 }
 

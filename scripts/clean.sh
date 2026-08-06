@@ -8,7 +8,7 @@ WHITE='\033[1;37m'
 GREY='\033[0;90m'
 NC='\033[0m'
 
-log_rem()   { echo -e "${GREY}│${NC} ${RED}-${NC} $1"; }
+log_rem() { echo -e "${GREY}│${NC} ${RED}-${NC} $1"; }
 
 close_timeline() {
   echo -e "${GREY}└${NC}"
