@@ -14,6 +14,11 @@ Two jobs run in sequence:
 1. `test` runs on every trigger
 2. `publish` runs only when a `v*` tag is pushed, and only after `test` passes
 
+## Layout
+
+- `.github/workflows/` owns the single CI/CD pipeline definition
+- `scripts/` owns the release and snapshot automation the pipeline triggers
+
 ## Test job
 
 Tests run in a matrix across Ubuntu, macOS, and Windows using Node 22. The VS Code test host requires a display on Linux, so the Linux step wraps `npm test` with `xvfb-run -a`. macOS and Windows run `npm test` directly.

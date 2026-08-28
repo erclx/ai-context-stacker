@@ -5,16 +5,19 @@ description: Tree item rendering, context-value taxonomy, and synthetic empty-st
 
 # UI rendering
 
+## Overview
+
 How `StackItemRenderer` turns a tree node into a `TreeItem`, what context values gate which menu actions, and how empty-state items pretend to be files without being files.
 
-## Layer responsibilities
+## Layout
 
-- `src/ui/stack-item-renderer.ts` owns per-item rendering: label, description, tooltip, context value, icon
-- `src/ui/status-bar.ts` owns the status bar item
-- `src/ui/webview-factory.ts` owns the preview panel HTML
+- `src/ui/` owns per-item rendering, the status bar item, and the preview panel HTML
 
 ## Decisions
 
+- `src/ui/stack-item-renderer.ts` owns per-item rendering: label, description, tooltip, context value, icon.
+- `src/ui/status-bar.ts` owns the status bar item.
+- `src/ui/webview-factory.ts` owns the preview panel HTML.
 - Empty-state items use a synthetic URI scheme `ai-stack:` instead of a real file path. This lets the tree provider produce them like any other node while letting renderers and command handlers detect them and skip file operations. The placeholder ("Add files to your stack") and the "No files match your filter" item both use this scheme.
 - Token count formatting has three branches in `stack-item-renderer.ts`: `~0` for NaN or negative, `~1.5k` form for values at or above 1000, `~500` form for everything else. The `~` prefix signals approximation, consistent with the character-based estimator.
 - Folder description appends `(Pinned)` when the folder's propagated pin state is true. File description appends a warning tag when the file's token count exceeds the configured `largeFileThreshold` (default 5000).

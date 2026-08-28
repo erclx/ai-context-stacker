@@ -5,16 +5,19 @@ description: workspaceState serialization, fingerprinting, and the 100KB cap beh
 
 # Persistence
 
+## Overview
+
 How `PersistenceService` writes track state to `workspaceState`, how fingerprinting skips redundant writes, and what happens at the 100KB cap.
 
-## Layer responsibilities
+## Layout
 
-- `src/services/persistence-service.ts` owns serialization, debouncing, and fingerprint comparison
-- `src/services/track-manager.ts` calls `requestSave()` on every mutation
-- VS Code's `ExtensionContext.workspaceState` is the storage backend
+- `src/services/` owns serialization, debouncing, fingerprint comparison, and the save-trigger call on every mutation
 
 ## Decisions
 
+- `src/services/persistence-service.ts` owns serialization, debouncing, and fingerprint comparison.
+- `src/services/track-manager.ts` calls `requestSave()` on every mutation.
+- VS Code's `ExtensionContext.workspaceState` is the storage backend.
 - The fingerprint hashes track IDs, file URIs, and the active track ID. It does not include file order, stats, or per-file metadata. Reordering files within a track currently does change the URI list order. Mutations that produce the same fingerprint (a no-op rename to itself, an add-then-remove of the same file) are skipped.
 - Hydration is deferred 10ms via `setTimeout`. This lets the extension activate and register views before the first storage read. Missing files are silently dropped during hydration. No error surfaces to the user.
 - `saveImmediate()` exists as an explicit flush for moments where the debounce is unsafe (track switch, track deletion, deactivation). Normal mutations call `requestSave()` and rely on the 500ms debounce.

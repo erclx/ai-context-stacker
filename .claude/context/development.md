@@ -5,6 +5,15 @@ description: Local setup, dev loop, test commands, and release workflow
 
 # Development
 
+## Overview
+
+How to set up, run, test, and release the extension locally. Doesn't cover the CI workflow itself, which lives in [[ci]].
+
+## Layout
+
+- `src/test/suite/` owns the test suite
+- `scripts/` owns the release and snapshot automation
+
 ## Setup
 
 ```plaintext
