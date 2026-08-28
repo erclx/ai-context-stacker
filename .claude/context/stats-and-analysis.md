@@ -5,16 +5,20 @@ description: Background token enrichment, debounce priority, and stat cache inva
 
 # Stats and analysis
 
+## Overview
+
 How `AnalysisEngine` enriches files with token counts in the background, how debounce priority shifts based on user activity, and what the stat cache does and does not invalidate on.
 
-## Layer responsibilities
+## Layout
 
-- `src/services/analysis-engine.ts` owns the enrichment queue, warming-up state, and cancellation
-- `src/services/stats-processor.ts` owns the per-file stat cache keyed by mtime and size
-- `src/utils/token-estimator.ts` is the stateless character-based estimator
+- `src/services/` owns the enrichment queue, warming-up state, cancellation, and the per-file stat cache
+- `src/utils/` owns the stateless token-count estimator
 
 ## Decisions
 
+- `src/services/analysis-engine.ts` owns the enrichment queue, warming-up state, and cancellation.
+- `src/services/stats-processor.ts` owns the per-file stat cache keyed by mtime and size.
+- `src/utils/token-estimator.ts` is the stateless character-based estimator.
 - Debounce priority is dynamic. `setExecutionPriority(true)` switches the engine to 400ms debounce for active typing. `setExecutionPriority(false)` reverts to 2000ms for idle background work. Callers flip priority around user-driven mutations (track switch, file add) so the user sees fast updates without paying the cost continuously.
 - UI updates are throttled separately at 100ms via `UI_THROTTLE_MS`. Even when analysis bursts, the tree re-renders no more than ten times a second.
 - Stat cache caps at 1000 entries. On overflow, oldest-by-mtime entries are trimmed in `stats-processor.ts`. This is a soft LRU. It assumes mtime is a fair proxy for "least recently used".

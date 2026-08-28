@@ -7,6 +7,8 @@ subtitle: Per-domain narrative loaded on demand
 
 Per-domain narrative loaded on demand
 
+- [CI/CD](ci.md): GitHub Actions workflow that tests on push and PR and publishes on v\* tags
+- [Development](development.md): Local setup, dev loop, test commands, and release workflow
 - [Filtering and sorting](filtering-and-sorting.md): Pinned-only filter, sort weights, and refresh-vs-resort race semantics
 - [Ignore and scanning](ignore-and-scanning.md): Exclude pattern merging, gitignore parsing, and folder-scan batching
 - [Persistence](persistence.md): workspaceState serialization, fingerprinting, and the 100KB cap behavior

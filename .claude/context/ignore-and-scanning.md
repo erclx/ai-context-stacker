@@ -5,16 +5,20 @@ description: Exclude pattern merging, gitignore parsing, and folder-scan batchin
 
 # Ignore and scanning
 
+## Overview
+
 How `IgnoreManager` merges exclude patterns from multiple sources, how `.gitignore` patterns convert to VS Code globs, and how folder scans batch to keep the event loop responsive.
 
-## Layer responsibilities
+## Layout
 
-- `src/services/ignore-manager.ts` merges sources and exposes the combined glob string
-- `src/services/ignore-parser.ts` converts `.gitignore` syntax to VS Code glob syntax
-- `src/commands/copy-file.ts` and `src/services/folder-scanner.ts` consume the glob via `vscode.workspace.findFiles()`
+- `src/services/` owns exclude-pattern merging, gitignore-to-glob conversion, and folder-scan batching
+- `src/commands/` consumes the merged glob for file-copy operations
 
 ## Decisions
 
+- `src/services/ignore-manager.ts` merges sources and exposes the combined glob string.
+- `src/services/ignore-parser.ts` converts `.gitignore` syntax to VS Code glob syntax.
+- `src/commands/copy-file.ts` and `src/services/folder-scanner.ts` consume the glob via `vscode.workspace.findFiles()`.
 - Three sources merge into one glob: `.gitignore` (parsed), user setting `aiContextStacker.excludes`, and fallback patterns from `src/constants.ts`. The merged form is a single `{a,b,c}` brace expression passed to `findFiles()`.
 - `convertToGlob()` normalizes `.gitignore` patterns: strip leading `/`, strip trailing `/`, prefix non-`**/` patterns with `**/` so they match at any depth. This matches the user's intuition that `node_modules` in `.gitignore` excludes every `node_modules` folder rather than the root-level one alone.
 - Folder scans batch in groups of five with a yield to the event loop between batches. This keeps the UI responsive on large folders without paying per-file scheduling overhead.

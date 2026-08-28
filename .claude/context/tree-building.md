@@ -5,16 +5,21 @@ description: Folder-and-file tree assembly, optimistic patching, and pin-state p
 
 # Tree building
 
+## Overview
+
 How `StackProvider` assembles the staged files into a hierarchical tree, when it patches in place vs rebuilds, and how pin state propagates through folders.
 
-## Layer responsibilities
+## Layout
 
-- `src/services/tree-builder.ts` owns pure tree assembly from a flat file list
-- `src/providers/stack-provider.ts` owns the cached tree, dirty-bit, and the decision to patch or rebuild
-- `src/ui/stack-item-renderer.ts` owns the per-item visual representation
+- `src/services/` owns pure tree assembly from a flat file list
+- `src/providers/` owns the cached tree, dirty-bit, and the patch-or-rebuild decision
+- `src/ui/` owns the per-item visual representation
 
 ## Decisions
 
+- `src/services/tree-builder.ts` owns pure tree assembly from a flat file list.
+- `src/providers/stack-provider.ts` owns the cached tree, dirty-bit, and the decision to patch or rebuild.
+- `src/ui/stack-item-renderer.ts` owns the per-item visual representation.
 - `propagatePinState()` walks the tree bottom-up and sets `folder.isPinned = true` whenever any descendant is pinned. This auto-pins parent folders so they sort with their pinned children. The folder's own `isPinned` flag is the propagated value, not a user-set one.
 - `getSortWeight()` adds +2 for pinned items and +1 for folders. Folders therefore sort above root files even when neither is pinned. Pinned files outrank pinned folders only because file weight starts at 0 and folder weight starts at +1.
 - `StackProvider.canPerformOptimisticPatch()` short-circuits the rebuild path. Preconditions are: tree not dirty, no filter active, cache exists. Any failure falls back to a full rebuild via `tree-builder`.
