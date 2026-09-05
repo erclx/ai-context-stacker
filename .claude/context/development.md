@@ -46,6 +46,8 @@ To compile tests without running them:
 npm run compile-tests
 ```
 
+`npm run format` unconditionally rewrites `.claude/context/index.md`, escaping the bare `*` in "publishes on v\* tags" to `v\* tags`. This is pre-existing drift unrelated to feature work: running format on an unrelated branch dirties this file every time, so revert it (`git checkout -- .claude/context/index.md`) before staging rather than ship it as part of an unrelated diff.
+
 ## Release
 
 `npm run release` runs `scripts/release.sh`. It prompts for a bump type, creates a release branch, updates `package.json` and `CHANGELOG.md`, opens a PR, polls until the PR merges, then pushes the version tag that triggers CI to publish.
