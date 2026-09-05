@@ -14,11 +14,6 @@ node_modules/
 .env.*
 
 # Claude
-.claude/.tmp/
-.claude/groundwork/
-.claude/intake/
-.claude/memory/
-.claude/plans/
-.claude/review/
-.claude/tasks/
+.canon/tmp/
 .claude/worktrees/
+.canon/

@@ -4,7 +4,7 @@ VS Code extension for staging files into named tracks and copying combined conte
 
 ## Before making changes
 
-- Check `.claude/tasks/` for current scope and status
+- Check `.canon/tasks/` for current scope and status
 - Check `.claude/ARCHITECTURE.md` for decisions already made
 - Check `.claude/wireframes/` for intended UI layout and behavior
 - Check `.claude/DESIGN.md` for tokens, typography, spacing, and component rules
@@ -35,4 +35,4 @@ The project uses a three-tier context model. Know which tier holds what before r
 - `ui/`: tree rendering, status bar, drag and drop, webview preview
 - `utils/`: stateless helpers for clipboard, formatting, file scanning, token estimation
 - `.claude/`: planning docs (requirements, architecture, wireframes, design, tasks)
-- `.claude/review/`: gitignored scratch for review and UI-test output, overwritten on each run
+- `.canon/review/`: gitignored scratch for review and UI-test output, overwritten on each run

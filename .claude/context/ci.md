@@ -65,4 +65,4 @@ Pushing the tag triggers the `publish` job in CI.
 npm run snapshot
 ```
 
-`scripts/snapshot.sh` writes a file tree of the project to `.claude/.tmp/SNAPSHOT.md`, respecting `.gitignore` patterns. Used for sharing project structure as context.
+`scripts/snapshot.sh` writes a file tree of the project to `.canon/tmp/SNAPSHOT.md`, respecting `.gitignore` patterns. Used for sharing project structure as context.

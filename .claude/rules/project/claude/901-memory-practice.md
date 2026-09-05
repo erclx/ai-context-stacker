@@ -1,7 +1,7 @@
 ---
 description: Enforce when to save a feedback memory and its length
 paths:
-  - '.claude/memory/**'
+  - '.canon/memory/**'
 ---
 
 # Memory practice standards
