@@ -26,10 +26,6 @@ The project uses a three-tier context model. Know which tier holds what before r
 
 @.claude/context/index.md
 
-## Behavior
-
-- When rewriting a section, preserve existing code blocks, tables, and grouped examples unless the user asked to remove them.
-
 ## Key paths
 
 - `commands/`: thin handlers, one file per command
@@ -40,14 +36,3 @@ The project uses a three-tier context model. Know which tier holds what before r
 - `utils/`: stateless helpers for clipboard, formatting, file scanning, token estimation
 - `.claude/`: planning docs (requirements, architecture, wireframes, design, tasks)
 - `.claude/review/`: gitignored scratch for review and UI-test output, overwritten on each run
-
-## Spelling
-
-- Add a real term from a tool, library, or platform to `.cspell/technical.txt`, or a project-specific term to `.cspell/project.txt`. Rewrite a flagged typo instead of adding it.
-- Keep both dictionary files sorted alphabetically.
-
-## Memory
-
-- Save a feedback memory only when the same mistake happens twice in the session, or when the user explicitly corrects you. First-occurrence slips are noise.
-- Keep feedback memories to 3 lines: the rule, a one-line Why, and a one-line How to apply. Capture the pattern, not the recovery narrative.
-- Before creating a new memory file, check for an existing one on the same topic. Update rather than duplicate.
