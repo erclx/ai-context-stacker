@@ -7,7 +7,7 @@ WHITE='\033[1;37m'
 GREY='\033[0;90m'
 NC='\033[0m'
 
-OUTPUT_FILE=".claude/.tmp/SNAPSHOT.md"
+OUTPUT_FILE=".canon/tmp/SNAPSHOT.md"
 
 log_info() { echo -e "${GREY}│${NC} ${GREEN}✓${NC} $1"; }
 log_error() {

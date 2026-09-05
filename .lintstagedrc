@@ -1,5 +1,5 @@
 {
   "**/*.{ts,js}": ["eslint --fix", "prettier --write", "cspell --no-must-find-files"],
   "**/*.{json,md}": ["prettier --write", "cspell --no-must-find-files"],
-  "**/*.md": "aitk indexes regen"
+  "**/*.md": "canon indexes regen"
 }
